@@ -1,6 +1,6 @@
 from math import exp, log, ceil, floor
 import matplotlib.pyplot as plt
-from model.cell import CancerCell, HealthyCell, OARCell
+from cell_pack.cell import CancerCell, HealthyCell, OARCell
 import random
 import numpy as np
 
@@ -52,7 +52,7 @@ class ScalarModel:
 
     def go(self, ticks=1):
         for _ in range(ticks):
-            self.time += 1
+            self.time += 1 # One hour
             self.fill_sources()
             self.cycle_cells()
             #graph
