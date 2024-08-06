@@ -137,7 +137,7 @@ class TabularLearner:
             self.state_helper_ccells = 40000.0 / (cancer_cell_stages - 2.0)
 
     def ccell_state(self, count):
-        if (self.state_type == 'o'): # log
+        if (self.state_type == 'o'): # log (natural logatitm)
             return min(self.cancer_cell_stages - 1, int(ceil(log(CancerCell.cell_count + 1) / log(self.state_helper_ccells))))
         else:
             return min(self.cancer_cell_stages - 1, int(ceil(CancerCell.cell_count / self.state_helper_ccells)))
@@ -204,7 +204,7 @@ class TabularLearner:
                 count += 1
             if verbose:
                 print(self.env.end_type)
-            if self.env.end_type == 'W':
+            if self.env.end_type == 'W': # Win
                 sum_w += 1
             if eval:
                 fracs_arr.append(fracs)
