@@ -250,10 +250,10 @@ class TabularLearner:
 random.seed(1234)
 env = ScalarModel('killed', draw=True)
 env.reset()
-env.irradiate(15)
+# env.irradiate(15)
 print(HealthyCell.cell_count, CancerCell.cell_count)
-env.go()
-env.draw('Single dose')
+# env.go()
+# env.draw('Single dose')
 '''
 agent = TabularLearner(env, 50, 5, 4)
 agent.run(20, 2500, 100, 0.8, 0.5, 0.8, 0.05, 0.95)
