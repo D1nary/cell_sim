@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from model.controller import Controller
+from model.controller3D import Controller
 import random
 from model.cell_pack.cell import HealthyCell, CancerCell, OARCell
 
