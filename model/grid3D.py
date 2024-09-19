@@ -119,51 +119,83 @@ class Grid:
         # as HealthyCells only reproduce in case of low density. As these counts seldom change after a few hundred
         # simulated hours, it is more efficient to store them than simply recompute them for each pixel while cycling.
         self.neigh_counts = np.zeros((xsize, ysize, zsize), dtype=int)
+
+
         #Pixels at the limits of the grid have fewer neighbours
         for i in range(xsize):
-            self.neigh_counts[i,0] += 3
-            self.neigh_counts[i, ysize - 1] += 3
-        for i in range(ysize):
-            self.neigh_counts[0, i] += 3
-            self.neigh_counts[xsize - 1, i] += 3
-        self.neigh_counts[0, 0] -= 1
-        self.neigh_counts[0, ysize - 1] -= 1
-        self.neigh_counts[xsize - 1, 0] -= 1
-        self.neigh_counts[xsize - 1, ysize - 1] -= 1
+            for j in range(ysize):
+                # Strati superiori e inferiori (z = 0 e z = zsize-1)
+                self.neigh_counts[i, j, 0] += 9  # Strato superiore
+                self.neigh_counts[i, j, zsize - 1] += 9  # Strato inferiore
+        for i in range(xsize):
+            for k in range(zsize):
+                # Bordi anteriori e posteriori (y = 0 e y = ysize-1)
+                self.neigh_counts[i, 0, k] += 9  # Bordo anteriore
+                self.neigh_counts[i, ysize - 1, k] += 9  # Bordo posteriore
+        for j in range(ysize):
+            for k in range(zsize):
+                # Bordi laterali (x = 0 e x = xsize-1)
+                self.neigh_counts[0, j, k] += 9  # Lato sinistro
+                self.neigh_counts[xsize - 1, j, k] += 9  # Lato destro
+
+        # Correzione per gli angoli (dove ci sono meno vicini)
+        self.neigh_counts[0, 0, 0] -= 3
+        self.neigh_counts[0, ysize - 1, 0] -= 3
+        self.neigh_counts[xsize - 1, 0, 0] -= 3
+        self.neigh_counts[xsize - 1, ysize - 1, 0] -= 3
+        self.neigh_counts[0, 0, zsize - 1] -= 3
+        self.neigh_counts[0, ysize - 1, zsize - 1] -= 3
+        self.neigh_counts[xsize - 1, 0, zsize - 1] -= 3
+        self.neigh_counts[xsize - 1, ysize - 1, zsize - 1] -= 3
 
         self.oar = oar
 
         self.center_x = self.xsize // 2
         self.center_y = self.ysize // 2
+        self.center_z = self.zsize // 2
 
     def count_neigbors(self):
         """Compute the neigbour counts (the number of cells on neighbouring pixels) for each pixel"""
         for i in range(self.xsize):
             for j in range(self.ysize):
-                self.neigh_counts[i, j] = sum(v for _, _, v in self.neighbors(i, j))
+                for k in range(self.zsize):
+                    self.neigh_counts[i, j, k] = sum(v for _, _, v in self.neighbors(i, j, k))
 
     def fill_source(self, glucose=0, oxygen=0):
-        """Sources of nutrients are refilled."""
+        """Sources of nutrients are refilled in a 3D grid."""
         for i in range(len(self.sources)):
-            self.glucose[self.sources[i][0], self.sources[i][1]] += glucose
-            self.oxygen[self.sources[i][0], self.sources[i][1]] += oxygen
+            x, y, z = self.sources[i]  # Estrai le coordinate 3D della sorgente
+            self.glucose[x, y, z] += glucose  # Aggiungi glucosio nella posizione 3D specificata
+            self.oxygen[x, y, z] += oxygen  # Aggiungi ossigeno nella posizione 3D specificata
+
             if random.randint(0, 23) == 0:
                 self.sources[i] = self.source_move(self.sources[i][0], self.sources[i][1])
 
-    def source_move(self, x, y):
-        """"Random walk of sources for angiogenesis"""
+    def source_move(self, x, y, z):
+        """"Random walk of sources for angiogenesis in a 3D grid"""
         if random.randint(0, 50000) < CancerCell.cell_count:  # Move towards tumour center
+            # Movimento lungo l'asse x verso il centro
             if x < self.center_x:
                 x += 1
             elif x > self.center_x:
                 x -= 1
+
+            # Movimento lungo l'asse y verso il centro
             if y < self.center_y:
                 y += 1
             elif y > self.center_y:
                 y -= 1
-            return x, y
+
+            # Movimento lungo l'asse z verso il centro
+            if z < self.center_z:
+                z += 1
+            elif z > self.center_z:
+                z -= 1
+
+            return x, y, z
         else:
-            return self.rand_neigh(x, y)
+            # Movimento casuale tra i vicini tridimensionali
+            return self.rand_neigh(x, y, z)
 
     def diffuse_glucose(self, drate):
         self.glucose = (1 - drate) * self.glucose + (0.125 * drate) * self.neighbors_glucose()
@@ -297,13 +329,24 @@ class Grid:
             return l[ind]
 
 
-    def neighbors(self, x, y):
-        """Return the positions of every valid pixel in the patch containing x, y and its neigbors, and their length"""
+    def neighbors(self, x, y, z):
+        """Return the positions of every valid pixel in the patch containing x, y, z and its neighbors, and their length"""
         neigh = []
-        for (i, j) in [(x, y), (x - 1, y - 1), (x - 1, y), (x - 1, y + 1), (x, y - 1), (x, y + 1), (x + 1, y - 1), (x + 1, y),
-                       (x + 1, y + 1)]:
-            if (i >= 0 and i < self.xsize and j >= 0 and j < self.ysize):
-                neigh.append([i, j, len(self.cells[i, j])])
+        # Lista delle possibili posizioni dei vicini in 3D (incluso il pixel stesso)
+        for (i, j, k) in [
+            (x, y, z), (x - 1, y - 1, z - 1), (x - 1, y, z - 1), (x - 1, y + 1, z - 1),
+            (x, y - 1, z - 1), (x, y, z - 1), (x, y + 1, z - 1), (x + 1, y - 1, z - 1), 
+            (x + 1, y, z - 1), (x + 1, y + 1, z - 1), (x - 1, y - 1, z), (x - 1, y, z),
+            (x - 1, y + 1, z), (x, y - 1, z), (x, y + 1, z), (x + 1, y - 1, z), 
+            (x + 1, y, z), (x + 1, y + 1, z), (x - 1, y - 1, z + 1), (x - 1, y, z + 1), 
+            (x - 1, y + 1, z + 1), (x, y - 1, z + 1), (x, y, z + 1), (x, y + 1, z + 1), 
+            (x + 1, y - 1, z + 1), (x + 1, y, z + 1), (x + 1, y + 1, z + 1)]:
+        
+            # Controlliamo se le coordinate (i, j, k) sono valide all'interno della griglia
+            if (i >= 0 and i < self.xsize and j >= 0 and j < self.ysize and k >= 0 and k < self.zsize):
+                # Aggiungi le coordinate e la lunghezza delle cellule nel punto (i, j, k)
+                neigh.append([i, j, k, len(self.cells[i, j, k])])
+    
         return neigh
 
     def irradiate(self, dose, center=None, rad=-1):
@@ -361,13 +404,27 @@ class Grid:
                     ind.append((i, j))
         return random.choice(ind) if v < max else None
 
-    def rand_neigh(self, x, y):
+    def rand_neigh(self, x, y, z):
         ind = []
-        for (i, j) in [(x - 1, y - 1), (x - 1, y), (x - 1, y + 1), (x, y - 1), (x, y + 1), (x + 1, y - 1), (x + 1, y),
-                       (x + 1, y + 1)]:
-            if (i >= 0 and i < self.xsize and j >= 0 and j < self.ysize):
-                    ind.append((i, j))
+        # Ciclo su tutti i vicini nelle tre dimensioni (inclusi i livelli sopra e sotto)
+        for (i, j, k) in [
+            (x - 1, y - 1, z - 1), (x - 1, y, z - 1), (x - 1, y + 1, z - 1),
+            (x, y - 1, z - 1), (x, y, z - 1), (x, y + 1, z - 1),
+            (x + 1, y - 1, z - 1), (x + 1, y, z - 1), (x + 1, y + 1, z - 1),
+            (x - 1, y - 1, z), (x - 1, y, z), (x - 1, y + 1, z),
+            (x, y - 1, z), (x, y + 1, z),
+            (x + 1, y - 1, z), (x + 1, y, z), (x + 1, y + 1, z),
+            (x - 1, y - 1, z + 1), (x - 1, y, z + 1), (x - 1, y + 1, z + 1),
+            (x, y - 1, z + 1), (x, y, z + 1), (x, y + 1, z + 1),
+            (x + 1, y - 1, z + 1), (x + 1, y, z + 1), (x + 1, y + 1, z + 1)
+        ]:
+            # Controlla se il vicino è dentro i limiti della griglia
+            if (i >= 0 and i < self.xsize and j >= 0 and j < self.ysize and k >= 0 and k < self.zsize):
+                ind.append((i, j, k))
+
+        # Restituisce una posizione casuale tra i vicini validi
         return random.choice(ind)
+
 
     def add_neigh_count(self, x, y, v):
         for (i, j) in [(x - 1, y - 1), (x - 1, y), (x - 1, y + 1), (x, y - 1), (x, y + 1), (x + 1, y - 1), (x + 1, y),
@@ -402,11 +459,12 @@ def scale(radius, x, multiplicator):
 
 
 # Creates a list of random positions in the grid where the sources of nutrients (blood vessels) will be
-def random_sources(xsize, ysize, number):
+def random_sources(xsize, ysize, zsize,number):
     src = []
     for _ in range(number):
         x = random.randint(0, xsize-1)
         y = random.randint(0, ysize-1)
-        if (x, y) not in src:
-            src.append((x,y))
+        z = random.randint(0, zsize-1)
+        if (x, y, z) not in src:
+            src.append((x,y,z))
     return src
