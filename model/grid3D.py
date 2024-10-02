@@ -219,60 +219,79 @@ class Grid:
         forward = np.roll(self.glucose, 1, axis=0)  # Moving forward along the third axis (z-axis)
 
         down_left_forward = np.roll(forward, shift=(1, -1), axis=(1, 2))
-        left_forward = np.roll(self.glucose, (1,-1,-1), axis=(0,1,2)) #VEDI
-        up_left_forward = np.roll(left_forward, -1, 1) #VEDI
+        left_forward = np.roll(forward, -1, axis=2)
+        up_left_forward = np.roll(forward, shift=(-1, -1), axis=(1, 2))
 
-        up_right_forward = np.roll(self.glucose, (1, 1), axis=(0,2)) #VEDI
-        right_forward = np.roll(self.glucose, (1, 1, 1), axis=(0,1,2)) #VEDI
-        down_right_forward = np.roll(right_forward, 1, 1) #VEDI
+        up_right_forward = np.roll(forward, shift=(-1, 1), axis=(1, 2))
+        right_forward = np.roll(forward, 1, axis=2)
+        down_right_forward = np.roll(forward, shift=(1, 1), axis=(1, 2))
         
         # Movimenti nel piano z-1 (backward)
-        backward = np.roll(self.glucose, -1, axis=0)  # Moving backward along the third axis (z-axis)
+        backward = np.roll(self.glucose, -1, axis=0)
 
-        down_left_backward = np.roll(self.glucose, (-1,-1), axis=(0,2))
-        left_backward = np.roll(self.glucose, (-1,-1,-1), axis=(0,1,2))
-        up_left_backward = np.roll(left_backward, -1, 1)
+        down_left_backward = np.roll(backward, shift=(1, -1), axis=(1, 2))
+        left_backward = np.roll(backward, -1, axis=2)
+        up_left_backward = np.roll(backward, shift=(-1, -1), axis=(1, 2))
 
-        up_right_backward = np.roll(self.glucose, (-1, 1), axis=(0,2))
-        right_backward = np.roll(self.glucose, (-1, 1, 1), axis=(0,1,2))
-        down_right_backward = np.roll(right_backward, 1, 1)
+        up_right_backward = np.roll(backward, shift=(-1, 1), axis=(1, 2))
+        right_backward = np.roll(backward, 1, axis=2)
+        down_right_backward = np.roll(backward, shift=(1, 1), axis=(1, 2))
 
 
         # Annullo alcuni estremi delle matrici 3D perchè agli estremi non si ha contributo di glucosio
 
         # A z fisso
-        down[:,:,0] = 0
-        up[self.zsize-1,:,:] = 0
-        right[:,0,:] = 0
-        left[:,self.xsize-1,:] = 0
-        down_right[0,:,:] = 0
-        down_right[:,0,:] = 0
-        down_left[0,:,:] = 0
-        down_left[:,self.xsize-1,:] = 0
-        up_right[self.zsize-1,:,:] = 0
-        up_right[:,0,:] = 0
-        up_left[self.zsize-1,:,:] = 0
-        up_left[:,self.xsize-1,:] = 0
+        down[:,0,:] = 0
+        up[:, self.xsize-1, :] = 0
+        right[:, :, 0] = 0
+        left[:, :, self.ysize-1] = 0
+        down_right[:,0,:] = 0 # Down
+        down_right[:, :, 0] = 0 # Right
+        down_left[:,0,:] = 0 # Down 
+        down_left[:, :, self.ysize-1] = 0 # Left
+        up_right[:, self.xsize-1, :] = 0 #Up
+        up_right[:, :, 0] = 0 # Right
+        up_left[:, self.xsize-1, :] = 0 # Up
+        up_left[:, :, self.ysize-1] = 0 # Left
 
         # Verso z+1
         forward[0,:,:] = 0
-        down_left_forward[:,:,:] = 0
-        down_left_forward[:,:,:] = 0
-        down_left_forward[:,:,:] = 0
-        left_forward[:,:,:] = 0
-        left_forward[:,:,:] = 0
-        up_left_forward[:,:,:] = 0
-        up_left_forward[:,:,:] = 0
-        up_left_forward[:,:,:] = 0
-        up_right_forward[:,:,:] = 0
-        up_right_forward[:,:,:] = 0
-        up_right_forward[:,:,:] = 0
-        right_forward[:,:,:] = 0
-        right_forward[:,:,:] = 0
-        down_right_forward[:,:,:] = 0
-        down_right_forward[:,:,:] = 0
-        down_right_forward[:,:,:] = 0
+        down_left_forward[:,0,:] = 0 # Down
+        down_left_forward[:, :, self.ysize-1] = 0 # Left
+        down_left_forward[0,:,:] = 0 # Forward
+        left_forward[:, :, self.ysize-1] = 0 # Left
+        left_forward[0,:,:] = 0 # Forward
+        up_left_forward[:, self.xsize-1, :] = 0 # Up
+        up_left_forward[:, :, self.ysize-1] = 0 # Left
+        up_left_forward[0,:,:] = 0 # Forward
+        up_right_forward[:, self.xsize-1, :] = 0 # Up
+        up_right_forward[:, :, 0] = 0 # Right
+        up_right_forward[0,:,:] = 0 # Forward
+        right_forward[:, :, 0] = 0 # Right
+        right_forward[0,:,:] = 0 # Forward
+        down_right_forward[:,0,:] = 0 # Down
+        down_right_forward[:, :, 0] = 0 # Right
+        down_right_forward[0,:,:] = 0 # Forward
 
+
+        # Verso z-1
+        backward[0,:,:] = 0
+        down_left_backward[:,0,:] = 0 # Down
+        down_left_backward[:, :, self.ysize-1] = 0 # Left
+        down_left_backward[self.zsize-1,:,:] = 0 # Backward
+        left_backward[:, :, self.ysize-1] = 0 # Left
+        left_backward[self.zsize-1,:,:] = 0 # Backward
+        up_left_backward[:, self.xsize-1, :] = 0 # Up
+        up_left_backward[:, :, self.ysize-1] = 0 # Left
+        up_left_backward[self.zsize-1,:,:] = 0 # Backward
+        up_right_backward[:, self.xsize-1, :] = 0 # Up
+        up_right_backward[:, :, 0] = 0 # Right
+        up_right_backward[self.zsize-1,:,:] = 0 # Backward
+        right_backward[:, :, 0] = 0 # Right
+        right_backward[self.zsize-1,:,:] = 0 # Backward
+        down_right_backward[:,0,:] = 0 # Down
+        down_right_backward[:, :, 0] = 0 # Right
+        down_right_backward[self.zsize-1,:,:] = 0 # Backward
 
 
 
