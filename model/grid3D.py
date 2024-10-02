@@ -204,32 +204,85 @@ class Grid:
         self.oxygen = (1 - drate) * self.oxygen + (0.125 * drate) * self.neighbors_oxygen()
 
     def neighbors_glucose(self):
-        #Roll array in every direction to diffuse
-        down = np.roll(self.glucose, 1, axis=0)
-        up = np.roll(self.glucose, -1, axis=0)
-        right = np.roll(self.glucose, 1, axis=(0, 1))
-        left = np.roll(self.glucose, -1, axis=(0, 1))
-        down_right = np.roll(down, 1, axis=(0, 1))
-        down_left = np.roll(down, -1, axis=(0, 1))
-        up_right = np.roll(up, 1, axis=(0, 1))
-        up_left = np.roll(up, -1, axis=(0, 1))
-        for i in range(self.ysize):  # Down
-            down[0, i] = 0
-            down_left[0, i] = 0
-            down_right[0, i] = 0
-        for i in range(self.ysize):  # Up
-            up[self.xsize - 1, i] = 0
-            up_left[self.xsize - 1, i] = 0
-            up_right[self.xsize - 1, i] = 0
-        for i in range(self.xsize):  # Right
-            right[i, 0] = 0
-            down_right[i, 0] = 0
-            up_right[i, 0] = 0
-        for i in range(self.xsize):  # Left
-            left[i, self.ysize - 1] = 0
-            down_left[i, self.ysize - 1] = 0
-            up_left[i, self.ysize - 1] = 0
-        return down + up + right + left + down_left + down_right + up_left + up_right
+        #Roll array in every direction to diffuse at fixed z
+        down = np.roll(self.glucose, shift=1, axis=1)
+        up = np.roll(self.glucose, shift=-1, axis=1)
+        right = np.roll(self.glucose, shift=1, axis=2)
+        left = np.roll(self.glucose, shift=-1, axis=2)
+        down_right = np.roll(down, shift=1, axis=2)
+        down_left = np.roll(down, shift=-1, axis=2)
+        up_right = np.roll(up, shift=1, axis=2)
+        up_left = np.roll(up, shift=-1, axis=2)
+
+        # Se il punto considerato si trova in z:
+        # Movimenti nel piano z+1 (foward)
+        forward = np.roll(self.glucose, 1, axis=0)  # Moving forward along the third axis (z-axis)
+
+        down_left_forward = np.roll(forward, shift=(1, -1), axis=(1, 2))
+        left_forward = np.roll(self.glucose, (1,-1,-1), axis=(0,1,2)) #VEDI
+        up_left_forward = np.roll(left_forward, -1, 1) #VEDI
+
+        up_right_forward = np.roll(self.glucose, (1, 1), axis=(0,2)) #VEDI
+        right_forward = np.roll(self.glucose, (1, 1, 1), axis=(0,1,2)) #VEDI
+        down_right_forward = np.roll(right_forward, 1, 1) #VEDI
+        
+        # Movimenti nel piano z-1 (backward)
+        backward = np.roll(self.glucose, -1, axis=0)  # Moving backward along the third axis (z-axis)
+
+        down_left_backward = np.roll(self.glucose, (-1,-1), axis=(0,2))
+        left_backward = np.roll(self.glucose, (-1,-1,-1), axis=(0,1,2))
+        up_left_backward = np.roll(left_backward, -1, 1)
+
+        up_right_backward = np.roll(self.glucose, (-1, 1), axis=(0,2))
+        right_backward = np.roll(self.glucose, (-1, 1, 1), axis=(0,1,2))
+        down_right_backward = np.roll(right_backward, 1, 1)
+
+
+        # Annullo alcuni estremi delle matrici 3D perchè agli estremi non si ha contributo di glucosio
+
+        # A z fisso
+        down[:,:,0] = 0
+        up[self.zsize-1,:,:] = 0
+        right[:,0,:] = 0
+        left[:,self.xsize-1,:] = 0
+        down_right[0,:,:] = 0
+        down_right[:,0,:] = 0
+        down_left[0,:,:] = 0
+        down_left[:,self.xsize-1,:] = 0
+        up_right[self.zsize-1,:,:] = 0
+        up_right[:,0,:] = 0
+        up_left[self.zsize-1,:,:] = 0
+        up_left[:,self.xsize-1,:] = 0
+
+        # Verso z+1
+        forward[0,:,:] = 0
+        down_left_forward[:,:,:] = 0
+        down_left_forward[:,:,:] = 0
+        down_left_forward[:,:,:] = 0
+        left_forward[:,:,:] = 0
+        left_forward[:,:,:] = 0
+        up_left_forward[:,:,:] = 0
+        up_left_forward[:,:,:] = 0
+        up_left_forward[:,:,:] = 0
+        up_right_forward[:,:,:] = 0
+        up_right_forward[:,:,:] = 0
+        up_right_forward[:,:,:] = 0
+        right_forward[:,:,:] = 0
+        right_forward[:,:,:] = 0
+        down_right_forward[:,:,:] = 0
+        down_right_forward[:,:,:] = 0
+        down_right_forward[:,:,:] = 0
+
+
+
+
+        return (down + up + right + left + forward + backward +
+            down_left + down_right + up_left + up_right +
+            right_forward + left_forward + down_right_forward + down_left_forward + 
+            up_right_forward + up_left_forward +
+            right_backward + left_backward + down_right_backward + down_left_backward + 
+            up_right_backward + up_left_backward)
+
 
     def neighbors_oxygen(self):
         # Roll array in every direction to diffuse
