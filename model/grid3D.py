@@ -275,23 +275,23 @@ class Grid:
 
 
         # Verso z-1
-        backward[0,:,:] = 0
-        down_left_backward[:,0,:] = 0 # Down
+        backward[self.zsize-1, :, :] = 0
+        down_left_backward[:, 0, :] = 0 # Down
         down_left_backward[:, :, self.ysize-1] = 0 # Left
-        down_left_backward[self.zsize-1,:,:] = 0 # Backward
+        down_left_backward[self.zsize-1, :, :] = 0 # Backward
         left_backward[:, :, self.ysize-1] = 0 # Left
-        left_backward[self.zsize-1,:,:] = 0 # Backward
+        left_backward[self.zsize-1, :, :] = 0 # Backward
         up_left_backward[:, self.xsize-1, :] = 0 # Up
         up_left_backward[:, :, self.ysize-1] = 0 # Left
-        up_left_backward[self.zsize-1,:,:] = 0 # Backward
+        up_left_backward[self.zsize-1, :, :] = 0 # Backward
         up_right_backward[:, self.xsize-1, :] = 0 # Up
         up_right_backward[:, :, 0] = 0 # Right
-        up_right_backward[self.zsize-1,:,:] = 0 # Backward
+        up_right_backward[self.zsize-1, :, :] = 0 # Backward
         right_backward[:, :, 0] = 0 # Right
-        right_backward[self.zsize-1,:,:] = 0 # Backward
-        down_right_backward[:,0,:] = 0 # Down
+        right_backward[self.zsize-1, :, :] = 0 # Backward
+        down_right_backward[:, 0, :] = 0 # Down
         down_right_backward[:, :, 0] = 0 # Right
-        down_right_backward[self.zsize-1,:,:] = 0 # Backward
+        down_right_backward[self.zsize-1, :,:] = 0 # Backward
 
 
 
@@ -304,32 +304,103 @@ class Grid:
 
 
     def neighbors_oxygen(self):
-        # Roll array in every direction to diffuse
-        down = np.roll(self.oxygen, 1, axis=0)
-        up = np.roll(self.oxygen, -1, axis=0)
-        right = np.roll(self.oxygen, 1, axis=(0, 1))
-        left = np.roll(self.oxygen, -1, axis=(0, 1))
-        down_right = np.roll(down, 1, axis=(0, 1))
-        down_left = np.roll(down, -1, axis=(0, 1))
-        up_right = np.roll(up, 1, axis=(0, 1))
-        up_left = np.roll(up, -1, axis=(0, 1))
-        for i in range(self.ysize):  # Down
-            down[0, i] = 0
-            down_left[0, i] = 0
-            down_right[0, i] = 0
-        for i in range(self.ysize):  # Up
-            up[self.xsize - 1, i] = 0
-            up_left[self.xsize - 1, i] = 0
-            up_right[self.xsize - 1, i] = 0
-        for i in range(self.xsize):  # Right
-            right[i, 0] = 0
-            down_right[i, 0] = 0
-            up_right[i, 0] = 0
-        for i in range(self.xsize):  # Left
-            left[i, self.ysize - 1] = 0
-            down_left[i, self.ysize - 1] = 0
-            up_left[i, self.ysize - 1] = 0
-        return down + up + right + left + down_left + down_right + up_left + up_right
+        #Roll array in every direction to diffuse at fixed z
+        down = np.roll(self.oxygen, shift=1, axis=1)
+        up = np.roll(self.oxygen, shift=-1, axis=1)
+        right = np.roll(self.oxygen, shift=1, axis=2)
+        left = np.roll(self.oxygen, shift=-1, axis=2)
+        down_right = np.roll(down, shift=1, axis=2)
+        down_left = np.roll(down, shift=-1, axis=2)
+        up_right = np.roll(up, shift=1, axis=2)
+        up_left = np.roll(up, shift=-1, axis=2)
+
+        # Se il punto considerato si trova in z:
+        # Movimenti nel piano z+1 (foward)
+        forward = np.roll(self.oxygen, 1, axis=0)  # Moving forward along the third axis (z-axis)
+
+        down_left_forward = np.roll(forward, shift=(1, -1), axis=(1, 2))
+        left_forward = np.roll(forward, -1, axis=2)
+        up_left_forward = np.roll(forward, shift=(-1, -1), axis=(1, 2))
+
+        up_right_forward = np.roll(forward, shift=(-1, 1), axis=(1, 2))
+        right_forward = np.roll(forward, 1, axis=2)
+        down_right_forward = np.roll(forward, shift=(1, 1), axis=(1, 2))
+        
+        # Movimenti nel piano z-1 (backward)
+        backward = np.roll(self.oxygen, -1, axis=0)
+
+        down_left_backward = np.roll(backward, shift=(1, -1), axis=(1, 2))
+        left_backward = np.roll(backward, -1, axis=2)
+        up_left_backward = np.roll(backward, shift=(-1, -1), axis=(1, 2))
+
+        up_right_backward = np.roll(backward, shift=(-1, 1), axis=(1, 2))
+        right_backward = np.roll(backward, 1, axis=2)
+        down_right_backward = np.roll(backward, shift=(1, 1), axis=(1, 2))
+
+
+        # Annullo alcuni estremi delle matrici 3D perchè agli estremi non si ha contributo di glucosio
+
+        # A z fisso
+        down[:,0,:] = 0
+        up[:, self.xsize-1, :] = 0
+        right[:, :, 0] = 0
+        left[:, :, self.ysize-1] = 0
+        down_right[:,0,:] = 0 # Down
+        down_right[:, :, 0] = 0 # Right
+        down_left[:,0,:] = 0 # Down 
+        down_left[:, :, self.ysize-1] = 0 # Left
+        up_right[:, self.xsize-1, :] = 0 #Up
+        up_right[:, :, 0] = 0 # Right
+        up_left[:, self.xsize-1, :] = 0 # Up
+        up_left[:, :, self.ysize-1] = 0 # Left
+
+        # Verso z+1
+        forward[0,:,:] = 0
+        down_left_forward[:,0,:] = 0 # Down
+        down_left_forward[:, :, self.ysize-1] = 0 # Left
+        down_left_forward[0,:,:] = 0 # Forward
+        left_forward[:, :, self.ysize-1] = 0 # Left
+        left_forward[0,:,:] = 0 # Forward
+        up_left_forward[:, self.xsize-1, :] = 0 # Up
+        up_left_forward[:, :, self.ysize-1] = 0 # Left
+        up_left_forward[0,:,:] = 0 # Forward
+        up_right_forward[:, self.xsize-1, :] = 0 # Up
+        up_right_forward[:, :, 0] = 0 # Right
+        up_right_forward[0,:,:] = 0 # Forward
+        right_forward[:, :, 0] = 0 # Right
+        right_forward[0,:,:] = 0 # Forward
+        down_right_forward[:,0,:] = 0 # Down
+        down_right_forward[:, :, 0] = 0 # Right
+        down_right_forward[0,:,:] = 0 # Forward
+
+
+        # Verso z-1
+        backward[self.zsize-1, :, :] = 0
+        down_left_backward[:, 0, :] = 0 # Down
+        down_left_backward[:, :, self.ysize-1] = 0 # Left
+        down_left_backward[self.zsize-1, :, :] = 0 # Backward
+        left_backward[:, :, self.ysize-1] = 0 # Left
+        left_backward[self.zsize-1, :, :] = 0 # Backward
+        up_left_backward[:, self.xsize-1, :] = 0 # Up
+        up_left_backward[:, :, self.ysize-1] = 0 # Left
+        up_left_backward[self.zsize-1, :, :] = 0 # Backward
+        up_right_backward[:, self.xsize-1, :] = 0 # Up
+        up_right_backward[:, :, 0] = 0 # Right
+        up_right_backward[self.zsize-1, :, :] = 0 # Backward
+        right_backward[:, :, 0] = 0 # Right
+        right_backward[self.zsize-1, :, :] = 0 # Backward
+        down_right_backward[:, 0, :] = 0 # Down
+        down_right_backward[:, :, 0] = 0 # Right
+        down_right_backward[self.zsize-1, :,:] = 0 # Backward
+
+
+
+        return (down + up + right + left + forward + backward +
+            down_left + down_right + up_left + up_right +
+            right_forward + left_forward + down_right_forward + down_left_forward + 
+            up_right_forward + up_left_forward +
+            right_backward + left_backward + down_right_backward + down_left_backward + 
+            up_right_backward + up_left_backward)
 
     def cycle_cells(self):
         """Feed every cell, handle mitosis"""
@@ -345,7 +416,7 @@ class Grid:
                         if res[2] == 0: # Mitosis of a healthy cell
                             downhill = self.rand_min(i, j, 5) #Check low density pixel
                             if downhill is not None:
-                                to_add.append((downhill[0], downhill[1], HealthyCell(4)))
+                                to_add.append((downhill[0], downhill[1], HealthyCell(4))) #VEDI DOWNHILL
                             else:
                                 cell.stage = 4
                         elif res[2] == 1:  # Mitosis of a cancer cell
@@ -372,14 +443,25 @@ class Grid:
             self.add_neigh_count(i, j, 1)
         return tot_count
 
-    def wake_surrounding_oar(self, x, y):
-        for (i, j) in [(x - 1, y - 1), (x - 1, y), (x - 1, y + 1), (x, y - 1), (x, y + 1), (x + 1, y - 1),
-                       (x + 1, y),
-                       (x + 1, y + 1)]:
-            if (i >= 0 and i < self.xsize and j >= 0 and j < self.ysize and i+j <= self.oar[0] + self.oar[1]):
-                for oarcell in [c for c in self.cells[i, j] if isinstance(c, OARCell)]:
+    def wake_surrounding_oar(self, x, y, z):
+        # Lista dei vicini in 3D (26 vicini)
+        for (i, j, k) in [(x - 1, y - 1, z - 1), (x - 1, y, z - 1), (x - 1, y + 1, z - 1),
+                          (x, y - 1, z - 1), (x, y, z - 1), (x, y + 1, z - 1),
+                          (x + 1, y - 1, z - 1), (x + 1, y, z - 1), (x + 1, y + 1, z - 1),
+                          (x - 1, y - 1, z), (x - 1, y, z), (x - 1, y + 1, z),
+                          (x, y - 1, z), (x, y + 1, z),
+                          (x + 1, y - 1, z), (x + 1, y, z), (x + 1, y + 1, z),
+                          (x - 1, y - 1, z + 1), (x - 1, y, z + 1), (x - 1, y + 1, z + 1),
+                          (x, y - 1, z + 1), (x, y, z + 1), (x, y + 1, z + 1),
+                          (x + 1, y - 1, z + 1), (x + 1, y, z + 1), (x + 1, y + 1, z + 1)]:
+            # Verifica che i vicini siano all'interno dei limiti della griglia
+            if (i >= 0 and i < self.xsize and j >= 0 and j < self.ysize and k >= 0 and k < self.zsize and i + j + k <= self.oar[0] + self.oar[1]):
+                # Controlla se c'è una cella OAR nelle coordinate specificate
+                for oarcell in [c for c in self.cells[i, j, k] if isinstance(c, OARCell)]:
+                    # Resetta lo stato e l'età delle celle OAR vicine
                     oarcell.stage = 0
                     oarcell.age = 0
+
 
     def find_hole(self, x, y):
         l = []
@@ -463,17 +545,27 @@ class Grid:
         return math.sqrt((x-x_center)**2 + (y-y_center)**2)
 
     # Returns the index of one of the neighboring patches with the lowest density of cells
-    def rand_min(self, x, y, max):
+    def rand_min(self, x, y, z, max):
         v = 1000000
         ind = []
-        for (i, j) in [(x - 1, y - 1), (x - 1, y), (x - 1, y + 1), (x, y - 1), (x, y + 1), (x + 1, y - 1), (x + 1, y),
-                       (x + 1, y + 1)]:
-            if (i >= 0 and i < self.xsize and j >= 0 and j < self.ysize):
-                if len(self.cells[i, j]) < v:
-                    v = len(self.cells[i, j])
-                    ind = [(i, j)]
-                elif len(self.cells[i, j]) == v:
-                    ind.append((i, j))
+        # Lista dei vicini in 3D (consideriamo i 26 vicini di una cella)
+        for (i, j, k) in [(x - 1, y - 1, z - 1), (x - 1, y, z - 1), (x - 1, y + 1, z - 1),
+                          (x, y - 1, z - 1), (x, y, z - 1), (x, y + 1, z - 1),
+                          (x + 1, y - 1, z - 1), (x + 1, y, z - 1), (x + 1, y + 1, z - 1),
+                          (x - 1, y - 1, z), (x - 1, y, z), (x - 1, y + 1, z),
+                          (x, y - 1, z), (x, y + 1, z),
+                          (x + 1, y - 1, z), (x + 1, y, z), (x + 1, y + 1, z),
+                          (x - 1, y - 1, z + 1), (x - 1, y, z + 1), (x - 1, y + 1, z + 1),
+                          (x, y - 1, z + 1), (x, y, z + 1), (x, y + 1, z + 1),
+                          (x + 1, y - 1, z + 1), (x + 1, y, z + 1), (x + 1, y + 1, z + 1)]:
+            # Verifica che i vicini siano all'interno dei limiti della griglia
+            if (i >= 0 and i < self.xsize and j >= 0 and j < self.ysize and k >= 0 and k < self.zsize):
+                if len(self.cells[i, j, k]) < v:
+                    v = len(self.cells[i, j, k])
+                    ind = [(i, j, k)]
+                elif len(self.cells[i, j, k]) == v:
+                    ind.append((i, j, k))
+        # Restituisce un vicino casuale tra quelli con la densità più bassa
         return random.choice(ind) if v < max else None
 
     def rand_neigh(self, x, y, z):
