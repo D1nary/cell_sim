@@ -148,7 +148,7 @@ class Grid:
         self.neigh_counts[xsize - 1, 0, zsize - 1] -= 3
         self.neigh_counts[xsize - 1, ysize - 1, zsize - 1] -= 3
 
-        self.oar = oar
+        self.oar = oar # Dovrebbe contenere le coordinate della oar zone
 
         self.center_x = self.xsize // 2
         self.center_y = self.ysize // 2
@@ -403,44 +403,49 @@ class Grid:
             up_right_backward + up_left_backward)
 
     def cycle_cells(self):
-        """Feed every cell, handle mitosis"""
-        to_add = [] # Cells to add
-        tot_count = 0 # Number of cell cycles
+        """Feed every cell, handle mitosis in 3D"""
+        to_add = []  # Cells to add
+        tot_count = 0  # Number of cell cycles
         for i in range(self.xsize):
-            for j in range(self.ysize):  # For every pixel
-                for cell in self.cells[i, j]:
-                    # cycle() simulates one hour of the cell's cycle
-                    res = cell.cycle(self.glucose[i, j],  self.neigh_counts[i, j], self.oxygen[i, j])
-                    tot_count += 1
-                    if len(res) > 2:  # If there are more than two arguments, a new cell must be created
-                        if res[2] == 0: # Mitosis of a healthy cell
-                            downhill = self.rand_min(i, j, 5) #Check low density pixel
-                            if downhill is not None:
-                                to_add.append((downhill[0], downhill[1], HealthyCell(4))) #VEDI DOWNHILL
-                            else:
-                                cell.stage = 4
-                        elif res[2] == 1:  # Mitosis of a cancer cell
-                            downhill = self.rand_neigh(i, j)
-                            if downhill is not None:
-                                to_add.append((downhill[0], downhill[1], CancerCell(0)))
-                        elif res[2] == 2:  # Wake up surrounding oar cells
-                            self.wake_surrounding_oar(i, j)
-                        elif res[2] == 3:
-                            downhill = self.find_hole(i, j)
-                            if downhill:
-                                to_add.append((downhill[0], downhill[1], OARCell(0, 5)))
-                            else:
-                                cell.stage = 4
-                                cell.age = 0
-                    self.glucose[i, j] -= res[0]  # The local variables are updated according to the cell's consumption
-                    self.oxygen[i, j] -= res[1]
-                count = len(self.cells[i, j])
-                self.cells[i, j].delete_dead()
-                if len(self.cells[i, j]) < count:
-                    self.add_neigh_count(i, j, len(self.cells[i, j]) - count)
-        for i, j, cell in to_add:
-            self.cells[i, j].append(cell)
-            self.add_neigh_count(i, j, 1)
+            for j in range(self.ysize):
+                for k in range(self.zsize):  # Itera su ogni voxel nella griglia 3D
+                    for cell in self.cells[i, j, k]:
+                        # cycle() simula un'ora del ciclo della cellula
+                        res = cell.cycle(self.glucose[i, j, k], self.neigh_counts[i, j, k], self.oxygen[i, j, k])
+                        tot_count += 1
+                        if len(res) > 2:  # Se ci sono più di due argomenti, deve essere creata una nuova cellula
+                            if res[2] == 0:  # Mitosi di una cellula sana
+                                # downhill: posizione del voxel a bassa densità
+                                downhill = self.rand_min(i, j, k, 5)  # Controlla il voxel a bassa densità
+                                if downhill is not None:
+                                    to_add.append((downhill[0], downhill[1], downhill[2], HealthyCell(4)))
+                                else:
+                                    cell.stage = 4
+                            elif res[2] == 1:  # Mitosi di una cellula cancerosa
+                                # downhill: posizione casuale per la cellula cancerosa
+                                downhill = self.rand_neigh(i, j, k)
+                                if downhill is not None:
+                                    to_add.append((downhill[0], downhill[1], downhill[2], CancerCell(0)))
+                            elif res[2] == 2:  # Risveglio delle cellule OAR circostanti
+                                self.wake_surrounding_oar(i, j, k)
+                            elif res[2] == 3:
+                                downhill = self.find_hole(i, j, k)
+                                if downhill:
+                                    to_add.append((downhill[0], downhill[1], downhill[2], OARCell(0, 5)))
+                                else:
+                                    cell.stage = 4
+                                    cell.age = 0
+                        # Le variabili locali vengono aggiornate in base al consumo della cellula
+                        self.glucose[i, j, k] -= res[0]
+                        self.oxygen[i, j, k] -= res[1]
+                    count = len(self.cells[i, j, k])
+                    self.cells[i, j, k].delete_dead()  # Elimina le cellule morte
+                    if len(self.cells[i, j, k]) < count:
+                        self.add_neigh_count(i, j, k, len(self.cells[i, j, k]) - count)
+        # Aggiungi nuove cellule
+        for i, j, k, cell in to_add:
+            self.cells[i, j, k].append(cell)
+            self.add_neigh_count(i, j, k, 1)
         return tot_count
 
     def wake_surrounding_oar(self, x, y, z):
@@ -455,31 +460,45 @@ class Grid:
                           (x, y - 1, z + 1), (x, y, z + 1), (x, y + 1, z + 1),
                           (x + 1, y - 1, z + 1), (x + 1, y, z + 1), (x + 1, y + 1, z + 1)]:
             # Verifica che i vicini siano all'interno dei limiti della griglia
-            if (i >= 0 and i < self.xsize and j >= 0 and j < self.ysize and k >= 0 and k < self.zsize and i + j + k <= self.oar[0] + self.oar[1]):
-                # Controlla se c'è una cella OAR nelle coordinate specificate
+            if (i >= 0 and i < self.xsize and j >= 0 and j < self.ysize and k >= 0 and k < self.zsize and i + j + k <= self.oar[0] + self.oar[1] + self.oar[2]):
+                # Controlla se c'è una cellula OAR nelle coordinate specificate
                 for oarcell in [c for c in self.cells[i, j, k] if isinstance(c, OARCell)]:
                     # Resetta lo stato e l'età delle celle OAR vicine
                     oarcell.stage = 0
                     oarcell.age = 0
 
 
-    def find_hole(self, x, y):
+    def find_hole(self, x, y, z):
         l = []
-        for (i, j) in [(x - 1, y - 1), (x - 1, y), (x - 1, y + 1), (x, y - 1), (x, y + 1), (x + 1, y - 1),
-                       (x + 1, y),
-                       (x + 1, y + 1)]:
-            if (i >= 0 and i < self.xsize and j >= 0 and j < self.ysize and i + j <= self.oar[0] + self.oar[1] ):
-                if len([c for c in self.cells[i, j] if isinstance(c, OARCell)]) == 0:
-                    l.append((i, j, len(self.cells[i, j])))
+        # Lista dei vicini in 3D (26 vicini)
+        for (i, j, k) in [(x - 1, y - 1, z - 1), (x - 1, y, z - 1), (x - 1, y + 1, z - 1),
+                          (x, y - 1, z - 1), (x, y, z - 1), (x, y + 1, z - 1),
+                          (x + 1, y - 1, z - 1), (x + 1, y, z - 1), (x + 1, y + 1, z - 1),
+                          (x - 1, y - 1, z), (x - 1, y, z), (x - 1, y + 1, z),
+                          (x, y - 1, z), (x, y + 1, z),
+                          (x + 1, y - 1, z), (x + 1, y, z), (x + 1, y + 1, z),
+                          (x - 1, y - 1, z + 1), (x - 1, y, z + 1), (x - 1, y + 1, z + 1),
+                          (x, y - 1, z + 1), (x, y, z + 1), (x, y + 1, z + 1),
+                          (x + 1, y - 1, z + 1), (x + 1, y, z + 1), (x + 1, y + 1, z + 1)]:
+            # Verifica che i vicini siano all'interno dei limiti della griglia
+            if (i >= 0 and i < self.xsize and j >= 0 and j < self.ysize and k >= 0 and k < self.zsize and i + j + k <= self.oar[0] + self.oar[1] + self.oar[2]):
+                # Verifica se ci sono celle OAR nella posizione attuale
+                if len([c for c in self.cells[i, j, k] if isinstance(c, OARCell)]) == 0:
+                    # Se non ci sono OARCell, aggiungi l'indice e il numero di celle
+                    l.append((i, j, k, len(self.cells[i, j, k])))
+
+        # Se non ci sono vicini senza celle OAR, restituisci None
         if len(l) == 0:
             return None
         else:
+            # Trova il vicino con il numero minimo di celle
             minimum = 1000
             ind = -1
             for i in range(len(l)):
-                if l[i][2] < minimum:
-                    minimum = l[i][2]
+                if l[i][3] < minimum:
+                    minimum = l[i][3]
                     ind = i
+            # Restituisce il vicino con il numero di celle minimo
             return l[ind]
 
 
@@ -590,11 +609,21 @@ class Grid:
         return random.choice(ind)
 
 
-    def add_neigh_count(self, x, y, v):
-        for (i, j) in [(x - 1, y - 1), (x - 1, y), (x - 1, y + 1), (x, y - 1), (x, y + 1), (x + 1, y - 1), (x + 1, y),
-                       (x + 1, y + 1)]:
-            if (i >= 0 and i < self.xsize and j >= 0 and j < self.ysize):
-                self.neigh_counts[i, j] += v
+    def add_neigh_count(self, x, y, z, v):
+        # Lista dei vicini in 3D (26 vicini)
+        for (i, j, k) in [(x - 1, y - 1, z - 1), (x - 1, y, z - 1), (x - 1, y + 1, z - 1),
+                          (x, y - 1, z - 1), (x, y, z - 1), (x, y + 1, z - 1),
+                          (x + 1, y - 1, z - 1), (x + 1, y, z - 1), (x + 1, y + 1, z - 1),
+                          (x - 1, y - 1, z), (x - 1, y, z), (x - 1, y + 1, z),
+                          (x, y - 1, z), (x, y + 1, z),
+                          (x + 1, y - 1, z), (x + 1, y, z), (x + 1, y + 1, z),
+                          (x - 1, y - 1, z + 1), (x - 1, y, z + 1), (x - 1, y + 1, z + 1),
+                          (x, y - 1, z + 1), (x, y, z + 1), (x, y + 1, z + 1),
+                          (x + 1, y - 1, z + 1), (x + 1, y, z + 1), (x + 1, y + 1, z + 1)]:
+            # Verifica che i vicini siano all'interno dei limiti della griglia
+            if (i >= 0 and i < self.xsize and j >= 0 and j < self.ysize and k >= 0 and k < self.zsize):
+                # Aggiungi il valore v al contatore dei vicini
+                self.neigh_counts[i, j, k] += v
 
     def compute_center(self):
         if CancerCell.cell_count == 0:
