@@ -525,43 +525,47 @@ class Grid:
     def irradiate(self, dose, center=None, rad=-1):
         if center is None:
             self.compute_center()
-            x, y = self.center_x, self.center_y
+            x, y, z = self.center_x, self.center_y, self.center_z
         else:
-            x, y = center
-        radius = self.tumor_radius(x, y) if rad == -1 else rad
+            x, y, z = center
+        radius = self.tumor_radius(x, y, z) if rad == -1 else rad
         if radius == 0:
-            return # Terminate the function irradiate()
+            return  # Terminate the function irradiate()
+
         multiplicator = get_multiplicator(dose, radius)
         oer_m = 3.0
         k_m = 3.0
+
         for i in range(self.xsize):
             for j in range(self.ysize):
-                dist = math.sqrt((x-i)**2 + (y-j)**2)
-                if dist < 3*radius:
-                    omf = (self.oxygen[i, j] / 100.0 * oer_m + k_m) / (self.oxygen[i,j] / 100.0 + k_m) / oer_m
-                    for cell in self.cells[i, j]:
-                        cell.radiate(scale(radius, dist, multiplicator) * omf)
-                    count = len(self.cells[i, j])
-                    self.cells[i, j].delete_dead()
-                    if len(self.cells[i, j]) < count:
-                        self.add_neigh_count(i, j, len(self.cells[i, j]) - count)
+                for k in range(self.zsize):
+                    dist = math.sqrt((x - i) ** 2 + (y - j) ** 2 + (z - k) ** 2)
+                    if dist < 3 * radius:
+                        omf = (self.oxygen[i, j, k] / 100.0 * oer_m + k_m) / (self.oxygen[i, j, k] / 100.0 + k_m) / oer_m
+                        for cell in self.cells[i, j, k]:
+                            cell.radiate(scale(radius, dist, multiplicator) * omf)
+                        count = len(self.cells[i, j, k])
+                        self.cells[i, j, k].delete_dead()
+                        if len(self.cells[i, j, k]) < count:
+                            self.add_neigh_count(i, j, k, len(self.cells[i, j, k]) - count)
         return radius
 
-    def tumor_radius(self, x, y):
+    def tumor_radius(self, x, y, z):
         if CancerCell.cell_count > 0:
             max_dist = -1
             for i in range(self.xsize):
                 for j in range(self.ysize):
-                    if len(self.cells[i, j]) > 0 and self.cells[i, j][ 0].__class__ == CancerCell:
-                        v = self.dist(i, j, x, y)
-                        if v > max_dist:
-                            max_dist = v
+                    for k in range(self.zsize):
+                        if len(self.cells[i, j, k]) > 0 and isinstance(self.cells[i, j, k][0], CancerCell):
+                            v = self.dist(i, j, k, x, y, z)
+                            if v > max_dist:
+                                max_dist = v
             return max_dist if max_dist >= 3 else 3
         else:
             return 0
 
-    def dist(self, x,y, x_center, y_center):
-        return math.sqrt((x-x_center)**2 + (y-y_center)**2)
+    def dist(self, x, y, z, x_center, y_center, z_center):
+        return math.sqrt((x - x_center)**2 + (y - y_center)**2 + (z - z_center)**2)
 
     # Returns the index of one of the neighboring patches with the lowest density of cells
     def rand_min(self, x, y, z, max):
@@ -627,18 +631,22 @@ class Grid:
 
     def compute_center(self):
         if CancerCell.cell_count == 0:
-            return -1, -1
+            return -1, -1, -1
         sum_x = 0
         sum_y = 0
+        sum_z = 0
         count = 0
         for i in range(self.xsize):
             for j in range(self.ysize):
-                ccell_count = self.cells[i, j].num_c_cells
-                sum_x += i * ccell_count
-                sum_y += j *ccell_count
-                count += ccell_count
+                for k in range(self.zsize):
+                    ccell_count = self.cells[i, j, k].num_c_cells
+                    sum_x += i * ccell_count
+                    sum_y += j * ccell_count
+                    sum_z += k * ccell_count
+                    count += ccell_count
         self.center_x = sum_x / count
         self.center_y = sum_y / count
+        self.center_z = sum_z / count
 
 def conv(rad, x):
     denom = 3.8 # //sqrt(2) * 2.7

@@ -1,0 +1,8 @@
+grid3D.py:
+Nella funzione tumor_radius() la riga di codice:
+
+if len(self.cells[i, j]) > 0 and self.cells[i, j][ 0].__class__ == CancerCell:
+
+è stata sostituita con:
+
+if len(self.cells[i, j, k]) > 0 and isinstance(self.cells[i, j, k][0], CancerCell):
