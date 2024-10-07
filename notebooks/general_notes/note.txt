@@ -1,4 +1,4 @@
-grid3D.py:
+- grid3D.py:
 Nella funzione tumor_radius() la riga di codice:
 
 if len(self.cells[i, j]) > 0 and self.cells[i, j][ 0].__class__ == CancerCell:
@@ -6,3 +6,16 @@ if len(self.cells[i, j]) > 0 and self.cells[i, j][ 0].__class__ == CancerCell:
 è stata sostituita con:
 
 if len(self.cells[i, j, k]) > 0 and isinstance(self.cells[i, j, k][0], CancerCell):
+
+
+
+- grid3D.py:
+nella funzione fill_source() ho cambiato l'ultimo if:
+
+if random.randint(0, 23) == 0:
+            self.sources[i] = self.source_move(self.sources[i][0], self.sources[i][1], self.sources[i][2])
+
+è stato sostiutito da
+
+if random.randint(0, 23) == 0:
+            self.sources[i] = self.source_move(z, x, y)

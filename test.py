@@ -1,47 +1,40 @@
 import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-class Grid3D:
-    def __init__(self, xsize, ysize, zsize):
-        self.neigh_counts = np.zeros((xsize, ysize, zsize), dtype=int)
-        
-        # Aggiornamento per i bordi (superfici della griglia)
-        for i in range(xsize):
-            for j in range(ysize):
-                # Strati superiori e inferiori (z = 0 e z = zsize-1)
-                self.neigh_counts[i, j, 0] += 9  # Strato superiore
-                self.neigh_counts[i, j, zsize - 1] += 9  # Strato inferiore
+# Creare la figura e l'asse 3D
+fig = plt.figure(figsize=(10, 10))
+ax = fig.add_subplot(111, projection='3d')
 
-        for i in range(xsize):
-            for k in range(zsize):
-                # Bordi anteriori e posteriori (y = 0 e y = ysize-1)
-                self.neigh_counts[i, 0, k] += 9  # Bordo anteriore
-                self.neigh_counts[i, ysize - 1, k] += 9  # Bordo posteriore
+# Definire i vertici del cubo di dimensione 50x50x50
+size = 50
+vertices = np.array([[0, 0, 0], [size, 0, 0], [size, size, 0], [0, size, 0],
+                     [0, 0, size], [size, 0, size], [size, size, size], [0, size, size]])
 
-        for j in range(ysize):
-            for k in range(zsize):
-                # Bordi laterali (x = 0 e x = xsize-1)
-                self.neigh_counts[0, j, k] += 9  # Lato sinistro
-                self.neigh_counts[xsize - 1, j, k] += 9  # Lato destro
+# Definire le facce del cubo
+faces = [[vertices[j] for j in [0, 1, 5, 4]],
+         [vertices[j] for j in [1, 2, 6, 5]],
+         [vertices[j] for j in [2, 3, 7, 6]],
+         [vertices[j] for j in [3, 0, 4, 7]],
+         [vertices[j] for j in [0, 1, 2, 3]],
+         [vertices[j] for j in [4, 5, 6, 7]]]
 
-        # Correzione per gli angoli (dove ci sono meno vicini)
-        self.neigh_counts[0, 0, 0] -= 3
-        self.neigh_counts[0, ysize - 1, 0] -= 3
-        self.neigh_counts[xsize - 1, 0, 0] -= 3
-        self.neigh_counts[xsize - 1, ysize - 1, 0] -= 3
-        self.neigh_counts[0, 0, zsize - 1] -= 3
-        self.neigh_counts[0, ysize - 1, zsize - 1] -= 3
-        self.neigh_counts[xsize - 1, 0, zsize - 1] -= 3
-        self.neigh_counts[xsize - 1, ysize - 1, zsize - 1] -= 3
+# Aggiungere le facce al grafico
+ax.add_collection3d(Poly3DCollection(faces, alpha=.25, linewidths=1, edgecolors='r'))
 
-    def display_layer(self,n):
-        print(f"Layer numer {n}")
-        print(self.neigh_counts[:, :, n])
+# Colorare il voxel al centro di rosso
+center = size / 2
+ax.bar3d(center - 1, center - 1, center - 1, 2, 2, 2, color='red', alpha=1.0)
 
-# Imposta le dimensioni della matrice 3D
-xsize, ysize, zsize = 5, 5, 5
+# Impostare le etichette degli assi
+ax.set_xlabel('X')
+ax.set_ylabel('Y')
+ax.set_zlabel('Z')
 
-# Crea un'istanza della griglia 3D
-grid = Grid3D(xsize, ysize, zsize)
+# Impostare i limiti degli assi
+ax.set_xlim([0, size])
+ax.set_ylim([0, size])
+ax.set_zlim([0, size])
 
-# Visualizza i valori del layer 0
-grid.display_layer(1)
+# Visualizzare il cubo
+plt.show()
