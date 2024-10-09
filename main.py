@@ -6,7 +6,7 @@ from model.cell_pack.cell import HealthyCell, CancerCell, OARCell
 
 
 random.seed(4775)
-controller = Controller(1000, 50, 50, 50, 100, 1)
+controller = Controller(1000, 50, 50, 50, 100, 1,"3d")
 controller.go(350)
 
 
