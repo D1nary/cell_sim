@@ -1,3 +1,4 @@
+from model.cell_pack.cell import HealthyCell, CancerCell, OARCell, critical_oxygen_level, critical_glucose_level
 import matplotlib.pyplot as plt
 import matplotlib
 from model.grid3D import Grid
@@ -5,6 +6,10 @@ from model.cell_pack.cell import HealthyCell, CancerCell, OARCell
 import random
 import numpy as np
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection # Per il cubo 3d 
+
+
+import random
+
 
 
 class Controller:
@@ -55,10 +60,8 @@ class Controller:
             self.plot_init()
 
 
-    def plot_init(self):
 
-        matplotlib.use("TkAgg")
-        plt.ion()
+    def plot_init(self):
 
         if self.graph_type == "2d":
             self.fig, axs = plt.subplots(1,1, constrained_layout=True)
@@ -71,44 +74,31 @@ class Controller:
                     [[patch_type_color(self.grid.cells[self.z_slice, i, j]) for j in range(self.grid.ysize)] for i in range(self.grid.xsize)])
                 
         else:
-            self.fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={'projection': '3d'})
-            self.fig.suptitle('Cell proliferation at t = '+str(self.tick))
-            self.plot3d = ax
+            # Creare la figura e l'asse 3D
+            fig, self.plot3d = plt.subplots(figsize=(8, 8), subplot_kw={'projection': '3d'})
 
-            # Definire i vertici del cubo di dimensione 50x50x50
-            # Ordine indici delle sotto liste: [x, y, z]
             vertices = np.array([[0, 0, 0], [self.xsize, 0, 0], [self.xsize, self.ysize, 0], [0, self.ysize, 0],
                                  [0, 0, self.zsize], [self.xsize, 0, self.zsize], [self.xsize, self.ysize, self.zsize], [0, self.ysize, self.zsize]])
-
-            # Definire le facce del cubo
-            faces = [[vertices[j] for j in [0, 1, 5, 4]],
-                     [vertices[j] for j in [1, 2, 6, 5]],
-                     [vertices[j] for j in [2, 3, 7, 6]],
-                     [vertices[j] for j in [3, 0, 4, 7]],
-                     [vertices[j] for j in [0, 1, 2, 3]],
-                     [vertices[j] for j in [4, 5, 6, 7]]]
             
-            # Aggiungere le facce al grafico
-            self.plot3d.add_collection3d(Poly3DCollection(faces, alpha=0, linewidths=1, edgecolors='r'))
-
-            # Impostare le etichette degli assi
-            self.plot3d.set_xlabel('X')
-            self.plot3d.set_ylabel('Y')
-            self.plot3d.set_zlabel('Z')
-
-            # Impostare i limiti degli assi
-            self.plot3d.set_xlim([0, self.xsize])
-            self.plot3d.set_ylim([0, self.ysize])
-            self.plot3d.set_zlim([0, self.zsize])
-
-            if self.hcells > 0:
-                for k in range(self.zsize):
-                    for i in range(self.xsize):
-                        for j in range(self.ysize):
-                            alpha_color = voxel_color(self.grid.cells[k, i, j])
-                            color = tuple(val / 255 for val in alpha_color[1])
-                            self.plot3d.bar3d(i, j, k, 1, 1, 1,color = color, alpha=alpha_color[0])
+           # Definire le facce del cubo
+            define_faces = lambda v: [[v[j] for j in [0, 1, 5, 4]],
+                                     [v[j] for j in [1, 2, 6, 5]],
+                                     [v[j] for j in [2, 3, 7, 6]],
+                                     [v[j] for j in [3, 0, 4, 7]],
+                                     [v[j] for j in [0, 1, 2, 3]],
+                                     [v[j] for j in [4, 5, 6, 7]]]
+            global faces
+            faces = define_faces(vertices)
             
+            # Attivare la modalità interattiva
+            plt.ion()
+
+            # Lista per mantenere traccia delle posizioni dei cubi aggiunti
+            global cubes_coord
+            cubes_coord = []
+
+            global cubes_color
+            cubes_color = []
 
 
     # steps = 1 simulates one hour on the grid : Nutrient diffusion and replenishment, cell cycle
@@ -142,16 +132,65 @@ class Controller:
             #         [[len(self.grid.cells[i][j]) for j in range(self.grid.ysize)] for i in range(self.grid.xsize)])
             plt.pause(0.02)
         else:
-            if self.hcells > 0:
-                for k in range(self.zsize):
-                    for i in range(self.xsize):
-                        for j in range(self.ysize):
-                            alpha_color = voxel_color(self.grid.cells[k, i, j])
-                            color = tuple(val / 255 for val in alpha_color[1])
-                            self.plot3d.bar3d(i, j, k, 1, 1, 1,color = color, alpha=alpha_color[0])
+                self.plot3d.clear()  # Pulisce l'asse per ridisegnare
 
-            plt.pause(0.02)
-            
+                # Aggiungere le facce del cubo principale al grafico con colore fisso
+                poly3d = Poly3DCollection(faces, alpha=0.5, linewidths=1, edgecolors='k', facecolors='lightblue')
+                self.plot3d.add_collection3d(poly3d)
+
+                # Aggiungere un nuovo cubo in una posizione casuale
+                # new_cube_position = (random.uniform(0, 50 - 1), random.uniform(0, 50 - 1), random.uniform(0, 50 - 1))
+                # cubes_coord.append(new_cube_position)
+
+                # # Disegnare tutti i cubi aggiunti finora
+                # for cube in cubes_coord:
+                #     self.plot3d.bar3d(cube[0], cube[1], cube[2], 1, 1, 1, color="red", alpha=1.0, edgecolor='k')
+
+                # # Impostare le etichette degli assi
+                # self.plot3d.set_xlabel('X')
+                # self.plot3d.set_ylabel('Y')
+                # self.plot3d.set_zlabel('Z')
+
+                # # Impostare i limiti degli assi
+                # self.plot3d.set_xlim([0, self.xsize])
+                # self.plot3d.set_ylim([0, self.ysize])
+                # self.plot3d.set_zlim([0, self.zsize])
+
+                # Disegnare e fare una pausa per creare l'effetto animato
+                # plt.draw()
+                # plt.pause(0.5)
+                print(type)
+                if self.hcells > 0:
+                    for k in range(self.zsize):
+                        for i in range(self.xsize):
+                            for j in range(self.ysize):
+                                if len(self.cells[k, i, j]) > 0 and isinstance(self.cells[k, i, j][0], HealthyCell):
+                                    cubes_coord = [i, j, k]
+                                    cubes_color = 'greem'
+                                if len(self.cells[k, i, j]) > 0 and isinstance(self.cells[k, i, j][0], CancerCell):
+                                    cubes_coord = [i, j, k]
+                                    cubes_color = 'red'
+                for cube in cubes_coord:
+                    self.plot3d.bar3d(cubes_coord[0], cubes_coord[1], cubes_coord[2], 1, 1, 1, color=cubes_color, alpha=1.0, edgecolor='k')
+
+                # Impostare le etichette degli assi
+                self.plot3d.set_xlabel('X')
+                self.plot3d.set_ylabel('Y')
+                self.plot3d.set_zlabel('Z')
+
+                # Impostare i limiti degli assi
+                self.plot3d.set_xlim([0, self.xsize])
+                self.plot3d.set_ylim([0, self.ysize])
+                self.plot3d.set_zlim([0, self.zsize])
+
+                # Disegnare e fare una pausa per creare l'effetto animato
+                plt.draw()
+                plt.pause(0.5)
+
+
+
+
+           
 
     def observeSegmentation(self):
         """Produce observation of type segmentation"""
@@ -173,6 +212,6 @@ def patch_type_color(patch):
 # Funzione per il colore e la trasparenza nel grafico 3d
 def voxel_color(voxel): # Color and trasparency
     if len(voxel) == 0:
-        return 0, "red" # Opacità e colore
+        return 0, (255, 0, 0) # Rosso
     else:
-        return 0.25, voxel[0].cell_color()
+        return 0.25, voxel[0].cell_color()# Opacità e colore

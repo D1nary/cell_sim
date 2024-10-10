@@ -28,19 +28,24 @@ def random_color():
 # Attivare la modalità interattiva
 plt.ion()
 
-# Ciclo per aggiornare il colore del cubo al centro nel tempo
-for _ in range(100):
+# Lista per mantenere traccia delle posizioni dei cubi aggiunti
+cubes = []
+
+# Ciclo per aggiungere fino a 6 cubi in posizioni casuali
+for i in range(6):
     ax.clear()  # Pulisce l'asse per ridisegnare
 
     # Aggiungere le facce del cubo principale al grafico con colore fisso
     poly3d = Poly3DCollection(faces, alpha=0.5, linewidths=1, edgecolors='k', facecolors='lightblue')
     ax.add_collection3d(poly3d)
 
-    # Definire il cubo al centro di dimensione 1x1x1 come voxel
-    center_size = 1
-    center_offset = (size - center_size) / 2
-    center_color = random_color()
-    ax.bar3d(center_offset, center_offset, center_offset, center_size, center_size, center_size, color=center_color, alpha=1.0, edgecolor='k')
+    # Aggiungere un nuovo cubo in una posizione casuale
+    new_cube_position = (random.uniform(0, size - 1), random.uniform(0, size - 1), random.uniform(0, size - 1))
+    cubes.append(new_cube_position)
+
+    # Disegnare tutti i cubi aggiunti finora
+    for cube in cubes:
+        ax.bar3d(cube[0], cube[1], cube[2], 1, 1, 1, color=random_color(), alpha=1.0, edgecolor='k')
 
     # Impostare le etichette degli assi
     ax.set_xlabel('X')
@@ -54,7 +59,7 @@ for _ in range(100):
 
     # Disegnare e fare una pausa per creare l'effetto animato
     plt.draw()
-    plt.pause(0.1)
+    plt.pause(0.5)
 
 # Disattivare la modalità interattiva e mostrare il grafico finale
 plt.ioff()
