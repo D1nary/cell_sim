@@ -2,7 +2,6 @@ from model.cell_pack.cell import HealthyCell, CancerCell, OARCell, critical_oxyg
 import matplotlib.pyplot as plt
 import matplotlib
 from model.grid3D import Grid
-from model.cell_pack.cell import HealthyCell, CancerCell, OARCell
 import random
 import numpy as np
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection # Per il cubo 3d 
@@ -65,7 +64,6 @@ class Controller:
 
         if self.graph_type == "2d":
             self.fig, axs = plt.subplots(1,1, constrained_layout=True)
-            self.fig.suptitle('Cell proliferation at t = '+str(self.tick))
             self.cell_plot = axs
             self.cell_plot.set_title('Types of cells')
         
@@ -76,6 +74,7 @@ class Controller:
         else:
             # Creare la figura e l'asse 3D
             fig, self.plot3d = plt.subplots(figsize=(8, 8), subplot_kw={'projection': '3d'})
+            self.plot3d.set_title('Cell proliferation')
 
             vertices = np.array([[0, 0, 0], [self.xsize, 0, 0], [self.xsize, self.ysize, 0], [0, self.ysize, 0],
                                  [0, 0, self.zsize], [self.xsize, 0, self.zsize], [self.xsize, self.ysize, self.zsize], [0, self.ysize, self.zsize]])
@@ -119,7 +118,6 @@ class Controller:
         self.grid.irradiate(dose)
 
     def update_plots(self):
-
         if self.graph_type == "2d":
             self.fig.suptitle('Cell proliferation at t = ' + str(self.tick))
             # self.glucose_plot.imshow(self.grid.glucose)
@@ -135,8 +133,9 @@ class Controller:
                 self.plot3d.clear()  # Pulisce l'asse per ridisegnare
 
                 # Aggiungere le facce del cubo principale al grafico con colore fisso
-                poly3d = Poly3DCollection(faces, alpha=0.5, linewidths=1, edgecolors='k', facecolors='lightblue')
+                poly3d = Poly3DCollection(faces, alpha=0, linewidths=1, edgecolors='k', facecolors='lightblue')
                 self.plot3d.add_collection3d(poly3d)
+
 
                 # Aggiungere un nuovo cubo in una posizione casuale
                 # new_cube_position = (random.uniform(0, 50 - 1), random.uniform(0, 50 - 1), random.uniform(0, 50 - 1))
@@ -164,14 +163,25 @@ class Controller:
                     for k in range(self.zsize):
                         for i in range(self.xsize):
                             for j in range(self.ysize):
-                                if len(self.cells[k, i, j]) > 0 and isinstance(self.cells[k, i, j][0], HealthyCell):
-                                    cubes_coord = [i, j, k]
-                                    cubes_color = 'greem'
-                                if len(self.cells[k, i, j]) > 0 and isinstance(self.cells[k, i, j][0], CancerCell):
-                                    cubes_coord = [i, j, k]
-                                    cubes_color = 'red'
-                for cube in cubes_coord:
-                    self.plot3d.bar3d(cubes_coord[0], cubes_coord[1], cubes_coord[2], 1, 1, 1, color=cubes_color, alpha=1.0, edgecolor='k')
+                                # self.cells[k, i, j] = CellList()
+                                if len(self.grid.cells[k, i, j]) != 0:
+                                    # if isinstance(self.grid.cells[k, i, j][0], HealthyCell):
+                                    #     cubes_coord.append([i, j, k,'green'])
+                                    if isinstance(self.grid.cells[k, i, j][0], CancerCell):
+                                        cubes_coord.append([i, j, k,'red'])
+
+                                # a = len(self.grid.cells[k, i, j])
+                                # b = self.grid.cells[k, i, j]
+                                # if len(self.cells[k, i, j]) > 0 and isinstance(self.cells[k, i, j][0], HealthyCell):
+                                #     cubes_coord = [i, j, k]
+                                #     cubes_color = 'green'
+                                # if len(self.cells[k, i, j]) > 0 and isinstance(self.cells[k, i, j][0], CancerCell):
+                                #     cubes_coord = [i, j, k]
+                                #     cubes_color = 'red'
+                # for cube in cubes_coord:
+                #     self.plot3d.bar3d(cube[0], cube[1], cube[2], 1, 1, 1, color=cube[3], alpha=1.0, edgecolor='k')
+                for i in range(len(cubes_coord)):
+                    self.plot3d.bar3d(cubes_coord[i][0], cubes_coord[i][1], cubes_coord[i][2], 1, 1, 1, color=cubes_coord[i][3], alpha=1.0, edgecolor='k')
 
                 # Impostare le etichette degli assi
                 self.plot3d.set_xlabel('X')
@@ -183,9 +193,11 @@ class Controller:
                 self.plot3d.set_ylim([0, self.ysize])
                 self.plot3d.set_zlim([0, self.zsize])
 
+                self.plot3d.set_title('Cell proliferation at t = ' + str(self.tick))
+
                 # Disegnare e fare una pausa per creare l'effetto animato
                 plt.draw()
-                plt.pause(0.5)
+                plt.pause(0.02)
 
 
 
