@@ -1,13 +1,30 @@
-import matplotlib.pyplot as plt
-from model.controller3D import Controller
+import os
 import random
-from model.cell_pack.cell import HealthyCell, CancerCell, OARCell
+
+from model.controller3D import Controller
 
 
-cube_dimension = 50
+# Ottieni la directory corrente di lavoro
+project_folder = os.getcwd()
+
+# Definisce il path delle cartelle da creare
+paths = [
+    os.path.join(project_folder, 'results', 'graphs', '3d'),
+    os.path.join(project_folder, 'results', 'graphs', '2d')
+]
+
+# Crea le cartelle se non esistono già
+for path in paths:
+    os.makedirs(path, exist_ok=True)
+
+
+
+env_dimension = 50
 random.seed(4775)
-controller = Controller(1000, cube_dimension, cube_dimension, cube_dimension , 100, 1,"3d")
-controller.go(350)
+controller = Controller(1000, env_dimension, env_dimension, env_dimension , 100,
+                        paths, "3d")
+
+controller.go(300) # Simulazione di 300 ore
 
 
 

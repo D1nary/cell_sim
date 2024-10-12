@@ -1,3 +1,5 @@
+import os
+
 from model.cell_pack.cell import HealthyCell, CancerCell, OARCell, critical_oxygen_level, critical_glucose_level
 import matplotlib.pyplot as plt
 import matplotlib
@@ -15,7 +17,7 @@ import random
 
 class Controller:
 
-    def __init__(self, hcells, zsize, xsize, ysize, sources, graph_type="3d"):
+    def __init__(self, hcells, zsize, xsize, ysize, sources, paths, graph_type):
         # Inizializza la griglia 3D con le dimensioni zsize, xsize, ysize
         self.grid = Grid(zsize, xsize, ysize, sources)
         self.tick = 0
@@ -23,6 +25,9 @@ class Controller:
         self.zsize = zsize
         self.xsize = xsize
         self.ysize = ysize
+
+        # Lista dei paths di output
+        self.paths = paths
 
         # Istanze per i grafici
         self.graph3d = None
@@ -51,7 +56,7 @@ class Controller:
 
         # Inizializzo il grafico 3d
         if graph_type == "3d":
-            self.graph3d = Graphs(xsize, ysize, zsize, self.grid, graph_type)
+            self.graph3d = Graphs(xsize, ysize, zsize, self.grid, graph_type, self.paths)
 
 
 
