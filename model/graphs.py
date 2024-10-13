@@ -7,7 +7,7 @@ import os
 
 
 class Graphs:
-    def __init__(self, xsize, ysize, zsize, grid, type, paths, layers = None):
+    def __init__(self, grid, type, paths, layers = None):
 
         self.type = type
         self.grid = grid
@@ -21,8 +21,6 @@ class Graphs:
 
         if self.type == "2d":
             self.layers = layers # 2D layer to be printed
-
-
 
 
     def update_plot(self, xsize, ysize, zsize, tick):
@@ -66,22 +64,22 @@ class Graphs:
                 plt.close()
 
 
-            if self.type == "2d" and self.layer != None:
+        if self.type == "2d" and self.layers != None:
+            if tick == 10 or tick == 100:
+
                 for layer in self.layers:
 
-                    # Grafico della cell_proliferation
-                    self.graph2d_cretion()
+                    # Grafico della cell_proliferation:
+                    fig, axs = plt.subplots(2,2, constrained_layout=True)
+                    fig.suptitle('Cell proliferation at t = '+str(tick))
+                    # Cells position on the grid
+                    self.grid.cells[layer, :, :] = axs[0][0]
+                    axs[0][0].set_title('Cells Position')
+                    plt.show()
+                    plt.close()
+
 
             
 
-            if self.type == None:
-                print("No graphs generated")
-
-    def graph2d_cretion(x, y, titolo, etichetta_y):
-        plt.figure()
-        plt.plot(x, y)
-        plt.title(titolo)
-        plt.xlabel('x')
-        plt.ylabel(etichetta_y)
-        plt.grid(True)
-        plt.show()
+        if self.type == None:
+            print("No graphs generated")

@@ -18,11 +18,12 @@ for path in paths:
     os.makedirs(path, exist_ok=True)
 
 
+layers = [0]
 
 env_dimension = 50
 random.seed(4775)
 controller = Controller(1000, env_dimension, env_dimension, env_dimension , 100,
-                        paths, "3d")
+                        paths, "2d", layers)
 
 controller.go(300) # Simulazione di 300 ore
 

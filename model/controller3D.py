@@ -17,7 +17,7 @@ import random
 
 class Controller:
 
-    def __init__(self, hcells, zsize, xsize, ysize, sources, paths, graph_type):
+    def __init__(self, hcells, zsize, xsize, ysize, sources, paths, graph_type, layers):
         # Inizializza la griglia 3D con le dimensioni zsize, xsize, ysize
         self.grid = Grid(zsize, xsize, ysize, sources)
         self.tick = 0
@@ -56,8 +56,10 @@ class Controller:
 
         # Inizializzo il grafico 3d
         if graph_type == "3d":
-            self.graph3d = Graphs(xsize, ysize, zsize, self.grid, graph_type, self.paths)
+            self.graph3d = Graphs(self.grid, graph_type, self.paths)
 
+        if graph_type == "2d":
+            self.graph3d = Graphs(self.grid, graph_type, self.paths, layers)
 
 
     # steps = 1 simulates one hour on the grid : Nutrient diffusion and replenishment, cell cycle
