@@ -32,6 +32,7 @@ class Controller:
         # Istanze per i grafici
         self.graph3d = None
         self.graph2d = None
+        self.sum_graph = None
 
 
         HealthyCell.cell_count = 0
@@ -59,7 +60,11 @@ class Controller:
             self.graph3d = Graphs(self.grid, graph_type, self.paths)
 
         if graph_type == "2d":
-            self.graph3d = Graphs(self.grid, graph_type, self.paths, layers)
+            self.graph2d = Graphs(self.grid, graph_type, self.paths, layers)
+
+        if graph_type == "sum":
+            self.sum_graph = Graphs(self.grid, graph_type, self.paths)
+        
 
 
     # steps = 1 simulates one hour on the grid : Nutrient diffusion and replenishment, cell cycle
@@ -69,21 +74,29 @@ class Controller:
             self.grid.cycle_cells()
             self.grid.diffuse_glucose(0.2)
             self.grid.diffuse_oxygen(0.2)
+            
             self.tick += 1
+            print(self.tick)
 
-            # Update grafico
-            if self.graph3d != None:
-                self.graph3d.update_plot(self.xsize, self.ysize, self.zsize, self.tick)
-
-
+            # Calcolo il centro del tumore
             if self.tick % 24 == 0:
                 self.grid.compute_center()
+
+            # Update grafico (vanno aggiornati ad ogni step (tick) della simulazione)
+            if self.graph3d != None:
+                self.graph3d.update_plot(self.xsize, self.ysize, self.zsize, self.tick)
+            if self.graph2d != None:
+                self.graph2d.update_plot(self.xsize, self.ysize, self.zsize, self.tick)
+            if self.sum_graph != None:
+                self.sum_graph.update_plot(self.xsize, self.ysize, self.zsize, self.tick, steps)
+                if self.tick == steps:
+                    self.sum_graph.sum_plot()
+
 
     def irradiate(self, dose):
         """Irradiate the tumour"""
         self.grid.irradiate(dose)
            
-
     def observeSegmentation(self):
         """Produce observation of type segmentation"""
         seg = np.vectorize(lambda x:x.pixel_type())
