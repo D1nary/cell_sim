@@ -17,7 +17,8 @@ import random
 
 class Controller:
 
-    def __init__(self, hcells, zsize, xsize, ysize, sources, paths, graph_type, layers):
+    def __init__(self, hcells, zsize, xsize, ysize, sources, paths, 
+                 graph_type, max_tick, layers):
         # Inizializza la griglia 3D con le dimensioni zsize, xsize, ysize
         self.grid = Grid(zsize, xsize, ysize, sources)
         self.tick = 0
@@ -57,13 +58,13 @@ class Controller:
 
         # Inizializzo il grafico 3d
         if graph_type == "3d":
-            self.graph3d = Graphs(self.grid, graph_type, self.paths)
+            self.graph3d = Graphs(self.grid, graph_type, self.paths, max_tick)
 
         if graph_type == "2d":
-            self.graph2d = Graphs(self.grid, graph_type, self.paths, layers)
+            self.graph2d = Graphs(self.grid, graph_type, self.paths, max_tick, layers)
 
         if graph_type == "sum":
-            self.sum_graph = Graphs(self.grid, graph_type, self.paths)
+            self.sum_graph = Graphs(self.grid, graph_type, self.paths, max_tick)
         
 
 
@@ -88,9 +89,9 @@ class Controller:
             if self.graph2d != None:
                 self.graph2d.update_plot(self.xsize, self.ysize, self.zsize, self.tick)
             if self.sum_graph != None:
-                self.sum_graph.update_plot(self.xsize, self.ysize, self.zsize, self.tick, steps)
+                self.sum_graph.update_plot(self.xsize, self.ysize, self.zsize, self.tick)
                 if self.tick == steps:
-                    self.sum_graph.sum_plot()
+                    self.sum_graph.sum_plot(steps)
 
 
     def irradiate(self, dose):

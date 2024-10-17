@@ -1,6 +1,7 @@
 import os
 import random
 
+from model.cell_pack.cell import HealthyCell, CancerCell, OARCell
 from model.controller3D import Controller
 
 
@@ -19,13 +20,23 @@ for path in paths:
 
 
 layers = [25]
+num_ore = 150
 
 env_dimension = 50
 random.seed(4775)
 controller = Controller(1000, env_dimension, env_dimension, env_dimension , 100,
-                        paths, "sum", layers)
+                        paths, "sum", num_ore, layers)
 
-controller.go(300) # Simulazione di 300 ore
+
+controller.go(num_ore) # Simulazione di 300 ore
+
+
+
+
+
+
+
+
 
 
 

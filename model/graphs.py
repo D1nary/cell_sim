@@ -6,14 +6,17 @@ import os
 
 
 class Graphs:
-    def __init__(self, grid, type, paths, layers = None):
+    def __init__(self, grid, type, paths, max_tick, layers = None):
 
         self.type = type
         self.grid = grid
-        self.tick_list = [10, 100, 200, 300]
 
         # Lista dei paths di output
         self.paths = paths
+
+        self.divisor = 4
+        self.tick_list = self.spaced_list(4, max_tick)
+        # self.tick_list = [10, 50, 100, 150]
 
         if self.type == "3d":
             # Lista per mantenere traccia delle posizioni dei cubi aggiunti e del colore del voxel
@@ -29,12 +32,9 @@ class Graphs:
             self.oar_sum = 0
 
             self.sum_list = []
-            self.divisor_list = []
-        
-        
-
-
-    def update_plot(self, xsize, ysize, zsize, tick, max_tick = 1):
+            
+            
+    def update_plot(self, xsize, ysize, zsize, tick):
 
         # GRAFICO 3D
         if self.type == "3d":
@@ -112,48 +112,43 @@ class Graphs:
                     plt.close()
 
         if self.type == "sum":
-
-            
             if tick in self.tick_list:
-                # divisor = 4
-                # divisor_list = [i for i in range(divisor, max_tick + 1, divisor)]
 
-                for k in range(zsize):
-                    for i in range(xsize):
-                        for j in range(ysize):
-                            if len(self.grid.cells[k, i, j]) != 0:
+                self.tot_sum = HealthyCell.cell_count + CancerCell.cell_count + OARCell.cell_count
+                self.cancer_sum = CancerCell.cell_count
+                self.healthy_sum = HealthyCell.cell_count
+                self.oar_sum = OARCell.cell_count
 
-                                print("Conto numero cellule")
-                                self.self.grid.cells[k, i, j]
-
-                                #self.tot_sum += len(self.grid.cells[k, i, j])
-                                #for n in range(len(self.grid.cells[k, i, j])):
-                                #    if isinstance(self.grid.cells[k, i, j][n], HealthyCell):
-                                #        self.healthy_sum += 1
-                                #    if isinstance(self.grid.cells[k, i, j][n], CancerCell):
-                                #        self.cancer_sum += 1
-                                #    if isinstance(self.grid.cells[k, i, j][n], OARCell):
-                                #        self.oar_sum += 1
-
-                self.sum_list.append(self.tot_sum)
-                self.sum_list.append(self.healthy_sum)
-                self.sum_list.append(self.cancer_sum)
-                self.sum_list.append(self.oar_sum)
+                self.sum_list.append([self.tot_sum, self.cancer_sum, self.healthy_sum, self.oar_sum])
+                # self.sum_list.append(self.tot_sum)
+                # self.sum_list.append(self.cancer_sum)
+                # self.sum_list.append(self.healthy_sum)
+                # self.sum_list.append(self.oar_sum)
 
         if self.type == None: # VEDI
             print("No graphs generated")
 
-    def sum_plot(self):
+    def sum_plot(self, max_tick=1):
+
+        divisor_list = self.spaced_list(self.divisor, max_tick)
+
+        # Ogni sottolista deve contenere un solo tipo di cellule
+        self.sum_list = np.transpose(self.sum_list)
+        print(self.sum_list)
 
         fig, ax = plt.subplots()
 
-        self.sum_list = np.transpose(self.sum_list)
+        print(len(divisor_list))
+        print(len(self.sum_list))
 
-        # Disegno le somme
-        plt.plot(self.divisor_list, self.sum_list[0], "ko-", label = "Total Cells")
-        plt.plot(self.divisor_list, self.sum_list[1], "ro-", label = "Cancer Cells")
-        plt.plot(self.divisor_list, self.sum_list[2], "go-", label = "Healthy Cells")
-        plt.plot(self.divisor_list, self.sum_list[3], "yo-", label = "OAR Cells")
+        print(divisor_list)
+        print(self.sum_list)
+
+        # Disegno le somme. plt.plot(x, y)
+        plt.plot(divisor_list, self.sum_list[0], "ko-", label="Total Cells", alpha=0.7)
+        plt.plot(divisor_list, self.sum_list[1], "ro-", label="Cancer Cells", alpha=0.7)
+        plt.plot(divisor_list, self.sum_list[2], "go-", label="Healthy Cells", alpha=0.7)
+        plt.plot(divisor_list, self.sum_list[3], "yo-", label="OAR Cells", alpha=0.1)
 
         plt.xlabel('Hours')
         plt.ylabel('Cell sum')
@@ -165,6 +160,10 @@ class Graphs:
         plt.savefig(output_path)
         plt.close()
 
+    def spaced_list(self, divisor, max_tick):
+        step = max_tick / (divisor - 1)
+        new_list = [round(i * step) for i in range(divisor)]
+        return new_list
 
 
 
