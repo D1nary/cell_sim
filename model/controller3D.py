@@ -75,7 +75,7 @@ class Controller:
             self.grid.cycle_cells()
             self.grid.diffuse_glucose(0.2)
             self.grid.diffuse_oxygen(0.2)
-            
+
             self.tick += 1
             print(self.tick)
 
@@ -92,6 +92,10 @@ class Controller:
                 self.sum_graph.update_plot(self.xsize, self.ysize, self.zsize, self.tick)
                 if self.tick == steps:
                     self.sum_graph.sum_plot(steps)
+            
+            
+            # self.tick += 1
+
 
 
     def irradiate(self, dose):

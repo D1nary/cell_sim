@@ -16,6 +16,7 @@ class Graphs:
 
         self.divisor = 4
         self.tick_list = self.spaced_list(4, max_tick)
+        print(self.tick_list)
         # self.tick_list = [10, 50, 100, 150]
 
         if self.type == "3d":
@@ -112,12 +113,13 @@ class Graphs:
                     plt.close()
 
         if self.type == "sum":
-            if tick in self.tick_list:
+            if tick in self.tick_list or tick == 1:
 
                 self.tot_sum = HealthyCell.cell_count + CancerCell.cell_count + OARCell.cell_count
                 self.cancer_sum = CancerCell.cell_count
                 self.healthy_sum = HealthyCell.cell_count
                 self.oar_sum = OARCell.cell_count
+                print("Ci sono al tick: ",tick)
 
                 self.sum_list.append([self.tot_sum, self.cancer_sum, self.healthy_sum, self.oar_sum])
                 # self.sum_list.append(self.tot_sum)
@@ -130,30 +132,31 @@ class Graphs:
 
     def sum_plot(self, max_tick=1):
 
-        divisor_list = self.spaced_list(self.divisor, max_tick)
 
         # Ogni sottolista deve contenere un solo tipo di cellule
         self.sum_list = np.transpose(self.sum_list)
-        print(self.sum_list)
 
         fig, ax = plt.subplots()
 
-        print(len(divisor_list))
-        print(len(self.sum_list))
-
-        print(divisor_list)
-        print(self.sum_list)
+        # print("self.tick_list: ", self.tick_list)
+        # print("self.sum_list: \n", self.sum_list)
 
         # Disegno le somme. plt.plot(x, y)
-        plt.plot(divisor_list, self.sum_list[0], "ko-", label="Total Cells", alpha=0.7)
-        plt.plot(divisor_list, self.sum_list[1], "ro-", label="Cancer Cells", alpha=0.7)
-        plt.plot(divisor_list, self.sum_list[2], "go-", label="Healthy Cells", alpha=0.7)
-        plt.plot(divisor_list, self.sum_list[3], "yo-", label="OAR Cells", alpha=0.1)
+        plt.plot(self.tick_list, self.sum_list[0], "ko-", label="Total Cells", alpha=0.7)
+        plt.plot(self.tick_list, self.sum_list[1], "ro-", label="Cancer Cells", alpha=0.7)
+        plt.plot(self.tick_list, self.sum_list[2], "go-", label="Healthy Cells", alpha=0.7)
+        plt.plot(self.tick_list, self.sum_list[3], "yo-", label="OAR Cells", alpha=0.1)
+
+
+        plt.yscale('log')
 
         plt.xlabel('Hours')
         plt.ylabel('Cell sum')
         plt.title('Cell count')
         plt.legend()
+        plt.grid()
+
+        print(self.tick_list)
 
         # Salvo i grafici
         output_path = os.path.join(self.paths[1], f'cell_sum.png')

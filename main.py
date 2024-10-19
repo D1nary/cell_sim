@@ -21,15 +21,19 @@ for path in paths:
 
 layers = [25]
 num_ore = 150
+dose = 2
 
 env_dimension = 50
 random.seed(4775)
 controller = Controller(1000, env_dimension, env_dimension, env_dimension , 100,
                         paths, "sum", num_ore, layers)
 
-
 controller.go(num_ore) # Simulazione di 300 ore
-
+print("Healthy cell: ", HealthyCell.cell_count)
+print("Cancer cell: ", CancerCell.cell_count)
+controller.irradiate(dose)
+print("Healthy cell: ", HealthyCell.cell_count)
+print("Cancer cell: ", CancerCell.cell_count)
 
 
 
