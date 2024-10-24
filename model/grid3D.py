@@ -105,6 +105,7 @@ class Grid:
         # With a helper array of same shape, we can simply compute the result inside the other and alternate between
         # the arrays.
 
+        # Ogni voxel della griglia deve essere un oggetto CellList() (lista di cellule)
         self.cells = np.empty((zsize, xsize, ysize), dtype=object)
         for k in range(zsize):
             for i in range(xsize):
@@ -149,7 +150,7 @@ class Grid:
         self.neigh_counts[zsize - 1, xsize - 1, ysize - 1] -= 3
 
 
-        self.oar = oar # Dovrebbe contenere le coordinate della oar zone
+        self.oar = oar # Contiene le coordinate della oar zone
 
         self.center_z = self.zsize // 2
         self.center_x = self.xsize // 2
@@ -445,6 +446,7 @@ class Grid:
                     count = len(self.cells[k, i, j])
                     self.cells[k, i, j].delete_dead()  # Elimina le cellule morte
                     if len(self.cells[k, i, j]) < count:
+                        # Sottraggo il numero di cellule eliminate
                         self.add_neigh_count(k, i, j, len(self.cells[k, i, j]) - count)
         # Aggiungi nuove cellule
         for k, i, j, cell in to_add:
