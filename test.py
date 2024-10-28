@@ -1,28 +1,24 @@
-import matplotlib.pyplot as plt
+import math
 import numpy as np
 
-# Dati di esempio per il primo grafico
-x1 = np.linspace(0, 10, 100)
-y1 = np.sin(x1)
+def conv(rad, x):
+    denom = 3.8  # //sqrt(2) * 2.7
+    return math.erf((rad - x) / denom) - math.erf((-rad - x) / denom)
 
-# Dati di esempio per il secondo grafico
-x2 = np.linspace(0, 10, 100)
-y2 = np.cos(x2)
+def get_multiplicator(dose, radius):
+    return dose / conv(14, 0)
 
-# Creazione del primo grafico
-plt.figure()
-plt.plot(x1, y1)
-plt.title('Primo Grafico: Funzione Seno')
-plt.xlabel('x')
-plt.ylabel('sin(x)')
-plt.grid(True)
-plt.show()
+def scale(radius, x, multiplicator):
+    print(x,x * 10 / radius)
+    return multiplicator * conv(14, x * 10 / radius)
 
-# Quando si chiude il primo grafico, si apre il secondo
-plt.figure()
-plt.plot(x2, y2)
-plt.title('Secondo Grafico: Funzione Coseno')
-plt.xlabel('x')
-plt.ylabel('cos(x)')
-plt.grid(True)
-plt.show()
+def main():
+    radius = 14
+    dose  = 10
+    multiplicator = get_multiplicator(dose, radius)
+    for x in range(-30, 31):
+        value = scale(radius, x, multiplicator) # x = distanza dal centro
+        # print(f"x = {x}, scale = {value}")
+
+if __name__ == "__main__":
+    main()
