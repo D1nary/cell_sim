@@ -1,24 +1,27 @@
-import math
 import numpy as np
 
-def conv(rad, x):
-    denom = 3.8  # //sqrt(2) * 2.7
-    return math.erf((rad - x) / denom) - math.erf((-rad - x) / denom)
+def tumor_creation():
+    env_dim = 50
+    tumor_grid = np.empty((env_dim, env_dim, env_dim))
 
-def get_multiplicator(dose, radius):
-    return dose / conv(14, 0)
+    # Coordinate del centro della griglia
+    center = tuple(np.array(tumor_grid.shape) // 2)
 
-def scale(radius, x, multiplicator):
-    print(x,x * 10 / radius)
-    return multiplicator * conv(14, x * 10 / radius)
+    # Raggio del cerchio
+    tumor_radius = 3
 
-def main():
-    radius = 14
-    dose  = 10
-    multiplicator = get_multiplicator(dose, radius)
-    for x in range(-30, 31):
-        value = scale(radius, x, multiplicator) # x = distanza dal centro
-        # print(f"x = {x}, scale = {value}")
+    # Creazione delle coordinate per l'intera griglia
+    x, y, z = np.indices((50, 50, 50))
 
-if __name__ == "__main__":
-    main()
+
+    # Stampa un esempio delle coordinate x, y, e z
+    print("Esempio di coordinate x:")
+    print(x[22:28, 22:28, 22:28])
+
+    print("Esempio di coordinate y:")
+    print(y[22:28, 22:28, 22:28])
+
+    print("Esempio di coordinate z:")
+    print(z[22:28, 22:28, 22:28])
+
+tumor_creation()

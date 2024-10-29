@@ -5,9 +5,11 @@ import numpy as np
 from model.cell_pack.cell import HealthyCell, CancerCell, OARCell
 from model.controller3D import Controller
 
+import numpy as np
+
 def tumor_creation():
-    env_dim = 50
-    tumor_grid = np.empty((env_dim, env_dim, env_dim))
+    env_dim = 20
+    tumor_grid = np.empty((env_dim, env_dim, env_dim), dtype=object)
 
     # Coordinate del centro della griglia
     center = tuple(np.array(tumor_grid.shape) // 2)
@@ -16,16 +18,20 @@ def tumor_creation():
     tumor_radius = 3
 
     # Creazione delle coordinate per l'intera griglia
-    x, y, z = np.indices((50, 50, 50))
+    x, y, z = np.indices((env_dim, env_dim, env_dim))
 
     # Calcolo della distanza da ogni punto al centro
     distance = np.sqrt((x - center[0])**2 + (y - center[1])**2 + (z - center[2])**2)
 
-    # Selezione dei voxel che si trovano all'interno del raggio
+    # Selezione dei voxel che si trovano all'interno del raggio del tumore e assegnazione del valore 5
     tumor_grid[distance <= tumor_radius] = -1
 
-    # Stampa di un piccolo esempio per verificare il risultato
-    print(tumor_grid[x,y,z])
+    # Selezione dei voxel che si trovano all'interno del raggio 7 e assegnazione del valore 1 (mantenendo invariati i voxel con valore 5)
+    tumor_grid[(distance <= 7) & (tumor_grid != -1)] = 1
+
+    # Stampa del layer a z = 5
+    print(tumor_grid[10, :, :])
+
 
 
 
