@@ -7,8 +7,7 @@ from model.controller3D import Controller
 
 import numpy as np
 
-def tumor_creation():
-    env_dim = 20
+def tumor_creation(env_dim):
     tumor_grid = np.empty((env_dim, env_dim, env_dim), dtype=object)
 
     # Coordinate del centro della griglia
@@ -29,8 +28,9 @@ def tumor_creation():
     # Selezione dei voxel che si trovano all'interno del raggio 7 e assegnazione del valore 1 (mantenendo invariati i voxel con valore 5)
     tumor_grid[(distance <= 7) & (tumor_grid != -1)] = 1
 
-    # Stampa del layer a z = 5
-    print(tumor_grid[10, :, :])
+    
+    # print(tumor_grid[10, :, :])
+    return tumor_grid
 
 
 
@@ -39,25 +39,25 @@ def tumor_creation():
 # Blocco principale del programma
 if __name__ == "__main__":
     # Ottieni la directory corrente di lavoro
-    # project_folder = os.getcwd()
+    project_folder = os.getcwd()
 
     # Definisce il path delle cartelle da creare
-    # paths = [
-    #     os.path.join(project_folder, 'results', 'graphs', '3d'),
-    #     os.path.join(project_folder, 'results', 'graphs', '2d')
-    # ]
+    paths = [
+        os.path.join(project_folder, 'results', 'graphs', '3d'),
+        os.path.join(project_folder, 'results', 'graphs', '2d')
+    ]
 
     # Crea le cartelle se non esistono già
-    # for path in paths:
-    #     os.makedirs(path, exist_ok=True)
+    for path in paths:
+        os.makedirs(path, exist_ok=True)
 
-    # layers = [25]
-    # num_ore = 150
-    # dose = 2
+    layers = [25]
+    num_ore = 150
+    dose = 2
 
-    # env_dimension = 50
-    # random.seed(4775)
-    # controller = Controller(1000, env_dimension, env_dimension, env_dimension, 100,
-    #                         paths, "sum", num_ore, layers)
+    env_size = 20
+    random.seed(4775)
+    controller = Controller(1000, env_size, 100,
+                            paths, "sum", num_ore, layers)
 
     tumor_creation()

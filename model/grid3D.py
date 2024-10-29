@@ -86,7 +86,7 @@ class Grid:
     one contains the glucose amount on each pixel and one contains the oxygen amount on each pixel.
     """
 
-    def __init__(self, xsize, ysize, zsize,  sources, oar=None):
+    def __init__(self, env_size, sources, oar=None):
         """Constructor of the Grid.
 
         Parameters :
@@ -95,21 +95,21 @@ class Grid:
         sources : Number of nutrient sources on the grid
         oar : Optional description of an OAR zone on the grid
         """
-        self.zsize = zsize
-        self.xsize = xsize
-        self.ysize = ysize
+        self.zsize = env_size
+        self.xsize = env_size
+        self.ysize = env_size
 
-        self.glucose = np.full((zsize, xsize, ysize), 100.0) # Return a new array of given shape and type, filled with 100.0 of glucose.
-        self.oxygen = np.full((zsize, xsize, ysize), 1000.0)
+        self.glucose = np.full((self.zsize, self.xsize, self.ysize), 100.0) # Return a new array of given shape and type, filled with 100.0 of glucose.
+        self.oxygen = np.full((self.zsize, self.xsize, self.ysize), 1000.0)
         # Helpers are useful because diffusion cannot be done efficiently in place.
         # With a helper array of same shape, we can simply compute the result inside the other and alternate between
         # the arrays.
 
         # Ogni voxel della griglia deve essere un oggetto CellList() (lista di cellule)
-        self.cells = np.empty((zsize, xsize, ysize), dtype=object)
-        for k in range(zsize):
-            for i in range(xsize):
-                for j in range(ysize):
+        self.cells = np.empty((self.zsize, self.xsize, self.ysize), dtype=object)
+        for k in range(self.zsize):
+            for i in range(self.xsize):
+                for j in range(self.ysize):
                     self.cells[k, i, j] = CellList()
 
         self.num_sources = sources
