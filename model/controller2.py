@@ -17,15 +17,19 @@ import random
 
 class Controller:
 
-    def __init__(self, hcells, zsize, xsize, ysize, sources, paths, 
-                 graph_type, max_tick, layers):
+    def __init__(self, env_size, num_hcells, num_ccells, sources, max_tick, real_tumor_grid, 
+                 paths, graph_type, layers):
+        
         # Inizializza la griglia 3D con le dimensioni zsize, xsize, ysize
-        self.grid = Grid(zsize, xsize, ysize, sources)
+        self.grid = Grid(env_size, sources)
         self.tick = 0
-        self.hcells = hcells
-        self.zsize = zsize
-        self.xsize = xsize
-        self.ysize = ysize
+
+        self.num_hcells = num_hcells
+        self.num_ccells = num_ccells
+
+        self.zsize = env_size
+        self.xsize = env_size
+        self.ysize = env_size
 
         # Lista dei paths di output
         self.paths = paths
@@ -40,18 +44,30 @@ class Controller:
         CancerCell.cell_count = 0
 
         # Probabilità di inserire una cellula sana in ogni voxel
-        prob = hcells / (zsize * xsize * ysize)
+        # prob = hcells / (zsize * xsize * ysize)
 
-        for k in range(zsize):
-            for i in range(xsize):
-                for j in range(ysize):
-                    if random.random() < prob:
-                        new_cell = HealthyCell(random.randint(0, 4))
-                        self.grid.cells[k, i, j].append(new_cell)
+        for k in range(self.zsize):
+            for i in range(self.xsize):
+                for j in range(self.ysize):
+                    # if random.random() < prob:
+                        # new_cell = HealthyCell(random.randint(0, 4))
+                        # self.grid.cells[k, i, j].append(new_cell)
+
+                    # Aggiungo le cellule sane
+                    if real_tumor_grid[k, i, j] == 1:
+                        for _ in range(self.num_ccells):
+                            new_cell = HealthyCell(random.randint(0, 4))
+                            self.grid.cells[k, i, j].append(new_cell)
+                    # Aggiungo le cellule tumorali
+                    elif real_tumor_grid[k, i, j] == -1:
+                        for _ in range(self.num_ccells):
+                            new_cell = CancerCell(random.randint(0, 4))
+                            self.grid.cells[k, i, j].append(new_cell)
+                    
 
         # Inizializza una cellula cancerosa al centro della griglia 3D
-        new_cell = CancerCell(random.randint(0, 3))
-        self.grid.cells[self.zsize // 2, self.xsize // 2, self.ysize // 2].append(new_cell)
+        #new_cell = CancerCell(random.randint(0, 3))
+        #self.grid.cells[self.zsize // 2, self.xsize // 2, self.ysize // 2].append(new_cell)
 
         # Conta i vicini nella griglia tridimensionale
         self.grid.count_neighbors()

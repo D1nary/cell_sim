@@ -414,40 +414,41 @@ class Grid:
         for k in range(self.zsize):
             for i in range(self.xsize):
                 for j in range(self.ysize):  # Itera su ogni voxel nella griglia 3D
-                    for cell in self.cells[k, i, j]:
-                        # cycle() simula un'ora del ciclo della cellula
-                        res = cell.cycle(self.glucose[k, i, j], self.neigh_counts[k, i, j], self.oxygen[k, i, j])
-                        tot_count += 1
-                        if len(res) > 2:  # Se ci sono più di due argomenti, deve essere creata una nuova cellula
-                            if res[2] == 0:  # Mitosi di una cellula sana
-                                # downhill: posizione del voxel a bassa densità
-                                downhill = self.rand_min(k, i, j, 5)  # Controlla il voxel a bassa densità
-                                if downhill is not None:
-                                    to_add.append((downhill[0], downhill[1], downhill[2], HealthyCell(4)))
-                                else:
-                                    cell.stage = 4
-                            elif res[2] == 1:  # Mitosi di una cellula cancerosa
-                                # downhill: posizione casuale per la cellula cancerosa
-                                downhill = self.rand_neigh(k, i, j)
-                                if downhill is not None:
-                                    to_add.append((downhill[0], downhill[1], downhill[2], CancerCell(0)))
-                            elif res[2] == 2:  # Risveglio delle cellule OAR circostanti
-                                self.wake_surrounding_oar(k, i, j)
-                            elif res[2] == 3:
-                                downhill = self.find_hole(k, i, j)
-                                if downhill:
-                                    to_add.append((downhill[0], downhill[1], downhill[2], OARCell(0, 5)))
-                                else:
-                                    cell.stage = 4
-                                    cell.age = 0
-                        # Le variabili locali vengono aggiornate in base al consumo della cellula
-                        self.glucose[k, i, j] -= res[0]
-                        self.oxygen[k, i, j] -= res[1]
-                    count = len(self.cells[k, i, j])
-                    self.cells[k, i, j].delete_dead()  # Elimina le cellule morte
-                    if len(self.cells[k, i, j]) < count:
-                        # Sottraggo il numero di cellule eliminate
-                        self.add_neigh_count(k, i, j, len(self.cells[k, i, j]) - count)
+                    if self.cells[k, i, j] != None:
+                        for cell in self.cells[k, i, j]:
+                            # cycle() simula un'ora del ciclo della cellula
+                            res = cell.cycle(self.glucose[k, i, j], self.neigh_counts[k, i, j], self.oxygen[k, i, j])
+                            tot_count += 1
+                            if len(res) > 2:  # Se ci sono più di due argomenti, deve essere creata una nuova cellula
+                                if res[2] == 0:  # Mitosi di una cellula sana
+                                    # downhill: posizione del voxel a bassa densità
+                                    downhill = self.rand_min(k, i, j, 5)  # Controlla il voxel a bassa densità
+                                    if downhill is not None:
+                                        to_add.append((downhill[0], downhill[1], downhill[2], HealthyCell(4)))
+                                    else:
+                                        cell.stage = 4
+                                elif res[2] == 1:  # Mitosi di una cellula cancerosa
+                                    # downhill: posizione casuale per la cellula cancerosa
+                                    downhill = self.rand_neigh(k, i, j)
+                                    if downhill is not None:
+                                        to_add.append((downhill[0], downhill[1], downhill[2], CancerCell(0)))
+                                elif res[2] == 2:  # Risveglio delle cellule OAR circostanti
+                                    self.wake_surrounding_oar(k, i, j)
+                                elif res[2] == 3:
+                                    downhill = self.find_hole(k, i, j)
+                                    if downhill:
+                                        to_add.append((downhill[0], downhill[1], downhill[2], OARCell(0, 5)))
+                                    else:
+                                        cell.stage = 4
+                                        cell.age = 0
+                            # Le variabili locali vengono aggiornate in base al consumo della cellula
+                            self.glucose[k, i, j] -= res[0]
+                            self.oxygen[k, i, j] -= res[1]
+                        count = len(self.cells[k, i, j])
+                        self.cells[k, i, j].delete_dead()  # Elimina le cellule morte
+                        if len(self.cells[k, i, j]) < count:
+                            # Sottraggo il numero di cellule eliminate
+                            self.add_neigh_count(k, i, j, len(self.cells[k, i, j]) - count)
         # Aggiungi nuove cellule
         for k, i, j, cell in to_add:
             self.cells[k, i, j].append(cell)

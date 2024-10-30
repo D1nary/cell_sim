@@ -49,7 +49,7 @@ class Graphs:
                             if isinstance(self.grid.cells[k, i, j][0], CancerCell):
                                 self.pixel_info.append([i, j, k,'red', 1.0])
 
-            if tick == 10 or tick == 100:
+            if tick in self.tick_list or tick == 1:
 
                 fig = plt.figure()
                 self.plot3d = fig.add_subplot(111, projection='3d')
@@ -77,7 +77,7 @@ class Graphs:
 
         # GRAFICO 2D    
         if self.type == "2d" and self.layers != None:
-            if tick == 10 or tick == 100 or tick == 200:
+            if tick in self.tick_list or tick == 1:
 
                 for layer in self.layers:
                     # Grafico della cell_proliferation:
@@ -122,10 +122,6 @@ class Graphs:
                 print("Ci sono al tick: ",tick)
 
                 self.sum_list.append([self.tot_sum, self.cancer_sum, self.healthy_sum, self.oar_sum])
-                # self.sum_list.append(self.tot_sum)
-                # self.sum_list.append(self.cancer_sum)
-                # self.sum_list.append(self.healthy_sum)
-                # self.sum_list.append(self.oar_sum)
 
         if self.type == None: # VEDI
             print("No graphs generated")

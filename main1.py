@@ -3,7 +3,7 @@ import random
 import numpy as np
 
 from model.cell_pack.cell import HealthyCell, CancerCell, OARCell
-from model.controller3D import Controller
+from model.controller2 import Controller
 
 import numpy as np
 
@@ -51,13 +51,16 @@ if __name__ == "__main__":
     for path in paths:
         os.makedirs(path, exist_ok=True)
 
-    layers = [25]
-    num_ore = 150
+    layers = [10] # Layer dell'ambiente da analizzare
+    num_ore = 150 # Ore di simulazione
     dose = 2
 
-    env_size = 20
-    random.seed(4775)
-    controller = Controller(1000, env_size, 100,
-                            paths, "sum", num_ore, layers)
+    cell_num = 10 # Numero di cellule sane e cancerose in ogni pixel del tumore
+    env_size = 20 # Dimensioni dell'ambiente
 
-    tumor_creation()
+
+    random.seed(4775)    
+    controller = Controller(env_size, cell_num, cell_num,  100, num_ore, tumor_creation(env_size), 
+                            paths, "3d", layers)
+    controller.go(num_ore) # Simulazione di 300 ore
+    
