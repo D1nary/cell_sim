@@ -3,7 +3,7 @@ import os
 from model.cell_pack.cell import HealthyCell, CancerCell, OARCell, critical_oxygen_level, critical_glucose_level
 import matplotlib.pyplot as plt
 import matplotlib
-from model.grid3D import Grid
+from model.grid2 import Grid
 import random
 import numpy as np
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection # Per il cubo 3d 
@@ -63,6 +63,7 @@ class Controller:
                         for _ in range(self.num_ccells):
                             new_cell = CancerCell(random.randint(0, 4))
                             self.grid.cells[k, i, j].append(new_cell)
+
                     
 
         # Inizializza una cellula cancerosa al centro della griglia 3D

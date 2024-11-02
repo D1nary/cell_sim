@@ -416,9 +416,10 @@ class Grid:
                 for j in range(self.ysize):  # Itera su ogni voxel nella griglia 3D
                     if self.cells[k, i, j] != None:
                         for cell in self.cells[k, i, j]:
-                            # cycle() simula un'ora del ciclo della cellula
+                            # cycle simula un'ora del ciclo della cellula
                             res = cell.cycle(self.glucose[k, i, j], self.neigh_counts[k, i, j], self.oxygen[k, i, j])
                             tot_count += 1
+                            print(self.cells[k, i, j])
                             if len(res) > 2:  # Se ci sono più di due argomenti, deve essere creata una nuova cellula
                                 if res[2] == 0:  # Mitosi di una cellula sana
                                     # downhill: posizione del voxel a bassa densità
