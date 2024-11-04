@@ -411,15 +411,15 @@ class Grid:
         """Feed every cell, handle mitosis in 3D"""
         to_add = []  # Cells to add
         tot_count = 0  # Number of cell cycles
+
         for k in range(self.zsize):
             for i in range(self.xsize):
                 for j in range(self.ysize):  # Itera su ogni voxel nella griglia 3D
-                    if self.cells[k, i, j] != None:
+                    if self.cells[k, i, j] is not None:
                         for cell in self.cells[k, i, j]:
                             # cycle simula un'ora del ciclo della cellula
                             res = cell.cycle(self.glucose[k, i, j], self.neigh_counts[k, i, j], self.oxygen[k, i, j])
                             tot_count += 1
-                            print(self.cells[k, i, j])
                             if len(res) > 2:  # Se ci sono più di due argomenti, deve essere creata una nuova cellula
                                 if res[2] == 0:  # Mitosi di una cellula sana
                                     # downhill: posizione del voxel a bassa densità

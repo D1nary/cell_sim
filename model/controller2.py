@@ -18,11 +18,13 @@ import random
 class Controller:
 
     def __init__(self, env_size, num_hcells, num_ccells, sources, max_tick, real_tumor_grid, 
-                 paths, graph_type, layers):
+                 paths, graph_types, layers):
         
         # Inizializza la griglia 3D con le dimensioni zsize, xsize, ysize
         self.grid = Grid(env_size, sources)
         self.tick = 0
+
+        self.max_tick = max_tick
 
         self.num_hcells = num_hcells
         self.num_ccells = num_ccells
@@ -34,10 +36,13 @@ class Controller:
         # Lista dei paths di output
         self.paths = paths
 
+        # Lista con i tipi dei grafici da stampare
+        self.graph_types = graph_types
+
         # Istanze per i grafici
-        self.graph3d = None
-        self.graph2d = None
-        self.sum_graph = None
+        # self.graph3d = None
+        # self.graph2d = None
+        # self.sum_graph = None
 
 
         HealthyCell.cell_count = 0
@@ -52,7 +57,6 @@ class Controller:
                     # if random.random() < prob:
                         # new_cell = HealthyCell(random.randint(0, 4))
                         # self.grid.cells[k, i, j].append(new_cell)
-
                     # Aggiungo le cellule sane
                     if real_tumor_grid[k, i, j] == 1:
                         for _ in range(self.num_ccells):
@@ -61,29 +65,23 @@ class Controller:
                     # Aggiungo le cellule tumorali
                     elif real_tumor_grid[k, i, j] == -1:
                         for _ in range(self.num_ccells):
-                            new_cell = CancerCell(random.randint(0, 4))
+                            new_cell = CancerCell(random.randint(0, 3))
                             self.grid.cells[k, i, j].append(new_cell)
 
-                    
-
-        # Inizializza una cellula cancerosa al centro della griglia 3D
-        #new_cell = CancerCell(random.randint(0, 3))
-        #self.grid.cells[self.zsize // 2, self.xsize // 2, self.ysize // 2].append(new_cell)
+        # tick_list: lista contenente i tick a in cui creare i grafici
+        # divisor = 4
+        self.tick_list = self.spaced_list(4, max_tick)
+        print(self.tick_list)
 
         # Conta i vicini nella griglia tridimensionale
         self.grid.count_neighbors()
 
-        # Inizializzo il grafico 3d
-        if graph_type == "3d":
-            self.graph3d = Graphs(self.grid, graph_type, self.paths, max_tick)
-
-        if graph_type == "2d":
-            self.graph2d = Graphs(self.grid, graph_type, self.paths, max_tick, layers)
-
-        if graph_type == "sum":
-            self.sum_graph = Graphs(self.grid, graph_type, self.paths, max_tick)
+        # Inizializzo i gradici
+        if None is not self.graph_types:
+            self.graphs = Graphs(self.grid, graph_types, self.paths, max_tick, layers)
+        else:
+            print("Nessun grafico da creare")
         
-
 
     # steps = 1 simulates one hour on the grid : Nutrient diffusion and replenishment, cell cycle
     def go(self, steps=1):
@@ -100,18 +98,12 @@ class Controller:
             if self.tick % 24 == 0:
                 self.grid.compute_center()
 
-            # Update grafico (vanno aggiornati ad ogni step (tick) della simulazione)
-            if self.graph3d != None:
-                self.graph3d.update_plot(self.xsize, self.ysize, self.zsize, self.tick)
-            if self.graph2d != None:
-                self.graph2d.update_plot(self.xsize, self.ysize, self.zsize, self.tick)
-            if self.sum_graph != None:
-                self.sum_graph.update_plot(self.xsize, self.ysize, self.zsize, self.tick)
-                if self.tick == steps:
-                    self.sum_graph.sum_plot(steps)
+            # Creo i grafici
+            if self.tick in self.tick_list or self.tick == 1 and None not in self.tick_list:
+                self.graphs.create_plot(self.xsize, self.ysize, self.zsize, 
+                                        self.tick, self.max_tick, self.tick_list)
+
             
-            
-            # self.tick += 1
 
 
 
@@ -128,6 +120,12 @@ class Controller:
         """Produce observation of type densities"""
         dens = np.vectorize(lambda x: x.pixel_density())
         return dens(self.grid.cells)
+
+
+    def spaced_list(self, divisor, max_tick):
+        step = max_tick / (divisor - 1)
+        new_list = [round(i * step) for i in range(divisor)]
+        return new_list
 
 
 def patch_type_color(patch):
