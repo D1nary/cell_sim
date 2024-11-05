@@ -70,8 +70,8 @@ class Controller:
 
         # tick_list: lista contenente i tick a in cui creare i grafici
         # divisor = 4
-        self.tick_list = self.spaced_list(4, max_tick)
-        print(self.tick_list)
+        # self.tick_list = self.spaced_list(4, max_tick)
+        # print(self.tick_list)
 
         # Conta i vicini nella griglia tridimensionale
         self.grid.count_neighbors()
@@ -84,10 +84,14 @@ class Controller:
         
 
     # steps = 1 simulates one hour on the grid : Nutrient diffusion and replenishment, cell cycle
-    def go(self, steps=1):
+    def go(self,divisor, steps=1):
+
+        # Creo la lista di tick in cui voglio salvare i dati
+        tick_list = self.spaced_list(divisor, steps)
+
         for _ in range(steps):
             self.grid.fill_source(130, 4500)
-            self.grid.cycle_cells()
+            self.grid.cycle_cells(self.tick)
             self.grid.diffuse_glucose(0.2)
             self.grid.diffuse_oxygen(0.2)
 
@@ -101,7 +105,14 @@ class Controller:
             # Creo i grafici
             if self.tick in self.tick_list or self.tick == 1 and None not in self.tick_list:
                 self.graphs.create_plot(self.xsize, self.ysize, self.zsize, 
-                                        self.tick, self.max_tick, self.tick_list)
+                                        self.tick, self.max_tick)
+                
+            # Salva i dati
+            if self.tick in self
+
+    def save_data(self, tick):
+        if "3d" in self.graph_types:
+            np.savetxt(os.path.join(self.paths[0], f'cell_proliferation_t{tick}.png'), self.pixel_info, fmt='%f')
 
             
 
@@ -120,7 +131,6 @@ class Controller:
         """Produce observation of type densities"""
         dens = np.vectorize(lambda x: x.pixel_density())
         return dens(self.grid.cells)
-
 
     def spaced_list(self, divisor, max_tick):
         step = max_tick / (divisor - 1)

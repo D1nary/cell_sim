@@ -6,33 +6,37 @@ import os
 
 
 class Graphs:
-    def __init__(self, grid, graph_types, paths, max_tick, layers = None):
+    def __init__(self, grid, graph_types, max_tick, paths, divisor, layers = None):
 
         self.graph_types = graph_types
         self.grid = grid
 
+        self.tick_list = self.spaced_list(divisor, max_tick)
+
+
+
         # Lista dei paths di output
         self.paths = paths
         
-        if "3d" in graph_types:
-            # Lista per mantenere traccia delle posizioni dei cubi aggiunti e del colore del voxel
-            self.pixel_info = []
+        # # if "3d" in graph_types:
+        #     # Lista per mantenere traccia delle posizioni dei cubi aggiunti e del colore del voxel
+        #     self.pixel_info = []
 
-        if "2d" in graph_types:
-            self.layers = layers # 2D layer to be printed
+        # if "2d" in graph_types:
+        #     self.layers = layers # 2D layer to be printed
 
-        if "sum" in graph_types:
-            self.tot_sum = 0
-            self.cancer_sum = 0
-            self.healthy_sum = 0
-            self.oar_sum = 0
+        # if "sum" in graph_types:
+        #     self.tot_sum = 0
+        #     self.cancer_sum = 0
+        #     self.healthy_sum = 0
+        #     self.oar_sum = 0
 
-            self.sum_list = []
+        #     self.sum_list = []
             
             
-    def create_plot(self, xsize, ysize, zsize, tick, max_tick, tick_list):
+    def create_plot(self, xsize, ysize, zsize, tick, max_tick):
 
-        # GRAFICO 3D
+        # GRAFICO 3D ELIMINA
         if "3d" in self.graph_types:
             for k in range(zsize):
                 for i in range(xsize):
@@ -111,7 +115,7 @@ class Graphs:
 
             self.sum_list.append([self.tot_sum, self.cancer_sum, self.healthy_sum, self.oar_sum])
             if tick == max_tick:
-                self.sum_plot(tick_list)
+                self.sum_plot(self.tick_list)
 
         # NO GRAFICO
         if None in self.graph_types:  # VEDI
@@ -148,6 +152,14 @@ class Graphs:
         output_path = os.path.join(self.paths[1], f'cell_sum.png')
         plt.savefig(output_path)
         plt.close()
+    
+    # def spaced_list(self, divisor, max_tick):
+    #     step = max_tick / (divisor - 1)
+    #     new_list = [round(i * step) for i in range(divisor)]
+    #     return new_list
+
+
+    
 
 def patch_type_color(patch):
         if len(patch) == 0:

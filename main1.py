@@ -5,6 +5,8 @@ import numpy as np
 from model.cell_pack.cell import HealthyCell, CancerCell, OARCell
 from model.controller2 import Controller
 
+from model.graphs import Graphs
+
 import numpy as np
 
 def tumor_creation(env_dim):
@@ -44,7 +46,12 @@ if __name__ == "__main__":
     # Definisce il path delle cartelle da creare
     paths = [
         os.path.join(project_folder, 'results', 'graphs', '3d'),
-        os.path.join(project_folder, 'results', 'graphs', '2d')
+        os.path.join(project_folder, 'results', 'graphs', '2d'),
+        os.path.join(project_folder, 'results', 'graphs', 'general'),
+        os.path.join(project_folder, 'results', 'data', '3d'), 
+        os.path.join(project_folder, 'results', 'data', '2d'),
+        os.path.join(project_folder, 'results', 'data', 'general')
+
     ]
 
     # Crea le cartelle se non esistono già
@@ -59,21 +66,43 @@ if __name__ == "__main__":
     num_ore = 150 # Ore di simulazione
     dose = 2
 
-    # graphs_types = ["3d", "sum"]
-    # graphs_types = ["3d", "sum", "2d"]
-    # graphs_types = [None]
-    graphs_types = ["2d"]
+
+    # graph_types = ["3d", "sum"]
+    # graph_types = ["3d", "sum", "2d"]
+    # graph_types = [None]
+    graph_types = ["2d"]
+
 
     random.seed(4775)    
     controller = Controller(env_size, cell_num, cell_num,  100, num_ore, tumor_creation(env_size), 
-                            paths, graphs_types, layers)
+                            paths, graph_types, layers)
     
-    controller.go(num_ore) # Simulazione
+
+    # Numero di grafici per ogni ciclo go. 
+    # Se divisor = 1 stampa solo l'inizio del ciclo go()
+    divisor = 4
+    if None is not graph_types:
+        graphs = Graphs(controller.grid, graph_types, num_ore, paths, divisor, layers)
+    else:
+        print("Nessun grafico da creare")
+
+    
+    controller.go(divisor, num_ore) # Simulazione
     print(HealthyCell.cell_count, CancerCell.cell_count)
     controller.irradiate(dose)
     print(HealthyCell.cell_count, CancerCell.cell_count)
-    controller.tick = 0
-    controller.tick_list = controller.spaced_list(4, num_ore)
-    controller.go(10)
+    # controller.tick = 0
+    # controller.tick_list = controller.spaced_list(4, num_ore)
+    # controller.go(10)
+
+
+
+
+
+    
+
+    
+
+
 
 

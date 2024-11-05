@@ -5,6 +5,8 @@ import math
 import scipy.special
 import matplotlib.pyplot as plt
 
+import os
+
 
 class CellList:
     """Used to hold lists of cells on each pixel while keeping cancer cells and healthy cells sorted
@@ -86,7 +88,7 @@ class Grid:
     one contains the glucose amount on each pixel and one contains the oxygen amount on each pixel.
     """
 
-    def __init__(self, env_size, sources, oar=None):
+    def __init__(self, env_size, sources, graph_types, paths, layers, oar=None):
         """Constructor of the Grid.
 
         Parameters :
@@ -155,6 +157,27 @@ class Grid:
         self.center_z = self.zsize // 2
         self.center_x = self.xsize // 2
         self.center_y = self.ysize // 2
+
+        self.graph_types = graph_types
+        self.paths = paths
+
+
+        # Inizializzazione dei parametri per il salvataggio dei dati
+        if "3d" in graph_types:
+            # Lista per mantenere traccia delle posizioni dei cubi aggiunti e del colore del voxel
+            self.pixel_info = []
+
+        if "2d" in graph_types:
+            self.layers = layers # 2D layer to be printed
+
+        if "sum" in graph_types:
+            self.tot_sum = 0
+            self.cancer_sum = 0
+            self.healthy_sum = 0
+            self.oar_sum = 0
+
+            self.sum_list = []
+
 
     def count_neighbors(self):
         """Compute the neighbor counts (the number of cells on neighbouring pixels) for each pixel"""
@@ -407,7 +430,7 @@ class Grid:
             right_backward + left_backward + down_right_backward + down_left_backward + 
             up_right_backward + up_left_backward)
 
-    def cycle_cells(self):
+    def cycle_cells(self,tick): # tick serve per il nome dei grafici
         """Feed every cell, handle mitosis in 3D"""
         to_add = []  # Cells to add
         tot_count = 0  # Number of cell cycles
@@ -415,6 +438,7 @@ class Grid:
         for k in range(self.zsize):
             for i in range(self.xsize):
                 for j in range(self.ysize):  # Itera su ogni voxel nella griglia 3D
+
                     if self.cells[k, i, j] is not None:
                         for cell in self.cells[k, i, j]:
                             # cycle simula un'ora del ciclo della cellula
@@ -450,6 +474,20 @@ class Grid:
                         if len(self.cells[k, i, j]) < count:
                             # Sottraggo il numero di cellule eliminate
                             self.add_neigh_count(k, i, j, len(self.cells[k, i, j]) - count)
+
+                    # DATI GRAFICO 3D
+                    if "3d" in self.graph_types:    
+                        # Estraggo le info per i grafici
+                        if len(self.cells[k, i, j]) != 0:
+                                if isinstance(self.cells[k, i, j][0], HealthyCell):
+                                    self.pixel_info.append([i, j, k, 'green', 0.01])  # Coordinate, colore, alpha
+                                if isinstance(self.cells[k, i, j][0], CancerCell):
+                                    self.pixel_info.append([i, j, k, 'red', 1.0])
+                    # DATI GRAFICO 2D                
+                    if "2d" in self.graph_types:  
+                        if k in self.layers:                             
+
+                    
         # Aggiungi nuove cellule
         for k, i, j, cell in to_add:
             self.cells[k, i, j].append(cell)
