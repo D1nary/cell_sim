@@ -72,25 +72,27 @@ if __name__ == "__main__":
     # graph_types = [None]
     graph_types = ["2d"]
 
+    divisor = 4
 
     random.seed(4775)    
     controller = Controller(env_size, cell_num, cell_num,  100, num_ore, tumor_creation(env_size), 
-                            paths, graph_types, layers)
+                            paths, graph_types, divisor, layers)
     
 
     # Numero di grafici per ogni ciclo go. 
     # Se divisor = 1 stampa solo l'inizio del ciclo go()
-    divisor = 4
-    if None is not graph_types:
-        graphs = Graphs(controller.grid, graph_types, num_ore, paths, divisor, layers)
-    else:
-        print("Nessun grafico da creare")
+    
+
+    # if None is not graph_types:
+    #     graphs = Graphs(controller.grid, graph_types, num_ore, paths, divisor, layers)
+    # else:
+    #     print("Nessun grafico da creare")
 
     
-    controller.go(divisor, num_ore) # Simulazione
+    controller.go(num_ore) # Simulazione
     print(HealthyCell.cell_count, CancerCell.cell_count)
-    controller.irradiate(dose)
-    print(HealthyCell.cell_count, CancerCell.cell_count)
+    # controller.irradiate(dose)
+    # print(HealthyCell.cell_count, CancerCell.cell_count)
     # controller.tick = 0
     # controller.tick_list = controller.spaced_list(4, num_ore)
     # controller.go(10)

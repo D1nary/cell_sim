@@ -169,6 +169,7 @@ class Grid:
 
         if "2d" in graph_types:
             self.layers = layers # 2D layer to be printed
+            self.data_2d = []
 
         if "sum" in graph_types:
             self.tot_sum = 0
@@ -430,12 +431,18 @@ class Grid:
             right_backward + left_backward + down_right_backward + down_left_backward + 
             up_right_backward + up_left_backward)
 
-    def cycle_cells(self,tick): # tick serve per il nome dei grafici
+    def cycle_cells(self, check_data):
         """Feed every cell, handle mitosis in 3D"""
         to_add = []  # Cells to add
         tot_count = 0  # Number of cell cycles
 
+        # Matrice salvataggio dati matrice 2d
+        data_2d_to_save = np.empty((0, 1)) # 1 : numero di colonne
+
         for k in range(self.zsize):
+
+            data_2d_to_save = []
+
             for i in range(self.xsize):
                 for j in range(self.ysize):  # Itera su ogni voxel nella griglia 3D
 
@@ -476,7 +483,7 @@ class Grid:
                             self.add_neigh_count(k, i, j, len(self.cells[k, i, j]) - count)
 
                     # DATI GRAFICO 3D
-                    if "3d" in self.graph_types:    
+                    if "3d" in self.graph_types and check_data:    
                         # Estraggo le info per i grafici
                         if len(self.cells[k, i, j]) != 0:
                                 if isinstance(self.cells[k, i, j][0], HealthyCell):
@@ -484,14 +491,41 @@ class Grid:
                                 if isinstance(self.cells[k, i, j][0], CancerCell):
                                     self.pixel_info.append([i, j, k, 'red', 1.0])
                     # DATI GRAFICO 2D                
-                    if "2d" in self.graph_types:  
-                        if k in self.layers:                             
+                    # if "2d" in self.graph_types and check_data:
+                    #     if k in self.layers:
+                    #         # Salvo nella variabile
+                    #         np.append(self.data_2d, data_2d_to_save) # IN DATA_2D_TOSAVE NON CI HAI MESSO NIENTE
+                    #         print(self.data_2d)
+
+                    if "2d" in self.graph_types and k in self.layers:
+                        # np.append(self.data_2d,k)
+                        # np.append(self.data_2d, len(self.cells[k, i, j]))
+                        new_row = [k, [patch_type_color(self.cells[k, i, j])], len(self.cells[k, i, j])]
+                        self.data_2d.append(new_row)
+
+
+                    if "sum" in self.graph_types:
+                        self.tot_sum = HealthyCell.cell_count + CancerCell.cell_count + OARCell.cell_count
+                        self.cancer_sum = CancerCell.cell_count
+                        self.healthy_sum = HealthyCell.cell_count
+                        self.oar_sum = OARCell.cell_count
+
+                        if check_data:
+                            self.sum_list.append([self.tot_sum, self.cancer_sum, self.healthy_sum, self.oar_sum])
+
+                        
+                    
+
+                            
+
 
                     
         # Aggiungi nuove cellule
         for k, i, j, cell in to_add:
             self.cells[k, i, j].append(cell)
             self.add_neigh_count(k, i, j, 1)
+
+
         return tot_count
 
     def wake_surrounding_oar(self, z, x, y):
@@ -734,3 +768,9 @@ def random_sources(zsize, xsize, ysize, number):
         if (z, x, y) not in src:
             src.append((z, x, y))
     return src
+
+def patch_type_color(patch):
+        if len(patch) == 0:
+            return 0, 0, 0
+        else:
+            return patch[0].cell_color()

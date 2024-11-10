@@ -1,27 +1,14 @@
 import numpy as np
 
-def tumor_creation():
-    env_dim = 50
-    tumor_grid = np.empty((env_dim, env_dim, env_dim))
+data_2d = []
 
-    # Coordinate del centro della griglia
-    center = tuple(np.array(tumor_grid.shape) // 2)
+for k in range(10):
+    for i in range(10):
+        for j in range(10):
+            new_row = [k, i, j]
+            data_2d.append(new_row)
 
-    # Raggio del cerchio
-    tumor_radius = 3
+# Convert to numpy array if needed
+data_2d = np.array(data_2d)
 
-    # Creazione delle coordinate per l'intera griglia
-    x, y, z = np.indices((50, 50, 50))
-
-
-    # Stampa un esempio delle coordinate x, y, e z
-    print("Esempio di coordinate x:")
-    print(x[22:28, 22:28, 22:28])
-
-    print("Esempio di coordinate y:")
-    print(y[22:28, 22:28, 22:28])
-
-    print("Esempio di coordinate z:")
-    print(z[22:28, 22:28, 22:28])
-
-tumor_creation()
+print(data_2d)

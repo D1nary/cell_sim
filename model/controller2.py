@@ -18,10 +18,10 @@ import random
 class Controller:
 
     def __init__(self, env_size, num_hcells, num_ccells, sources, max_tick, real_tumor_grid, 
-                 paths, graph_types, layers):
+                 paths, graph_types, divisor, layers):
         
         # Inizializza la griglia 3D con le dimensioni zsize, xsize, ysize
-        self.grid = Grid(env_size, sources)
+        self.grid = Grid(env_size, sources, graph_types, paths, layers)
         self.tick = 0
 
         self.max_tick = max_tick
@@ -32,6 +32,9 @@ class Controller:
         self.zsize = env_size
         self.xsize = env_size
         self.ysize = env_size
+
+        # Per la creazione della lista dei tick in cui salvare i dati
+        self.divisor = divisor
 
         # Lista dei paths di output
         self.paths = paths
@@ -68,30 +71,33 @@ class Controller:
                             new_cell = CancerCell(random.randint(0, 3))
                             self.grid.cells[k, i, j].append(new_cell)
 
-        # tick_list: lista contenente i tick a in cui creare i grafici
-        # divisor = 4
-        # self.tick_list = self.spaced_list(4, max_tick)
-        # print(self.tick_list)
-
         # Conta i vicini nella griglia tridimensionale
         self.grid.count_neighbors()
 
         # Inizializzo i gradici
-        if None is not self.graph_types:
-            self.graphs = Graphs(self.grid, graph_types, self.paths, max_tick, layers)
-        else:
-            print("Nessun grafico da creare")
+        # if None is not self.graph_types:
+        #     self.graphs = Graphs(self.grid, graph_types, self.paths, max_tick, layers)
+        # else:
+        #     print("Nessun grafico da creare")
         
 
     # steps = 1 simulates one hour on the grid : Nutrient diffusion and replenishment, cell cycle
-    def go(self,divisor, steps=1):
+    def go(self, steps=1):
 
         # Creo la lista di tick in cui voglio salvare i dati
-        tick_list = self.spaced_list(divisor, steps)
+        tick_list = self.spaced_list(self.divisor, steps)
+        print(tick_list)
 
         for _ in range(steps):
+
+            # Controllo se devo salvare i dati
+            if _ in tick_list:
+                check_data = True
+            else:
+                check_data = False
+
             self.grid.fill_source(130, 4500)
-            self.grid.cycle_cells(self.tick)
+            self.grid.cycle_cells(check_data)
             self.grid.diffuse_glucose(0.2)
             self.grid.diffuse_oxygen(0.2)
 
@@ -103,16 +109,27 @@ class Controller:
                 self.grid.compute_center()
 
             # Creo i grafici
-            if self.tick in self.tick_list or self.tick == 1 and None not in self.tick_list:
-                self.graphs.create_plot(self.xsize, self.ysize, self.zsize, 
-                                        self.tick, self.max_tick)
+            # if self.tick in self.tick_list or self.tick == 1 and None not in self.tick_list:
+            #     self.graphs.create_plot(self.xsize, self.ysize, self.zsize, 
+            #                            self.tick, self.max_tick)
                 
             # Salva i dati
-            if self.tick in self
+            if self.tick in tick_list:
+                # SALVO I DATI
+                self.save_data(self.tick)
+
+
 
     def save_data(self, tick):
         if "3d" in self.graph_types:
-            np.savetxt(os.path.join(self.paths[0], f'cell_proliferation_t{tick}.png'), self.pixel_info, fmt='%f')
+            np.savetxt(os.path.join(self.paths[3], f'cell_proliferation_t{tick}.txt'), self.grid.pixel_info, fmt='%f')
+
+        if "2d" in self.graph_types:
+            print(self.grid.data_2d)
+            np.savetxt(os.path.join(self.paths[4], f'cell_proliferation_t{tick}.txt'), self.grid.data_2d, fmt='%f')
+
+        if "sum" in self.graph_types:
+            np.savetxt(os.path.join(self.paths[5], f'cell_proliferation_t{tick}.txt'), self.grid.sum_list, fmt='%f')
 
             
 
