@@ -1,14 +1,9 @@
 import os
-
 from model.cell_pack.cell import HealthyCell, CancerCell, OARCell, critical_oxygen_level, critical_glucose_level
-import matplotlib.pyplot as plt
-import matplotlib
 from model.grid2 import Grid
 import random
 import numpy as np
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection # Per il cubo 3d 
 
-from model.graphs import Graphs
 
 
 import random
@@ -22,7 +17,7 @@ class Controller:
         
         # Inizializza la griglia 3D con le dimensioni zsize, xsize, ysize
         self.grid = Grid(env_size, sources, graph_types, paths, layers)
-        self.tick = 0
+        self.tick = -1
 
         self.max_tick = max_tick
 
@@ -42,10 +37,7 @@ class Controller:
         # Lista con i tipi dei grafici da stampare
         self.graph_types = graph_types
 
-        # Istanze per i grafici
-        # self.graph3d = None
-        # self.graph2d = None
-        # self.sum_graph = None
+        self.tick_list = []
 
 
         HealthyCell.cell_count = 0
@@ -85,56 +77,58 @@ class Controller:
     def go(self, steps=1):
 
         # Creo la lista di tick in cui voglio salvare i dati
-        tick_list = self.spaced_list(self.divisor, steps)
-        print(tick_list)
+        self.tick_list = self.spaced_list(self.divisor, steps)
+        print(self.tick_list)
+
+        # check_data[0]: Per i grafici 2d e 3d. check_data[1]: Per il grafico sum
+        check_data = [True,True]
 
         for _ in range(steps):
 
+            self.tick += 1
+            print(self.tick)
+
+
+            # Calcolo il centro del tumore
+            if self.tick % 24 == 0:
+                self.grid.compute_center()
+
             # Controllo se devo salvare i dati
-            if _ in tick_list:
-                check_data = True
+            if self.tick in self.tick_list:
+                check_data[0] = True
             else:
-                check_data = False
+                check_data[0] = False
+
+            # Checker per il grafico sum
+            if self.tick == self.tick_list[-1] and "sum" in self.graph_types:
+                check_data[1] = True
+            else:
+                check_data[1] = False
 
             self.grid.fill_source(130, 4500)
             self.grid.cycle_cells(check_data)
             self.grid.diffuse_glucose(0.2)
             self.grid.diffuse_oxygen(0.2)
 
-            self.tick += 1
-            print(self.tick)
-
-            # Calcolo il centro del tumore
-            if self.tick % 24 == 0:
-                self.grid.compute_center()
-
-            # Creo i grafici
-            # if self.tick in self.tick_list or self.tick == 1 and None not in self.tick_list:
-            #     self.graphs.create_plot(self.xsize, self.ysize, self.zsize, 
-            #                            self.tick, self.max_tick)
-                
             # Salva i dati
-            if self.tick in tick_list:
+            if self.tick in self.tick_list and self.graph_types is not None:
                 # SALVO I DATI
-                self.save_data(self.tick)
+                self.save_data(self.tick, check_data[1])
 
-
-
-    def save_data(self, tick):
+    def save_data(self, tick, check_sum):
         if "3d" in self.graph_types:
-            np.savetxt(os.path.join(self.paths[3], f'cell_proliferation_t{tick}.txt'), self.grid.pixel_info, fmt='%f')
+            np.savetxt(os.path.join(self.paths[3], f'cell_proliferation_t{tick}.txt'), self.grid.pixel_info, fmt='%f',
+                       header="i (x-axis) \n j (y-axis) \n k (z-axis) \n RGB (R) \n RGB (G) \n RGB (B) \n alpha")
 
         if "2d" in self.graph_types:
-            print(self.grid.data_2d)
-            np.savetxt(os.path.join(self.paths[4], f'cell_proliferation_t{tick}.txt'), self.grid.data_2d, fmt='%f')
+            np.savetxt(os.path.join(self.paths[4], f'cell_proliferation_t{tick}.txt'), self.grid.data_2d, fmt='%f',
+                       header="layer \n RGB (R) \n RGB (G) \n RGB (B) \n number per voxel")
 
-        if "sum" in self.graph_types:
-            np.savetxt(os.path.join(self.paths[5], f'cell_proliferation_t{tick}.txt'), self.grid.sum_list, fmt='%f')
+        if "sum" in self.graph_types and check_sum:
+            np.savetxt(os.path.join(self.paths[5], f'total_cells.txt'), self.grid.sum_list, fmt='%f',
+                       header="total sum \n cancer sum \n healthy sum \n oar sum")
 
             
-
-
-
     def irradiate(self, dose):
         """Irradiate the tumour"""
         self.grid.irradiate(dose)
@@ -150,9 +144,18 @@ class Controller:
         return dens(self.grid.cells)
 
     def spaced_list(self, divisor, max_tick):
-        step = max_tick / (divisor - 1)
-        new_list = [round(i * step) for i in range(divisor)]
+        if divisor == 2:
+            new_list = [0, max_tick-1]
+        else:
+            step = max_tick / (divisor - 1)
+            new_list = [round(i * step) for i in range(divisor)]
+            new_list[-1] = new_list[-1] - 1
         return new_list
+    
+    # tick_list mi serve anche nel file graph.py. Creando questo metodo evito di effettuare due volte i calcoli
+    def get_spaced_list(self):
+        return self.tick_list
+
 
 
 def patch_type_color(patch):

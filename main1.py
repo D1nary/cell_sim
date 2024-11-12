@@ -7,6 +7,7 @@ from model.controller2 import Controller
 
 from model.graphs import Graphs
 
+
 import numpy as np
 
 def tumor_creation(env_dim):
@@ -62,7 +63,7 @@ if __name__ == "__main__":
     cell_num = 10 # Numero di cellule sane e cancerose in ogni pixel del tumore
     env_size = 20 # Dimensioni dell'ambiente
 
-    layers = [int(env_size//2)] # Layer dell'ambiente da analizzare
+    layers = [15,10] # Layer dell'ambiente da analizzare
     num_ore = 150 # Ore di simulazione
     dose = 2
 
@@ -70,33 +71,25 @@ if __name__ == "__main__":
     # graph_types = ["3d", "sum"]
     # graph_types = ["3d", "sum", "2d"]
     # graph_types = [None]
-    graph_types = ["2d"]
+    graph_types = ["3d"]
 
     divisor = 4
+
 
     random.seed(4775)    
     controller = Controller(env_size, cell_num, cell_num,  100, num_ore, tumor_creation(env_size), 
                             paths, graph_types, divisor, layers)
-    
 
-    # Numero di grafici per ogni ciclo go. 
-    # Se divisor = 1 stampa solo l'inizio del ciclo go()
-    
-
-    # if None is not graph_types:
-    #     graphs = Graphs(controller.grid, graph_types, num_ore, paths, divisor, layers)
-    # else:
-    #     print("Nessun grafico da creare")
 
     
     controller.go(num_ore) # Simulazione
     print(HealthyCell.cell_count, CancerCell.cell_count)
-    # controller.irradiate(dose)
-    # print(HealthyCell.cell_count, CancerCell.cell_count)
-    # controller.tick = 0
-    # controller.tick_list = controller.spaced_list(4, num_ore)
-    # controller.go(10)
 
+    if graph_types is not None:
+        graphs = Graphs(env_size, divisor, graph_types, paths)
+
+    # Creo i grafici
+    graphs.create_plot(controller.tick_list)
 
 
 

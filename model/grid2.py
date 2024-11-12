@@ -436,13 +436,7 @@ class Grid:
         to_add = []  # Cells to add
         tot_count = 0  # Number of cell cycles
 
-        # Matrice salvataggio dati matrice 2d
-        data_2d_to_save = np.empty((0, 1)) # 1 : numero di colonne
-
         for k in range(self.zsize):
-
-            data_2d_to_save = []
-
             for i in range(self.xsize):
                 for j in range(self.ysize):  # Itera su ogni voxel nella griglia 3D
 
@@ -483,24 +477,19 @@ class Grid:
                             self.add_neigh_count(k, i, j, len(self.cells[k, i, j]) - count)
 
                     # DATI GRAFICO 3D
-                    if "3d" in self.graph_types and check_data:    
+                    if "3d" in self.graph_types and check_data[0]:    
                         # Estraggo le info per i grafici
                         if len(self.cells[k, i, j]) != 0:
                                 if isinstance(self.cells[k, i, j][0], HealthyCell):
-                                    self.pixel_info.append([i, j, k, 'green', 0.01])  # Coordinate, colore, alpha
+                                    new_row = [i, j, k, 0.0, 1.0, 0.0, 0.01] # Coordinate, colore, alpha
+                                    self.pixel_info.append(new_row)
                                 if isinstance(self.cells[k, i, j][0], CancerCell):
-                                    self.pixel_info.append([i, j, k, 'red', 1.0])
-                    # DATI GRAFICO 2D                
-                    # if "2d" in self.graph_types and check_data:
-                    #     if k in self.layers:
-                    #         # Salvo nella variabile
-                    #         np.append(self.data_2d, data_2d_to_save) # IN DATA_2D_TOSAVE NON CI HAI MESSO NIENTE
-                    #         print(self.data_2d)
+                                    new_row = [i, j, k, 1.0, 0.0, 0.0, 1.0]
+                                    self.pixel_info.append(new_row)
 
-                    if "2d" in self.graph_types and k in self.layers:
-                        # np.append(self.data_2d,k)
-                        # np.append(self.data_2d, len(self.cells[k, i, j]))
-                        new_row = [k, [patch_type_color(self.cells[k, i, j])], len(self.cells[k, i, j])]
+                    if "2d" in self.graph_types and k in self.layers and check_data[0]:
+                        # *patch_type_color(self.cells[k, i, j]): Scompone la tupla in singoli valori per poter essere salvata
+                        new_row = [k, *patch_type_color(self.cells[k, i, j]), len(self.cells[k, i, j])]
                         self.data_2d.append(new_row)
 
 
@@ -510,14 +499,9 @@ class Grid:
                         self.healthy_sum = HealthyCell.cell_count
                         self.oar_sum = OARCell.cell_count
 
-                        if check_data:
+                        if check_data[1]:
                             self.sum_list.append([self.tot_sum, self.cancer_sum, self.healthy_sum, self.oar_sum])
-
-                        
-                    
-
-                            
-
+                            check_data[1] = False
 
                     
         # Aggiungi nuove cellule
