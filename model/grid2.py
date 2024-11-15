@@ -436,6 +436,20 @@ class Grid:
         to_add = []  # Cells to add
         tot_count = 0  # Number of cell cycles
 
+        self.data_2d = []
+        self.pixel_info = []
+
+        # Dati per il sum graph
+        if "sum" in self.graph_types and check_data[0]:
+            self.tot_sum = HealthyCell.cell_count + CancerCell.cell_count + OARCell.cell_count
+            self.cancer_sum = CancerCell.cell_count
+            self.healthy_sum = HealthyCell.cell_count
+            self.oar_sum = OARCell.cell_count
+
+            self.sum_list.append([self.tot_sum, self.cancer_sum, self.healthy_sum, self.oar_sum])
+
+
+
         for k in range(self.zsize):
             for i in range(self.xsize):
                 for j in range(self.ysize):  # Itera su ogni voxel nella griglia 3D
@@ -489,19 +503,21 @@ class Grid:
 
                     if "2d" in self.graph_types and k in self.layers and check_data[0]:
                         # *patch_type_color(self.cells[k, i, j]): Scompone la tupla in singoli valori per poter essere salvata
-                        new_row = [k, *patch_type_color(self.cells[k, i, j]), len(self.cells[k, i, j])]
+                        new_row = [i, j, k ,*patch_type_color(self.cells[k, i, j]), 
+                                   len(self.cells[k, i, j]), self.glucose[k, i, j], self.oxygen[k, i, j]]
                         self.data_2d.append(new_row)
 
 
-                    if "sum" in self.graph_types:
-                        self.tot_sum = HealthyCell.cell_count + CancerCell.cell_count + OARCell.cell_count
-                        self.cancer_sum = CancerCell.cell_count
-                        self.healthy_sum = HealthyCell.cell_count
-                        self.oar_sum = OARCell.cell_count
+                    # if "sum" in self.graph_types and check_data[1]:
+                    #     self.tot_sum = HealthyCell.cell_count + CancerCell.cell_count + OARCell.cell_count
+                    #     self.cancer_sum = CancerCell.cell_count
+                    #     self.healthy_sum = HealthyCell.cell_count
+                    #     self.oar_sum = OARCell.cell_count
 
-                        if check_data[1]:
-                            self.sum_list.append([self.tot_sum, self.cancer_sum, self.healthy_sum, self.oar_sum])
-                            check_data[1] = False
+                    #     self.sum_list.append([self.tot_sum, self.cancer_sum, self.healthy_sum, self.oar_sum])
+
+                    #     check_data[1] = False
+                    #     print(self.sum_list)
 
                     
         # Aggiungi nuove cellule

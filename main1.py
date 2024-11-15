@@ -35,6 +35,15 @@ def tumor_creation(env_dim):
     # print(tumor_grid[10, :, :])
     return tumor_grid
 
+def spaced_list(divisor, max_tick):
+    if divisor == 2:
+        new_list = [0, max_tick-1]
+    else:
+        step = max_tick / (divisor - 1)
+        new_list = [round(i * step) for i in range(divisor)]
+        new_list[-1] = new_list[-1] - 1
+    return new_list
+
 
 
 
@@ -61,17 +70,17 @@ if __name__ == "__main__":
 
 
     cell_num = 10 # Numero di cellule sane e cancerose in ogni pixel del tumore
-    env_size = 20 # Dimensioni dell'ambiente
+    env_size = 40 # Dimensioni dell'ambiente
 
-    layers = [15,10] # Layer dell'ambiente da analizzare
+    layers = [20] # Layer dell'ambiente da analizzare
     num_ore = 150 # Ore di simulazione
     dose = 2
 
 
     # graph_types = ["3d", "sum"]
-    # graph_types = ["3d", "sum", "2d"]
+    graph_types = ["3d", "sum", "2d"]
     # graph_types = [None]
-    graph_types = ["3d"]
+    # graph_types = ["sum"]
 
     divisor = 4
 
@@ -79,25 +88,14 @@ if __name__ == "__main__":
     random.seed(4775)    
     controller = Controller(env_size, cell_num, cell_num,  100, num_ore, tumor_creation(env_size), 
                             paths, graph_types, divisor, layers)
-
-
     
+    tick_list = spaced_list(divisor,num_ore)
+
     controller.go(num_ore) # Simulazione
     print(HealthyCell.cell_count, CancerCell.cell_count)
 
     if graph_types is not None:
-        graphs = Graphs(env_size, divisor, graph_types, paths)
+        graphs = Graphs(env_size, divisor, graph_types, paths, tick_list, layers)
 
     # Creo i grafici
-    graphs.create_plot(controller.tick_list)
-
-
-
-
-    
-
-    
-
-
-
-
+    graphs.create_plot()

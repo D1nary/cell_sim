@@ -37,6 +37,7 @@ class Controller:
         # Lista con i tipi dei grafici da stampare
         self.graph_types = graph_types
 
+
         self.tick_list = []
 
 
@@ -66,13 +67,6 @@ class Controller:
         # Conta i vicini nella griglia tridimensionale
         self.grid.count_neighbors()
 
-        # Inizializzo i gradici
-        # if None is not self.graph_types:
-        #     self.graphs = Graphs(self.grid, graph_types, self.paths, max_tick, layers)
-        # else:
-        #     print("Nessun grafico da creare")
-        
-
     # steps = 1 simulates one hour on the grid : Nutrient diffusion and replenishment, cell cycle
     def go(self, steps=1):
 
@@ -100,7 +94,7 @@ class Controller:
                 check_data[0] = False
 
             # Checker per il grafico sum
-            if self.tick == self.tick_list[-1] and "sum" in self.graph_types:
+            if self.tick in self.tick_list and "sum" in self.graph_types:
                 check_data[1] = True
             else:
                 check_data[1] = False
@@ -122,11 +116,11 @@ class Controller:
 
         if "2d" in self.graph_types:
             np.savetxt(os.path.join(self.paths[4], f'cell_proliferation_t{tick}.txt'), self.grid.data_2d, fmt='%f',
-                       header="layer \n RGB (R) \n RGB (G) \n RGB (B) \n number per voxel")
+                       header="i (x-axis) \n j (y-axis) \n k (z-axis) \n RGB (R) \n RGB (G) \n RGB (B) \n number per voxel \n glucose \n oxygen")
 
-        if "sum" in self.graph_types and check_sum:
+        if "sum" in self.graph_types:
             np.savetxt(os.path.join(self.paths[5], f'total_cells.txt'), self.grid.sum_list, fmt='%f',
-                       header="total sum \n cancer sum \n healthy sum \n oar sum")
+                       header="total sum \n cancer sum \n healthy ciso sum \n oar sum")
 
             
     def irradiate(self, dose):
