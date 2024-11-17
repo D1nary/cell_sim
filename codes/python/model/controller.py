@@ -1,6 +1,6 @@
 import os
 from model.cell_pack.cell import HealthyCell, CancerCell, OARCell, critical_oxygen_level, critical_glucose_level
-from model.grid2 import Grid
+from model.grid import Grid
 import random
 import numpy as np
 
@@ -77,7 +77,7 @@ class Controller:
         # check_data[0]: Per i grafici 2d e 3d. check_data[1]: Per il grafico sum
         check_data = [True,True]
 
-        for _ in range(steps):
+        for _ in range(steps + 1):
 
             self.tick += 1
             print(self.tick)
@@ -107,19 +107,23 @@ class Controller:
             # Salva i dati
             if self.tick in self.tick_list and self.graph_types is not None:
                 # SALVO I DATI
-                self.save_data(self.tick, check_data[1])
+                index = self.tick_list.index(self.tick)
+                self.save_data(self.tick, index)
 
-    def save_data(self, tick, check_sum):
+    def save_data(self, tick, index):
         if "3d" in self.graph_types:
-            np.savetxt(os.path.join(self.paths[3], f'cell_proliferation_t{tick}.txt'), self.grid.pixel_info, fmt='%f',
+            np.savetxt(os.path.join(self.paths[3], f'{index + 1}. cell_proliferation_{tick}.txt'), 
+                       self.grid.pixel_info, fmt='%f', 
                        header="i (x-axis) \n j (y-axis) \n k (z-axis) \n RGB (R) \n RGB (G) \n RGB (B) \n alpha")
 
         if "2d" in self.graph_types:
-            np.savetxt(os.path.join(self.paths[4], f'cell_proliferation_t{tick}.txt'), self.grid.data_2d, fmt='%f',
+            np.savetxt(os.path.join(self.paths[4], f'{index + 1}. cell_proliferation_{tick}.txt'), 
+                       self.grid.data_2d, fmt='%f', 
                        header="i (x-axis) \n j (y-axis) \n k (z-axis) \n RGB (R) \n RGB (G) \n RGB (B) \n number per voxel \n glucose \n oxygen")
 
         if "sum" in self.graph_types:
-            np.savetxt(os.path.join(self.paths[5], f'total_cells.txt'), self.grid.sum_list, fmt='%f',
+            np.savetxt(os.path.join(self.paths[5], f'total_cells.txt'), 
+                       self.grid.sum_list, fmt='%f', 
                        header="total sum \n cancer sum \n healthy ciso sum \n oar sum")
 
             

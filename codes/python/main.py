@@ -3,7 +3,7 @@ import random
 import numpy as np
 
 from model.cell_pack.cell import HealthyCell, CancerCell, OARCell
-from model.controller2 import Controller
+from model.controller import Controller
 
 from model.graphs import Graphs
 
@@ -69,16 +69,16 @@ if __name__ == "__main__":
         os.makedirs(path, exist_ok=True)
 
 
-    cell_num = 10 # Numero di cellule sane e cancerose in ogni pixel del tumore
-    env_size = 40 # Dimensioni dell'ambiente
+    cell_num = 5 # Numero di cellule sane e cancerose in ogni pixel del tumore
+    env_size = 20 # Dimensioni dell'ambiente
 
-    layers = [20] # Layer dell'ambiente da analizzare
+    layers = [10] # Layer dell'ambiente da analizzare
     num_ore = 150 # Ore di simulazione
     dose = 2
 
 
-    # graph_types = ["3d", "sum"]
-    graph_types = ["3d", "sum", "2d"]
+    graph_types = ["2d", "sum", "3d"]
+    # graph_types = ["3d", "sum", "2d"]
     # graph_types = [None]
     # graph_types = ["sum"]
 

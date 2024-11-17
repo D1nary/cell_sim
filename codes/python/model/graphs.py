@@ -1,9 +1,7 @@
 from model.cell_pack.cell import HealthyCell, CancerCell, OARCell, critical_oxygen_level, critical_glucose_level
 import matplotlib.pyplot as plt
-import matplotlib
 import numpy as np
 import os
-from model.controller2 import Controller
 
 
 class Graphs:
@@ -75,13 +73,12 @@ class Graphs:
 
         # GRAFICO 2D
         if "2d" in self.graph_types and self.layers is not None:
-            
+
             # Itero su tutti i file (diversi valori di tick_list)
             for i, file_data_names in enumerate(os.listdir(self.paths[4])):
-
+                print(file_data_names)
                 # Leggo il file
-                data = np.loadtxt(os.path.join(self.paths[4], file_data_names), comments='#') 
-                # data = data.T
+                data = np.loadtxt(os.path.join(self.paths[4], file_data_names), comments='#')
 
                 for layer in self.layers:
 

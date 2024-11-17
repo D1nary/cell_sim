@@ -2,10 +2,6 @@ from model.cell_pack.cell import HealthyCell, CancerCell, OARCell, critical_oxyg
 import numpy as np
 import random
 import math
-import scipy.special
-import matplotlib.pyplot as plt
-
-import os
 
 
 class CellList:
