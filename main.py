@@ -7,9 +7,6 @@ from model.controller import Controller
 
 from model.graphs import Graphs
 
-
-import numpy as np
-
 def tumor_creation(env_dim):
     tumor_grid = np.empty((env_dim, env_dim, env_dim), dtype=object)
 
@@ -55,13 +52,16 @@ if __name__ == "__main__":
 
     # Definisce il path delle cartelle da creare
     paths = [
-        os.path.join(project_folder, 'results', 'graphs', '3d'),
-        os.path.join(project_folder, 'results', 'graphs', '2d'),
-        os.path.join(project_folder, 'results', 'graphs', 'general'),
-        os.path.join(project_folder, 'results', 'data', '3d'), 
-        os.path.join(project_folder, 'results', 'data', '2d'),
-        os.path.join(project_folder, 'results', 'data', 'general')
-
+        os.path.join(project_folder, 'results', 'graphs', '3d', 'growth'), # 0
+        os.path.join(project_folder, 'results', 'graphs', '2d', 'growth'), # 1
+        os.path.join(project_folder, 'results', 'graphs', '3d', 'therapy'), # 2
+        os.path.join(project_folder, 'results', 'graphs', '2d', 'therapy'), # 3
+        os.path.join(project_folder, 'results', 'data', '3d', 'growth'), # 4
+        os.path.join(project_folder, 'results', 'data', '2d', 'growth'), # 5
+        os.path.join(project_folder, 'results', 'data', '3d', 'therapy'), # 6
+        os.path.join(project_folder, 'results', 'data', '2d', 'therapy'), # 7
+        os.path.join(project_folder, 'results', 'graphs', 'general'), # 8
+        os.path.join(project_folder, 'results', 'data', 'general') # 9
     ]
 
     # Crea le cartelle se non esistono già
@@ -77,21 +77,34 @@ if __name__ == "__main__":
     dose = 2
 
 
-    graph_types = ["2d", "sum", "3d"]
+    graph_types = ["2d", "3d"]
 
     divisor = 4
 
     random.seed(4775)    
-    controller = Controller(env_size, cell_num, cell_num,  100, num_ore, tumor_creation(env_size), 
-                            paths, graph_types, divisor, layers)
+    controller = Controller(env_size, cell_num, cell_num,  100, tumor_creation(env_size), 
+                            paths, graph_types, layers)
     
     tick_list = spaced_list(divisor,num_ore)
+    print(tick_list)
 
-    controller.go(num_ore) # Simulazione
+    controller.go(num_ore, tick_list, False) # Simulazione
     print(HealthyCell.cell_count, CancerCell.cell_count)
 
     if graph_types is not None:
-        graphs = Graphs(env_size, divisor, graph_types, paths, tick_list, layers)
+        graphs = Graphs(env_size, divisor, graph_types, paths, layers)
 
     # Creo i grafici
-    graphs.create_plot()
+    graphs.create_plot(tick_list, False)
+
+    # sending dose
+    divisor = 2
+    tick_list = spaced_list(divisor, 24)
+    print(tick_list)
+
+    controller.irradiate(2)
+    print(HealthyCell.cell_count, CancerCell.cell_count)
+    controller.go(24, tick_list, True)
+
+    # Creo i grafici
+    graphs.create_plot(tick_list, True)
