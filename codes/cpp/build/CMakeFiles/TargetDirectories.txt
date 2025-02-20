@@ -1,0 +1,3 @@
+/home/ale/Documenti/programming/working/build/CMakeFiles/test_grid.dir
+/home/ale/Documenti/programming/working/build/CMakeFiles/edit_cache.dir
+/home/ale/Documenti/programming/working/build/CMakeFiles/rebuild_cache.dir

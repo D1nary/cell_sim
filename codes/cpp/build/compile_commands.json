@@ -1,0 +1,20 @@
+[
+{
+  "directory": "/home/ale/Documenti/programming/working/build",
+  "command": "/usr/bin/g++ -I/home/ale/Documenti/programming/working/src -g -std=gnu++17 -o CMakeFiles/test_grid.dir/src/test_grid.cpp.o -c /home/ale/Documenti/programming/working/src/test_grid.cpp",
+  "file": "/home/ale/Documenti/programming/working/src/test_grid.cpp",
+  "output": "CMakeFiles/test_grid.dir/src/test_grid.cpp.o"
+},
+{
+  "directory": "/home/ale/Documenti/programming/working/build",
+  "command": "/usr/bin/g++ -I/home/ale/Documenti/programming/working/src -g -std=gnu++17 -o CMakeFiles/test_grid.dir/src/grid_3d.cpp.o -c /home/ale/Documenti/programming/working/src/grid_3d.cpp",
+  "file": "/home/ale/Documenti/programming/working/src/grid_3d.cpp",
+  "output": "CMakeFiles/test_grid.dir/src/grid_3d.cpp.o"
+},
+{
+  "directory": "/home/ale/Documenti/programming/working/build",
+  "command": "/usr/bin/g++ -I/home/ale/Documenti/programming/working/src -g -std=gnu++17 -o CMakeFiles/test_grid.dir/src/cell.cpp.o -c /home/ale/Documenti/programming/working/src/cell.cpp",
+  "file": "/home/ale/Documenti/programming/working/src/cell.cpp",
+  "output": "CMakeFiles/test_grid.dir/src/cell.cpp.o"
+}
+]
