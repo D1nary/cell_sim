@@ -20,9 +20,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED True) # Obbliga l'uso di C++17
 
 # I file di codice sorgente necessari per la compilazione sono test_grid.cpp, grid_3d.cpp e cell.cpp.
 # Gli header (grid_3d.h e cell.h) non vengono inclusi esplicitamente perché vengono automaticamente inclusi dai file .cpp.
-add_executable(test_grid # Eseguibile che verrà generato nella cartella build
-    src/test_grid.cpp  # File principale che contiene la funzione main
-    src/grid_3d.cpp    # File sorgente con l'implementazione della classe grid_3d
+add_executable(test # Eseguibile che verrà generato nella cartella build
+    src/test.cpp  # File principale che contiene la funzione main
+    src/controller_3d.cpp # File sorgente con l'implementazione della classe Controller
+    src/grid_3d.cpp    # File sorgente con l'implementazione della classe Grid
     src/cell.cpp       # File sorgente con l'implementazione della classe cell
 )
 
@@ -35,4 +36,4 @@ add_executable(test_grid # Eseguibile che verrà generato nella cartella build
 # <target> → Il nome del target, ovvero l'eseguibile o la libreria a cui si applica la direttiva.
 # <ACCESS_MODE> → Il tipo di accesso che le directory avranno rispetto ai target dipendenti.
 # <DIRECTORY> → Una o più directory contenenti i file di intestazione (.h).
-target_include_directories(test_grid PRIVATE src)
+target_include_directories(test PRIVATE src)
