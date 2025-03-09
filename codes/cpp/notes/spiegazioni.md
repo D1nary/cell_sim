@@ -316,8 +316,196 @@ Dal punto di vista puramente computazionale, la differenza in termini di efficie
 
 - Utilizzare tre cicli annidati esplicita direttamente le dimensioni della griglia, riducendo la necessità di calcoli aritmetici per la decodifica delle coordinate. Anche se ci sono più livelli di loop, il loro overhead è spesso compensato dal fatto che non devi eseguire divisioni e moduli in ogni iterazione, e il codice risulta più facilmente ottimizzabile dal compilatore.
 
+# `cycle_cells()`
+
+La funzione `cycle_cells()` ha il compito di avanzare di un'ora il ciclo vitale di tutte le cellule presenti nella griglia tridimensionale. 
+
+## Funzionamento
+Durante l'esecuzione, la funzione:
+
+**Implementazione e spiegazione del codice**
+
+- Viene creata una lista temporanea `toAdd` per memorizzare le nuove cellule generate nel ciclo.
+    ```cpp
+    void Grid::cycle_cells() {
+        CellList *toAdd = new CellList();
+    ```
+
+- La funzione itera attraverso tutti i voxel della griglia nelle tre dimensioni `(z, x, y)`.
+- Il puntatore `current` viene inizializzato alla testa della lista di cellule presenti nel voxel corrente.
+    ```cpp
+        for (int k = 0; k < zsize; k++) {
+            for (int i = 0; i < xsize; i++) {
+                for (int j = 0; j < ysize; j++) {
+                    CellNode *current = cells[k][i][j].head;
+    ```
+
+- Ogni cellula del voxel esegue il proprio ciclo chiamando `cycle()`, che restituisce la quantità di nutrienti consumata e il possibile tipo di nuova cellula.
+    ```cpp
+                    while (current) {
+                        cell_cycle_res result = current->cell->cycle(
+                            glucose[k][i][j],
+                            oxygen[k][i][j],
+                            neigh_counts[k][i][j] + cells[k][i][j].size
+                        );
+    ```
+
+- I valori di glucosio e ossigeno nel voxel vengono aggiornati sottraendo i consumi della cellula.
+
+    ```cpp
+                        glucose[k][i][j] -= result.glucose;
+                        oxygen[k][i][j] -= result.oxygen;
+
+    ```
+- Se il ciclo ha generato una nuova cellula sana (`'h'`), viene determinata una posizione adatta con `rand_min()` e la nuova cellula viene aggiunta alla lista `toAdd`.
+- Se non c'è spazio disponibile, la cellula entra in stato di quiescenza (`sleep()`).
+    ```cpp
+                        if (result.new_cell == 'h') {
+                            int downhill = rand_min(i, j, k, 5);
+                            if (downhill >= 0) {
+                                int newZ = downhill / (xsize * ysize);
+                                int rem = downhill % (xsize * ysize);
+                                int newX = rem / ysize;
+                                int newY = rem % ysize;
+                                toAdd->add(new HealthyCell('q'), 'h', newX, newY, newZ);
+                            } else {
+                                current->cell->sleep();
+                            }
+                        }
+    ```
+
+- Se la cellula generata è cancerosa (`'c'`), viene posizionata in un voxel adiacente usando `rand_adj()`.
+    ```cpp
+                        if (result.new_cell == 'c') {
+                            int downhill = rand_adj(i, j, k);
+                            if (downhill >= 0) {
+                                int newZ = downhill / (xsize * ysize);
+                                int rem = downhill % (xsize * ysize);
+                                int newX = rem / ysize;
+                                int newY = rem % ysize;
+                                toAdd->add(new CancerCell('1'), 'c', newX, newY, newZ);
+                            }
+                        }
+    ```
+
+- Se la cellula generata è di tipo OAR (`'o'`), si cerca una posizione adatta con `find_missing_oar()`.
+    ```cpp
+                        if (result.new_cell == 'o') {
+                            int downhill = find_missing_oar(i, j, k);
+                            if (downhill >= 0) {
+                                int newZ = downhill / (xsize * ysize);
+                                int rem = downhill % (xsize * ysize);
+                                int newX = rem / ysize;
+                                int newY = rem % ysize;
+                                toAdd->add(new OARCell('1'), 'o', newX, newY, newZ);
+                            } else {
+                                current->cell->sleep();
+                            }
+                        }
+    ```
+
+- Se la cellula muore (`'w'`), viene attivata la funzione `wake_surrounding_oar()` per stimolare il risveglio delle cellule OAR circostanti.
+    ```cpp
+                        if (result.new_cell == 'w') {
+                            wake_surrounding_oar(i, j, k);
+                        }
+    ```
+- Si passa alla cellula successiva nella lista del voxel.
+    ```cpp
+                        current = current->next;
+                    }
+    ```
+- Dopo aver processato tutte le cellule nel voxel:
+  - Le cellule morte vengono eliminate con `deleteDeadAndSort()`.
+  - Il conteggio dei vicini viene aggiornato con `change_neigh_counts()`.
+    ```cpp
+                    int init_count = cells[k][i][j].size;
+                    cells[k][i][j].deleteDeadAndSort();
+                    change_neigh_counts(i, j, k, cells[k][i][j].size - init_count);
+                }
+            }
+        }
+    ```
+- Infine, tutte le nuove cellule vengono aggiunte alla griglia con `addToGrid(toAdd)`.
+    ```cpp
+        addToGrid(toAdd);
+    }
+    ```
+## `rand_min()` and `min_helper()`
+Quando una cellula si divide o deve spostarsi, bisogna trovare un nuovo voxel nella griglia 3D dove posizionarla.
+L'idea è scegliere un voxel vicino che abbia il minor numero di cellule, così la nuova cellula avrà spazio per crescere.
+
+Questo viene fatto in due passaggi:
+
+- `rand_min()` scansiona i 26 voxel vicini per trovare quelli con meno cellule.
+- `min_helper()` verifica se un singolo voxel è un buon candidato e aggiorna la lista dei candidati.
+
+**Tutte le posizioni sono codificate nella formula `z * xsize * ysize + x * ysize + y`.**
+**`pos[]` conterrà la posizione del voxel avente il minor numero di cellule e altre posizioni avente lo stesso numero minimo di cellule.**
+
+### `rand_min()`
+Dato un singolo voxel, la funzione analizza tutti i vicini di quest'ultimo (escludendo il voxel stesso). Per ognuno dei vicini viene eseguita la funzione `min_helper()`. 
+
+Quello che si ottiene alla fine è un vettore `pos` contenente tutti i possibili candidati. Se `curr_min < max`, cioè se la densità cellulare è minore di un threshold, viene scelto casualmente uno delgli elementi di `pos` altrimenti la funzione returna `-1`.
+
+#### Variabili
+- `max`: Soglia di densità (threshold) massima da considerare per poter scegliere casualmente una delle posizioni.
+- `counter`: Serve a contare e gestire il numero di posizioni valide trovate nella funzione `min_helper()`, in modo che `rand_min()` possa selezionarne una casualmente. 
+    - Se il voxel ha una densità minore della precedente `curr_min`, counter viene azzerato e impostato a 1, perché il voxel diventa il nuovo miglior candidato.
+    - Se il voxel ha la stessa densità di `curr_min`, viene aggiunto all'array `pos[]` e `counter` viene incrementato. Questo rispecchia un numero maggiore di candidati.
+    
+    **NOTA**: Viene passato come `alias` alla funzione `min_helper()` in modo che quando viene il suo valore viene modificato, il cambiamento si riflette anche in `rand_min()`.
+
+- `pos`: Memorizza le posizione dei voxel con densità minima. `pos` è dichiarato in `rand_min()` e passato come puntatore in `min_helper()`.
+ 
+    **Come mai viene usato un puntatore e non un alias (riferimento)?** In C++ non è possibile passare un array come riferimento usando `int &pos[26]`. Questa dichiarazione sarebbe interpretata come "un array di riferimenti", il che non è ammesso nel linguaggio. La sintassi corretta per passare un array per riferimento sarebbe `int (&pos)[26]`, ma non è flessibile. In questo caso l'array passato dovrebbe avere esattamente 26 elementi, vincolando il codice. Usando `int *pos`, la funzione min_helper può lavorare su qualsiasi array dinamico o statico allocato dal chiamante. 
+
+    **NOTA**: Anche se `pos`, Nella funzione `min_helper()` è dichiarato come puntatore (`int *pos`), è comunque possibile accedere agli elementi dell'array a cui punta utilizzando la notazione con indice `pos[i]`.
+
+### `min_helperI()`
+- Controlla se il vicino al voxel consiederato dalla funzione `rand_min()`, si trova all'interno della griglia, 
+- Se il numero di cellule è minore del numero minimo di cellule trovato fino ad ora (`curr_min`) inserisco la posizione corrente come primo elemento della lista. Questo accade perchè `pos[]` conterrà la posizione del voxel avente il minor numero di cellule e altre posizioni avente lo stesso numero minimo di cellule.
+- Se il voxel contiene lo stesso numero "minimo" di celluele viene aggiunto alla lista nella posizione insicata da `counter`. 
+
+## `find_missing_oar()` and `missing_oar_helper()`
+Allo stesso modo del caso precedente, `find_missing_oar()` analizza tutti i vicini del voxel in consederazine, escludendo il voxel stesso. Per ognuno di essi, esegue la funzione `missing_oar_helper()`. 
+
+`missing_oar_helper()` cerca le posizioni con la minore densità considerando solo quelle che non hanno cellule OAR al proprio interno (`cells[z][x][y].oar_count == 0`). 
 
 
+## `wake_surrounding_oar()` and `wake_helper()`
+- `wake_surrounding_oar()` itera su tutti i vicini di una voxel escludendo il voxel stesso. Per ognuno di questi viene eseguita `wake_surrounding_oar()`
 
+- `wake_helper()` verifica he il voxel sia nella zona OAR e sveglia tutte le cellule OAR presenti.
 
+# `diffuse()` and `diffuse_helper()` 
+## `diffuse()`
+Simula la diffuzione dell'ossigeno e del glucosio all'interno della griglia. Esegue due chaimate a `diffuse_helper()` per effettuare la diffusione dell'ossigeno e del glucosio. 
+Succevvivamente effetua lo swap delle matrici `glucose` e `glucose_helper` (lo stesso vale per l'ossigeno). Come vedremo successivamente, `glucose_helper` conterrà i nuovi valori di glucosio dopo la diffusione di conseguenza è necessario fare lo swap delle due matrici poichè `glucose` dovrà contenere i nuovi valori. 
 
+**Nota**: Per assegnare i nuovi valori alla variabile `glucose`, come mai non è sufficiente fare `glucose = glucose_helper;` (senza effettuare lo swap delle matrici)?  Se si facesse semplicemente l'assegnazione, si perderebbe il riferimento al buffer originale, costringendoci a riallocare memoria ad ogni iterazione, con conseguente inefficienza.
+
+## `diffuse_helper()` 
+Effettua la vera e propia simulazione della diffusione di una sostanza assegnando ad ogni voxel un nuovo valore di glucosio e ossigeno. Ogni voxel contiene una quantità della sostanza e, ad ogni iterazione, una parte di questa quantità viene diffusa verso i voxel adiacenti.
+
+Il metodo prende in ingresso alcuni parametri, tra cui:
+- `diff_factor`: Determina la quantità di glucosio e ossigeno che sarà distribuita nei pixel adiacenti distribuita ai pixel adiacenti
+- `src`: Matrice con i valori iniziali
+- `dest`: Matrice con i valori dopo la diffusione
+
+### Processo di diffusione
+Si itera su ogni voxel della griglia e per ciscuno di essi:
+1. Ogni voxel trattiene una frazione della sua quantità iniziale. Questo viene calcolato come:
+   ```cpp
+   dest[k][i][j] = (1.0 - diff_factor) * src[k][i][j];
+   ```
+   Se, ad esempio, `diff_factor` è `0.4`, il voxel conserva il 60% della quantità iniziale.
+
+2. La parte che non viene trattenuta viene suddivisa equamente nei 26 vicni. Quindi considerando un singolo voxel, si itera sui vicini in modo da controllare la diffusione in questi ultimi.
+    - Ogni vicino contribuisce con:
+        ```cpp
+        (diff_factor / 26.0) * src[voxel_vicino]
+        ```
+3. Somma dei contributi. Il valore finale in ogni voxel `dest[k][i][j]` è dato dalla somma di:
+    - Il residuo del voxel stesso, cioè $(1- \text{diff-factor})\cdot \text{src[k][i][j]}$
+    - Tutti i contributi diffusi dai suoi 26 vicini, ognuno dei quali fornisce un valore di $\frac{\text{diff-factor}}{26}\cdot \text{src}_{\text{del vicino}}$
