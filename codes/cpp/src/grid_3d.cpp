@@ -4,6 +4,8 @@
 #include <math.h> 
 #include <iostream>
 
+#include <cstdlib>  // Per rand() e srand()
+
 using namespace std;
 
 
@@ -71,10 +73,8 @@ void CellList::add(CellNode * newNode, char type){
         newNode -> next = nullptr;
     }
     else if (type == 'h' || type == 'o'){ // or
-        /**
-         * Accedo al membro "next" corrispondente all'oggetto a cui
-         * punta il puntatore "tail" e gli assegno il valore di "newNode"
-         */
+        // Accedo al membro "next" corrispondente all'oggetto a cui
+        // punta il puntatore "tail" e gli assegno il valore di "newNode"
         tail -> next = newNode; // Aggiungo il nodo alla fine
         tail = newNode;
         newNode -> next = nullptr;
@@ -501,7 +501,6 @@ int Grid::sourceMove(int x, int y, int z) {
 
     // Movimento verso il centro del tumore
     if (rand() % 50000 < CancerCell::count) {
-        cout << "Movimento verso centro\n" << endl;
         // cout << "center_x = " << center_x << endl;
         // cout << "center_y = " << center_y << endl;
         // cout << "center_z = " << center_z << endl;
@@ -524,7 +523,6 @@ int Grid::sourceMove(int x, int y, int z) {
         // (z * xsize * ysize) + (x * ysize) + y
         return z * xsize * ysize + x * ysize + y;
     } else { 
-        cout << "Movimento casuale\n" << endl;
         // Movimento in una direzione casuale (assicurarsi di avere la versione 3D di rand_adj)
         return rand_adj(x, y, z); 
     }
@@ -616,10 +614,10 @@ void Grid::compute_center(){
     center_x /= count;
     center_y /= count;
     center_z /= count;
-    cout << "\nCentro del tumore:" << endl;
-    cout << "center_x = " << center_x << endl;
-    cout << "center_y = " << center_y << endl;
-    cout << "center_z = " << center_z << "\n" <<  endl;
+    // cout << "\nCentro del tumore:" << endl;
+    // cout << "center_x = " << center_x << endl;
+    // cout << "center_y = " << center_y << endl;
+    // cout << "center_z = " << center_z << "\n" <<  endl;
 
 }
 
@@ -635,6 +633,10 @@ double Grid::get_center_z(){
     return center_z;
 }
 
+/**
+ * Go through all cells on the grid and advance them by one hour in their cycle
+ *
+ */
 void Grid::cycle_cells() {
     // Creiamo una lista temporanea per accumulare le nuove cellule
     CellList *toAdd = new CellList();
@@ -659,7 +661,6 @@ void Grid::cycle_cells() {
                     
                     // Gestiamo la nascita di nuove cellule in base al valore di result.new_cell
                     if (result.new_cell == 'h') { // Nuova cellula sana
-                        // Si assume l'esistenza di una versione 3D di rand_min che prende (x, y, z, max)
                         int downhill = rand_min(i, j, k, 5);
                         if (downhill >= 0) {
                             // Decodifichiamo l'indice in coordinate (newX, newY, newZ)
@@ -712,4 +713,323 @@ void Grid::cycle_cells() {
     }
     // Aggiungiamo tutte le nuove cellule accumulate nella lista toAdd alla griglia 3D
     addToGrid(toAdd);
+}
+
+/**
+ * Add all the cells in newCells to their corresponding voxel's CellList in the grid.
+ *
+ * @param newCells The CellList of new cells that we want to add to the grid.
+ */
+void Grid::addToGrid(CellList * newCells) {
+    CellNode * current = newCells->head;
+    while (current) {
+        // Save pointer to the next node before reassigning current
+        CellNode * next = current->next;
+        // Insert the current node into the correct voxel's CellList using its (x, y, z) coordinates.
+        cells[current->z][current->x][current->y].add(current, current->type);
+        current = next;
+    }
+    // Clear the newCells list and free its memory.
+    newCells->head = nullptr;
+    newCells->tail = nullptr;
+    newCells->size = 0;
+    delete newCells;
+}
+
+
+/**
+ * Find a neighboring voxel with the minimum cell density among the 26 neighbors.
+ *
+ * @param x The x coordinate of the central voxel.
+ * @param y The y coordinate of the central voxel.
+ * @param z The z coordinate of the central voxel.
+ * @param max The maximum density threshold to consider.
+ * @return An encoded integer representing the coordinates of the chosen voxel 
+ *         (using the formula: z * (xsize * ysize) + x * ysize + y), or -1 if no suitable voxel is found.
+ */
+int Grid::rand_min(int x, int y, int z, int max) {
+    int counter = 0;
+    int curr_min = 100000;
+    int pos[26]; // Al massimo 26 vicini in 3D
+
+    // Itera su tutti i voxel adiacenti (dx, dy, dz) escluso il centro
+    for (int dz = -1; dz <= 1; dz++) {
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                if (dz == 0 && dx == 0 && dy == 0)
+                    continue; // Escludi il voxel centrale
+                min_helper(x + dx, y + dy, z + dz, curr_min, pos, counter);
+            }
+        }
+    }
+
+    if (curr_min < max)
+        return pos[rand() % counter];
+    else
+        return -1;
+}
+
+/**
+ * Helper function for rand_min.
+ * Aggiorna l'array dei candidati (pos) con il voxel (x, y, z) se la sua densità è inferiore o uguale a quella minima trovata.
+ *
+ * @param x The x coordinate of the candidate voxel.
+ * @param y The y coordinate of the candidate voxel.
+ * @param z The z coordinate of the candidate voxel.
+ * @param curr_min Reference to the current minimum cell density found.
+ * @param pos Array to store encoded positions of voxels with minimum cell density.
+ * @param counter Reference to the count of candidate positions.
+ */
+void Grid::min_helper(int x, int y, int z, int &curr_min, int *pos, int &counter) {
+    // Se il voxel appartiene alla zona OAR, lo saltiamo
+    if (oar && x >= oar->x1 && x < oar->x2 &&
+              y >= oar->y1 && y < oar->y2 &&
+              z >= oar->z1 && z < oar->z2)
+        return;
+
+    // Verifica che il voxel sia all'interno della griglia
+    if (x >= 0 && x < xsize &&
+        y >= 0 && y < ysize &&
+        z >= 0 && z < zsize) {
+        if (cells[z][x][y].size < curr_min) {
+            pos[0] = z * xsize * ysize + x * ysize + y;
+            counter = 1;
+            curr_min = cells[z][x][y].size;
+        } else if (cells[z][x][y].size == curr_min) {
+            pos[counter] = z * xsize * ysize + x * ysize + y;
+            counter++;
+        }
+    }
+}
+
+/**
+ * Find a neighboring voxel within the OAR zone that lacks an OAR cell.
+ *
+ * @param x The x coordinate of the central voxel.
+ * @param y The y coordinate of the central voxel.
+ * @param z The z coordinate of the central voxel.
+ * @return An encoded integer representing the coordinates of a voxel (using the formula: z * (xsize * ysize) + x * ysize + y)
+ *         that is within the OAR zone and has no OAR cell, or -1 if no such voxel is found.
+ */
+int Grid::find_missing_oar(int x, int y, int z) {
+    int counter = 0;
+    int curr_min = 100000;
+    int pos[26]; // Al massimo 26 vicini
+
+    // Itera su tutti i voxel adiacenti (escluso il centro)
+    for (int dz = -1; dz <= 1; dz++) {
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                if (dz == 0 && dx == 0 && dy == 0)
+                    continue;
+                missing_oar_helper(x + dx, y + dy, z + dz, curr_min, pos, counter);
+            }
+        }
+    }
+    
+    return (counter > 0) ? pos[rand() % counter] : -1;
+}
+
+/**
+ * Helper function for find_missing_oar.
+ * Aggiorna l'array dei candidati con il voxel (x, y, z) se esso appartiene alla zona OAR, non contiene OARCell,
+ * e possiede una densità cellulare minima.
+ *
+ * @param x The x coordinate of the candidate voxel.
+ * @param y The y coordinate of the candidate voxel.
+ * @param z The z coordinate of the candidate voxel.
+ * @param curr_min Reference to the current minimum cell density found among candidates.
+ * @param pos Array to store encoded candidate positions.
+ * @param counter Reference to the count of candidate positions.
+ */
+void Grid::missing_oar_helper(int x, int y, int z, int &curr_min, int *pos, int &counter) {
+    // Considera solo i voxel all'interno della zona OAR che non hanno OARCells
+    if (oar && x >= oar->x1 && x < oar->x2 &&
+              y >= oar->y1 && y < oar->y2 &&
+              z >= oar->z1 && z < oar->z2 &&
+              cells[z][x][y].oar_count == 0) {
+        if (cells[z][x][y].size < curr_min) {
+            pos[0] = z * xsize * ysize + x * ysize + y;
+            counter = 1;
+            curr_min = cells[z][x][y].size;
+        } else if (cells[z][x][y].size == curr_min) {
+            pos[counter] = z * xsize * ysize + x * ysize + y;
+            counter++;
+        }
+    }
+}
+
+/**
+ * Wake up (remove from quiescence) all OAR cells in the voxels surrounding the given voxel.
+ *
+ * @param x The x coordinate of the central voxel.
+ * @param y The y coordinate of the central voxel.
+ * @param z The z coordinate of the central voxel.
+ */
+void Grid::wake_surrounding_oar(int x, int y, int z) {
+    // Itera su tutti i voxel adiacenti (escluso il centro)
+    for (int dz = -1; dz <= 1; dz++) {
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                if (dz == 0 && dx == 0 && dy == 0)
+                    continue;
+                wake_helper(x + dx, y + dy, z + dz);
+            }
+        }
+    }
+}
+
+/**
+ * Helper function for wake_surrounding_oar.
+ * Sveglia le OARCells presenti nel voxel specificato se questo appartiene alla zona OAR.
+ *
+ * @param x The x coordinate of the voxel.
+ * @param y The y coordinate of the voxel.
+ * @param z The z coordinate of the voxel.
+ */
+void Grid::wake_helper(int x, int y, int z) {
+    // Se il voxel è nella zona OAR, sveglia tutte le OARCells presenti
+    if (oar && x >= oar->x1 && x < oar->x2 &&
+              y >= oar->y1 && y < oar->y2 &&
+              z >= oar->z1 && z < oar->z2) {
+        cells[z][x][y].wake_oar();
+    }
+}
+
+/**
+ * Helper for diffuse in 3D.
+ *
+ * Spreads the float amount of each entry in a 3D array (voxel) to its neighboring voxels 
+ * with a fraction determined by diff_factor. Each voxel retains (1 - diff_factor) of its
+ * original amount and diffuses the remaining diff_factor equally among its up to 26 adjacent neighbors.
+ *
+ * @param src The 3D array with the initial amounts.
+ * @param dest The 3D array where the diffused amounts will be stored.
+ * @param xsize The number of rows (x-dimension) in the arrays.
+ * @param ysize The number of columns (y-dimension) in the arrays.
+ * @param zsize The number of layers (z-dimension) in the arrays.
+ * @param diff_factor The fraction of each voxel's value to be diffused to its neighbors.
+ */
+void diffuse_helper(double ***src, double ***dest, int xsize, int ysize, int zsize, double diff_factor) {
+    // Iterate over every voxel in the 3D grid.
+    for (int k = 0; k < zsize; k++) {
+        for (int i = 0; i < xsize; i++) {
+            for (int j = 0; j < ysize; j++) {
+                // Each voxel retains a portion of its original value.
+                dest[k][i][j] = (1.0 - diff_factor) * src[k][i][j];
+                
+                // Diffuse to all 26 neighboring voxels.
+                for (int dz = -1; dz <= 1; dz++) {
+                    for (int dx = -1; dx <= 1; dx++) {
+                        for (int dy = -1; dy <= 1; dy++) {
+                            // Skip the central voxel.
+                            if (dz == 0 && dx == 0 && dy == 0)
+                                continue;
+                            
+                            int nk = k + dz;
+                            int ni = i + dx;
+                            int nj = j + dy;
+                            
+                            // Check that neighbor indices are within bounds.
+                            if (nk >= 0 && nk < zsize &&
+                                ni >= 0 && ni < xsize &&
+                                nj >= 0 && nj < ysize) {
+                                // Add the diffused portion from the neighbor.
+                                dest[k][i][j] += (diff_factor / 26.0) * src[nk][ni][nj];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Diffuse glucose and oxygen over the entire 3D grid.
+ *
+ * This function applies the diffusion process to both the glucose and oxygen arrays
+ * across the 3D grid. For each substance, it calls the 3D version of diffuse_helper(),
+ * which computes the new diffused values for every voxel based on a given diffusion factor.
+ * Once the diffusion is computed, the source array is swapped with the helper array so that
+ * the updated (diffused) values become the current state of the grid.
+ *
+ * @param diff_factor The fraction of each voxel's content that should be diffused to its neighboring voxels.
+ */
+void Grid::diffuse(double diff_factor) {
+    // Diffuse the glucose in the 3D grid.
+    diffuse_helper(glucose, glucose_helper, xsize, ysize, zsize, diff_factor);
+    double ***temp = glucose;
+    glucose = glucose_helper;
+    glucose_helper = temp;
+    
+    // Diffuse the oxygen in the 3D grid.
+    diffuse_helper(oxygen, oxygen_helper, xsize, ysize, zsize, diff_factor);
+    temp = oxygen;
+    oxygen = oxygen_helper;
+    oxygen_helper = temp;
+}
+
+/**
+ * Compute the weighted sum of cell types for the CellList on position x, y, z
+ */
+int Grid::pixel_density(int x, int y, int z){
+    return cells[z][x][y].CellTypeSum();
+}
+
+/**
+ * Returns the type of the first cell on the given position
+ *
+ * @return 0 if there are no cells on this position, -1 if there is a cancer cell, 1 for a healthy cell and 2 for an OAR cell
+ */
+int Grid::pixel_type(int x, int y, int z){
+    if (cells[z][x][y].head){
+        char t = cells[z][x][y].head -> type;
+        if (t == 'c'){
+            return -1; 
+        } else if (t == 'h'){
+            return 1;
+        } else {
+            return 2;
+        }
+    } else {
+        return 0;
+    }
+}
+
+/**
+ * Return the current glucose array
+ */
+double *** Grid::currentGlucose(){
+    return glucose;
+}
+
+/**
+ * Return the current oxygen array
+ */
+double *** Grid::currentOxygen(){
+    return oxygen;
+}
+
+/**
+ * Return the number of helathy cells of a voxel
+ */
+int Grid::getHealthyCount(int x, int y, int z) {
+    // Le cellule sane sono ottenute sottraendo il numero di cellule cancerose (ccell_count)
+    // e il numero di cellule OAR (oar_count) al numero totale di cellule (size)
+    return cells[z][x][y].size - cells[z][x][y].ccell_count - cells[z][x][y].oar_count;
+}
+
+/**
+ * Return the number of cancer cells of a voxel
+ */
+int Grid::getCancerCount(int x, int y, int z) {
+    return cells[z][x][y].ccell_count;
+}
+
+/**
+ * Return the number of oar cells of a voxel
+ */
+int Grid::getOARCount(int x, int y, int z) {
+    return cells[z][x][y].oar_count;
 }

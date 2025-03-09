@@ -12,7 +12,7 @@ struct CellNode
 };
 
 struct OARZone{
-    int x1, x2, x3, y1, y2, y3;
+    int x1, x2, y1, y2, z1, z2;
 };
 
 class CellList
@@ -30,6 +30,7 @@ public:
     void wake_oar();
     void add(Cell *cell, char type, int x, int y, int z);
     void add(CellNode * toAdd, char type);
+
 };
 
 struct Source{
@@ -59,13 +60,16 @@ public:
     void irradiate(double dose, double radius, double center_x, double center_y, double center_z);
     int pixel_type(int x, int y, int z);
     int pixel_density(int x, int y, int z);
-    double ** currentGlucose();
-    double ** currentOxygen();
+    double *** currentGlucose();
+    double *** currentOxygen();
     double tumor_radius(int center_x, int center_y, int center_z);
     void compute_center();
     double get_center_x();
     double get_center_y();
     double get_center_z();
+    int getHealthyCount(int x, int y, int z);
+    int getCancerCount(int x, int y, int z);
+    int getOARCount(int x, int y, int z);
     
 private:
     void change_neigh_counts(int x, int y, int z, int val);
