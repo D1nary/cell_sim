@@ -1,0 +1,26 @@
+[
+{
+  "directory": "/home/ale/Documenti/programming/proj_radio_rein/build",
+  "command": "/usr/bin/g++  -I/home/ale/Documenti/programming/proj_radio_rein/cpp/src -g -std=gnu++17 -o CMakeFiles/test.dir/src/test.cpp.o -c /home/ale/Documenti/programming/proj_radio_rein/cpp/src/test.cpp",
+  "file": "/home/ale/Documenti/programming/proj_radio_rein/cpp/src/test.cpp",
+  "output": "CMakeFiles/test.dir/src/test.cpp.o"
+},
+{
+  "directory": "/home/ale/Documenti/programming/proj_radio_rein/build",
+  "command": "/usr/bin/g++  -I/home/ale/Documenti/programming/proj_radio_rein/cpp/src -g -std=gnu++17 -o CMakeFiles/test.dir/src/controller_3d.cpp.o -c /home/ale/Documenti/programming/proj_radio_rein/cpp/src/controller_3d.cpp",
+  "file": "/home/ale/Documenti/programming/proj_radio_rein/cpp/src/controller_3d.cpp",
+  "output": "CMakeFiles/test.dir/src/controller_3d.cpp.o"
+},
+{
+  "directory": "/home/ale/Documenti/programming/proj_radio_rein/build",
+  "command": "/usr/bin/g++  -I/home/ale/Documenti/programming/proj_radio_rein/cpp/src -g -std=gnu++17 -o CMakeFiles/test.dir/src/grid_3d.cpp.o -c /home/ale/Documenti/programming/proj_radio_rein/cpp/src/grid_3d.cpp",
+  "file": "/home/ale/Documenti/programming/proj_radio_rein/cpp/src/grid_3d.cpp",
+  "output": "CMakeFiles/test.dir/src/grid_3d.cpp.o"
+},
+{
+  "directory": "/home/ale/Documenti/programming/proj_radio_rein/build",
+  "command": "/usr/bin/g++  -I/home/ale/Documenti/programming/proj_radio_rein/cpp/src -g -std=gnu++17 -o CMakeFiles/test.dir/src/cell.cpp.o -c /home/ale/Documenti/programming/proj_radio_rein/cpp/src/cell.cpp",
+  "file": "/home/ale/Documenti/programming/proj_radio_rein/cpp/src/cell.cpp",
+  "output": "CMakeFiles/test.dir/src/cell.cpp.o"
+}
+]

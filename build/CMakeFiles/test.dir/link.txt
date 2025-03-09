@@ -1,0 +1,1 @@
+/usr/bin/g++ -g CMakeFiles/test.dir/src/test.cpp.o CMakeFiles/test.dir/src/controller_3d.cpp.o CMakeFiles/test.dir/src/grid_3d.cpp.o CMakeFiles/test.dir/src/cell.cpp.o -o test 
