@@ -19,7 +19,7 @@ public:
     Grid* fill_grid(int hcells, int ccells, int*** noFilledGrid);
     void deallocateNoFilledGrid(int*** grid);
 
-    // void irradiate(double dose);
+    void irradiate(double dose);
     // void irradiate_center(double dose);
     // void irradiate(double dose, double radius);
     // void irradiate_center(double dose, double radius);

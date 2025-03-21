@@ -275,6 +275,17 @@ void Controller::go() {
         grid -> compute_center();
     }
 }
+
+/**
+ * Irradiate the tumor with a certain dose
+ *
+ * @param dose The dose of radiation in grays
+ */
+void Controller::irradiate(double dose){
+    grid -> irradiate(dose);
+}
+
+
 /**
  * Return a weighted sum of the types of cells at a certain position in the 3D grid.
  *
