@@ -1033,3 +1033,128 @@ int Grid::getCancerCount(int x, int y, int z) {
 int Grid::getOARCount(int x, int y, int z) {
     return cells[z][x][y].oar_count;
 }
+
+/**
+ * Calcola la distanza euclidea tra due punti in uno spazio 3D.
+ *
+ * @param x1, y1, z1 Coordinate del primo punto (tipicamente indici interi della griglia).
+ * @param x2, y2, z2 Coordinate del secondo punto (valori in virgola mobile).
+ * @return La distanza euclidea tra i due punti.
+ */
+double distance(int x1, int y1, int z1, double x2, double y2, double z2) {
+    // Calcola le differenze lungo ciascun asse
+    double dist_x = x1 - x2;
+    double dist_y = y1 - y2;
+    double dist_z = z1 - z2;
+    // Restituisce la radice quadrata della somma dei quadrati delle differenze
+    return sqrt(dist_x * dist_x + dist_y * dist_y + dist_z * dist_z);
+}
+/**
+ * Computes the dose depending on the distance to the tumor's center
+ *
+ * @param rad Radius of the radiation (95 % of the full dose at 1 radius from the center)
+ * @param x Distance from the center
+ * @return The Euclidean distance between the two points
+ */
+double conv(double rad, double x){
+    double denom = 3.8;//sqrt(2) * 2.7
+    return erf((rad - x)/denom) - erf((-rad - x) / denom);
+}
+
+
+
+double get_multiplicator(double dose, double radius){
+    return dose / conv(14, 0);
+}
+
+double scale(double radius, double x, double multiplicator){
+    return multiplicator * conv(14.0, x * 10.0 / radius);
+}
+
+/**
+ * Irradia le cellule intorno ad un centro specifico con una dose e un raggio dati. No OAR cells
+ *
+ * @param dose La dose di radiazione (in grays)
+ * @param radius Il raggio della radiazione (95 % della dose completa a 1 raggio dal centro)
+ * @param center_x La coordinata x del centro di radiazione
+ * @param center_y La coordinata y del centro di radiazione
+ * @param center_z La coordinata z del centro di radiazione
+ */
+void Grid::irradiate(double dose, double radius, double center_x, double center_y, double center_z) {
+    // Se la dose è 0, non si applica alcuna irradiazione
+    if (dose == 0)
+        return;
+
+    // Calcola il moltiplicatore per normalizzare la dose in base al raggio
+    double multiplicator = get_multiplicator(dose, radius);
+    // Parametri del modello per il calcolo della dose (valori fissi, eventualmente modificabili)
+    double oer_m = 3.0;
+    double k_m = 3.0;
+
+    // Itera su ogni voxel della griglia 3D: k per la profondità (z), i per le righe (x) e j per le colonne (y)
+    for (int k = 0; k < zsize; k++) {
+        for (int i = 0; i < xsize; i++) {
+            for (int j = 0; j < ysize; j++) {
+                // Calcolo la distanza dal centro
+                double dist = distance(i, j, k, center_x, center_y, center_x);
+                if (cells[k][i][j].size && dist < 3 * radius){ //If there are cells on the pixel
+                    CellNode * current = cells[k][i][j].head;
+                    while (current){
+                        // Include the effect of hypoxia, Powathil formula
+                        double omf = (oxygen[k][i][j] / 100.0 * oer_m + k_m) / (oxygen[k][i][j] / 100.0 + k_m) / oer_m;
+                        current -> cell -> radiate(scale(radius, dist, multiplicator) * omf);
+
+                        current = current -> next;
+                    }
+                    int init_count = cells[k][i][j].size;
+                    cells[k][i][j].deleteDeadAndSort();
+                    change_neigh_counts(i, j, k, cells[k][i][j].size - init_count);
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Find the cancer cell most distant from the given center, and return its distance from this center
+ *
+ * @param center_x The x coordinate which we want to compute the radius
+ * @param center_y The y coordinate which we want to compute the radius
+ * @param center_z The z coordinate which we want to compute the radius
+ * @return The distance from the cell furthest away from the center to the center
+ */
+
+double Grid::tumor_radius(int center_x, int center_y, int center_z) {
+    if (CancerCell::count == 0) {
+        return -1.0;
+    }
+    double dist = -1.0;
+    // Itera su ogni voxel della griglia 3D
+    for (int k = 0; k < zsize; k++) {
+        for (int i = 0; i < xsize; i++) {
+            for (int j = 0; j < ysize; j++) {
+                // Se il voxel contiene almeno una cellula e la prima cellula è cancerosa
+                if (cells[k][i][j].size > 0 && cells[k][i][j].head->type == 'c') {
+                    int dist_x = i - center_x;
+                    int dist_y = j - center_y;
+                    int dist_z = k - center_z;
+                    double d = sqrt(dist_x * dist_x + dist_y * dist_y + dist_z * dist_z);
+                    dist = std::max(dist, d);
+                }
+            }
+        }
+    }
+    // Si vuole il raggio massimo
+    if (dist < 3.0)
+        dist = 3.0;
+    return dist;
+}
+
+/**
+ * Irradiate the tumor present on the grid with the given dose
+ */
+void Grid::irradiate(double dose){
+    compute_center();
+    double radius = tumor_radius(center_x, center_y, center_z);
+    irradiate(dose, radius, center_x, center_y, center_z);
+}

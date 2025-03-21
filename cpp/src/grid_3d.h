@@ -56,7 +56,6 @@ public:
     void cycle_cells();
     void diffuse(double diff_factor);
     void irradiate(double dose);
-    void irradiate(double dose, double radius);
     void irradiate(double dose, double radius, double center_x, double center_y, double center_z);
     int pixel_type(int x, int y, int z);
     int pixel_density(int x, int y, int z);
