@@ -12,6 +12,8 @@
 
 #include <cstdlib>  // Per rand() e srand()
 
+#include <algorithm> // Per find()
+
 using namespace std;
 
 /**
@@ -350,6 +352,39 @@ int* Controller::get_intervals(int num_hour, int divisor) {
     return intervals;
 }
 
+// Implementazione nel file controller_3d.cpp
+void Controller::tempDataTab() {
+    // Ottieni i puntatori alle matrici di glucosio e ossigeno dalla griglia
+    double*** glu = grid->currentGlucose();
+    double*** oxy = grid->currentOxygen();
+
+    // Itera su tutti i voxel della griglia
+    for (int z = 0; z < zsize; ++z) {
+        for (int x = 0; x < xsize; ++x) {
+            for (int y = 0; y < ysize; ++y) {
+                std::vector<double> row;
+                row.push_back(static_cast<double>(tick)); // tick corrente
+                row.push_back(static_cast<double>(x)); // coordinata x
+                row.push_back(static_cast<double>(y)); // coordinata y
+                row.push_back(static_cast<double>(z));  // coordinata z
+                row.push_back(static_cast<double>(grid->getHealthyCount(x, y, z))); // numero di cellule sane
+                row.push_back(static_cast<double>(grid->getCancerCount(x, y, z)));  // numero di cellule cancerose
+                row.push_back(static_cast<double>(grid->getOARCount(x, y, z))); // numero di cellule OAR
+                row.push_back(glu[z][x][y]); // livello di glucosio
+                row.push_back(oxy[z][x][y]); // livello di ossigeno
+                row.push_back(static_cast<double>(grid->pixel_type(x, y, z))); // tipo del voxel
+
+                // Aggiungi la riga alla matrice temporanea
+                tempDataTabMatrix.push_back(row);
+            }
+        }
+    }
+}
+
+void Controller::clear_tempDataTab() {
+    tempDataTabMatrix.clear();
+}
+
 /**
  * Salva le matrici grid, glucose ed oxigen in un file di testo
  *
@@ -357,54 +392,104 @@ int* Controller::get_intervals(int num_hour, int divisor) {
  * @param path
  */
 
- void Controller::saveDataTab(const std::string &path, const std::string &filename) {
-    // Verifica che il path termini con '/' o '\' e, in caso contrario, aggiunge uno slash.
-    string dir = path;
-    if (!dir.empty() && dir.back() != '/' && dir.back() != '\\') {
-        dir += "/";
-    }
-    // Costruisce il percorso completo unendo il path e il filename.
-    string filePath = dir + filename;
-    
-    //Apro un oggetto ofstream (output file stream)
-    ofstream out(filePath);
-    
-    // Se il file non viene aperto correttamente, viene stampato un messaggio di errore 
-    if (!out.is_open()) {
-        cerr << "Errore nell'apertura del file " << filePath << " per la scrittura." << endl;
+//void Controller::saveDataTab(const std::string &path, const std::string &filename) {
+//    // Verifica che il path termini con '/' o '\' e, in caso contrario, aggiunge uno slash.
+//    string dir = path;
+//    if (!dir.empty() && dir.back() != '/' && dir.back() != '\\') {
+//        dir += "/";
+//    }
+//    // Costruisce il percorso completo unendo il path e il filename.
+//    string filePath = dir + filename;
+//    
+//    //Apro un oggetto ofstream (output file stream)
+//    ofstream out(filePath);
+//    
+//    // Se il file non viene aperto correttamente, viene stampato un messaggio di errore 
+//    if (!out.is_open()) {
+//        cerr << "Errore nell'apertura del file " << filePath << " per la scrittura." << endl;
+//        return;
+//    }
+//
+//    // Scrive la riga di commento con i nomi delle colonne
+//    out << "#Tick x y z nCells HealthyCells CancerCells OarCells glucose oxygen voxel_type" << endl;
+//
+//    // Recupera i puntatori alle matrici di glucosio e ossigeno
+//    double ***glu = grid->currentGlucose();
+//    double ***oxy = grid->currentOxygen();
+//
+//    // Itera su tutti i voxel della griglia
+//    for (int z = 0; z < zsize; ++z) {
+//        for (int x = 0; x < xsize; ++x) {
+//            for (int y = 0; y < ysize; ++y) {
+//                // Calcolo numero di cellule presenti in quel voxel
+//                int cellsCount = grid->pixel_density(x, y, z);
+//                
+//                out << tick << " "
+//                    << x << " " << y << " " << z << " " 
+//                    << cellsCount << " " 
+//                    << grid->getHealthyCount(x, y, z)<< " "
+//                    << grid->getCancerCount(x, y, z)<< " "
+//                    << grid->getOARCount(x, y, z)<< " "
+//                    << glu[z][x][y] << " " 
+//                    << oxy[z][x][y] << " "
+//                    << grid->pixel_type(x, y, z) << "\n";
+//
+//            }
+//        }
+//    }
+//
+//    out.close();
+//    cout << "Dati salvati correttamente in " << filePath << endl;
+//}
+//
+
+void Controller::saveDataTab(const std::string &path, const std::vector<std::string>& filenames, int* intervals, int intervalsSize) {
+    // Controlla che il numero di filename sia uguale al numero di valori negli intervalli
+    if (filenames.size() != static_cast<size_t>(intervalsSize)) {
+        std::cerr << "Il numero di filename non corrisponde al numero di valori in intervals." << std::endl;
         return;
     }
-
-    // Scrive la riga di commento con i nomi delle colonne
-    out << "# x y z nCells HealthyCells CancerCells OarCells glucose oxygen voxel_type" << endl;
-
-    // Recupera i puntatori alle matrici di glucosio e ossigeno
-    double ***glu = grid->currentGlucose();
-    double ***oxy = grid->currentOxygen();
-
-    // Itera su tutti i voxel della griglia
-    for (int z = 0; z < zsize; ++z) {
-        for (int x = 0; x < xsize; ++x) {
-            for (int y = 0; y < ysize; ++y) {
-                // Calcolo numero di cellule presenti in quel voxel
-                int cellsCount = grid->pixel_density(x, y, z);
-                
-                out << x << " " << y << " " << z << " " 
-                    << cellsCount << " " 
-                    << grid->getHealthyCount(x, y, z)<< " "
-                    << grid->getCancerCount(x, y, z)<< " "
-                    << grid->getOARCount(x, y, z)<< " "
-                    << glu[z][x][y] << " " 
-                    << oxy[z][x][y] << " "
-                    << grid->pixel_type(x, y, z) << "\n";
-
+    
+    // Per ogni valore in intervals, crea un file separato
+    for (int i = 0; i < intervalsSize; ++i) {
+        int interval_val = intervals[i];
+        std::string currentFilename = filenames[i];
+        
+        // Costruisce il percorso completo assicurandosi che path termini con uno slash
+        std::string dir = path;
+        if (!dir.empty() && dir.back() != '/' && dir.back() != '\\') {
+            dir += "/";
+        }
+        std::string filePath = dir + currentFilename;
+        
+        // Apro il file di output
+        std::ofstream out(filePath);
+        if (!out.is_open()) {
+            std::cerr << "Errore nell'apertura del file " << filePath << " per la scrittura." << std::endl;
+            continue;
+        }
+        
+        // Scrive l'header con i nomi delle colonne
+        out << "#Tick x y z nCells HealthyCells CancerCells OarCells glucose oxygen voxel_type" << std::endl;
+        
+        // Itera su tutte le righe della matrice temporanea e seleziona quelle il cui primo elemento (tick) è uguale a interval_val
+        for (const auto &row : tempDataTabMatrix) {
+            if (!row.empty() && static_cast<int>(row[0]) == interval_val) {
+                // Scrive ogni valore della riga separato da uno spazio
+                for (size_t j = 0; j < row.size(); ++j) {
+                    out << row[j];
+                    if (j < row.size() - 1)
+                        out << " ";
+                }
+                out << "\n";
             }
         }
+        
+        out.close();
+        std::cout << "Dati salvati correttamente in " << filePath << std::endl;
     }
-
-    out.close();
-    cout << "Dati salvati correttamente in " << filePath << endl;
 }
+
 
 void Controller::saveCellCounts(const std::string &path, const std::string &filename) {
     // Verifica che il path termini con '/' o '\' e, in caso contrario, aggiunge uno slash.
@@ -423,11 +508,10 @@ void Controller::saveCellCounts(const std::string &path, const std::string &file
     }
 
     // Creazione dell'header
-    out << "# Tick HealthyCells CancerCells OARCells\n";
+    out << "#Tick HealthyCells CancerCells OARCells\n";
 
     // Itera su ogni riga della matrice tempCounts e la scrive nel file
     for (const auto &row : tempCounts) {
-        // row[0] contiene già il tick
         out << row[0] << " " 
             << row[1] << " " 
             << row[2] << " " 
@@ -437,6 +521,7 @@ void Controller::saveCellCounts(const std::string &path, const std::string &file
     out.close();
     std::cout << "Cell counts saved successfully in file " << filePath << std::endl;
 }
+
 
 
 void Controller::createDirectories(const std::vector<std::string>& paths) {
@@ -455,9 +540,51 @@ void Controller::createDirectories(const std::vector<std::string>& paths) {
 }
 
 
-void Controller::tempCellCounts(int divisor) {
+void Controller::tempCellCounts() {
 
     std::vector<int> row = { tick, HealthyCell::count, CancerCell::count, OARCell::count };
     // Aggiunge la nuova riga alla matrice
     tempCounts.push_back(row);
 }
+
+void Controller::clear_tempCellCounts() {
+    tempCounts.clear();
+}
+
+void Controller::treatment(int week, int rad_days, int rest_days, int dose){
+
+    clear_tempCellCounts();
+    clear_tempDataTab();
+
+    // Save data before theraphy
+    tempCellCounts();
+    tempDataTab();
+
+    for (int w = 0; w < week; w++){
+        tempDataTab();
+        for (int rd = 0; rd < rad_days; rd++){
+            // Irradiate
+            irradiate(dose);
+            // Simulate 1 day (24 hours) 
+            for (int h = 0; h < 24; h++){
+                go();
+            }
+            tempCellCounts(); // Save data sum every 24h
+        }
+        for (int rest = 0; rest < rest_days; rest++){
+            // Simulate 1 day (24 hours) 
+            for (int h = 0; h < 24; h++){
+                go();
+            }
+            tempCellCounts(); // Save data sum every 24h
+        }
+        tempDataTab(); // Save data tab every theraphy week
+    }
+}
+
+            //     if (std::find(inter1, inter1 + (div1 + 1), tick) != inter1 + (div1 + 1)) {
+            //         tempDataTab();
+            //     }
+            //     if (std::find(inter2, inter2 + (div2 + 1), tick) != inter2 + (div2 + 1)) {
+            //         tempCellCounts();
+            //     }

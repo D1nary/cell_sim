@@ -12,7 +12,8 @@ class Controller {
 public:
 
     Controller(int xsize, int ysize, int zsize, int sources_num, int* intervals);
-    Controller(int hcells, int xsize, int ysize, int zsize, int sources_num, int x1, int x2, int y1, int y2, int z1, int z2);
+    Controller(int hcells, int xsize, int ysize, int zsize, int sources_num,
+                int x1, int x2, int y1, int y2, int z1, int z2);
     ~Controller();
 
     int*** grid_creation(double hradius, double cradius);
@@ -37,10 +38,16 @@ public:
     double get_center_z();
     int* get_intervals(int num_hour, int divisor);
 
-    void saveDataTab(const std::string &path, const std::string &filename);
+    void saveDataTab(const std::string &path, const std::vector<std::string>& filenames, 
+                    int* intervals, int intervalsSize);
     void saveCellCounts(const std::string &path, const std::string &filename);
     void createDirectories(const std::vector<std::string>& paths);
-    void tempCellCounts(int divisor);
+    void tempCellCounts();
+    void clear_tempCellCounts();
+    void tempDataTab();
+    void clear_tempDataTab();
+
+    void treatment(int week, int rad_days, int rest_days, int dose);
 
 
 private:
@@ -48,7 +55,9 @@ private:
     Grid * grid;
     OARZone * oar;
     int* intervals;
+    int* intervals_sum;
     std::vector<std::vector<int>> tempCounts;
+    std::vector<std::vector<double>> tempDataTabMatrix;
 };
 
 
