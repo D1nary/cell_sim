@@ -91,9 +91,9 @@ int main() {
         if (std::find(intervals, intervals + (divisor + 1), i) != intervals + (divisor + 1)) {
             count += 1;
             // Nota: ad ogni chiamata di saveDataTab salvo su un file diverso
-            controller -> saveDataTab(data_path_tab, file_name[count]);
+            controller -> saveDataTab(data_path_tab, file_name[count], intervals, (divisor +1)); // DA CONTROLLARE SE FUNZIONA
             // Nota: ad ogni chiamata di tempCellCounts salvo i dati in un array
-            controller -> tempCellCounts(divisor);
+            controller -> tempCellCounts();
 
             cout << controller -> tick << ", " << HealthyCell::count << ", " 
             << CancerCell::count << ", " << OARCell::count << endl;
