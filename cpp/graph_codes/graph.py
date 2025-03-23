@@ -129,47 +129,80 @@ def create_matrix(xsize, ysize, data):
 
     # return color_matrix , density_matrix
     return color_matrix, density_matrix, glucose_matrix, oxygen_matrix
+
 def cells_num(file_name, path_in, path_out):
     # Leggo il file
     data = np.loadtxt(os.path.join(path_in, file_name), comments='#')
     data = data.T
 
     fig, ax = plt.subplots()
-    # Disegno le somme. plt.plot(x, y)
-    plt.plot(data[0], data[1] + data[2]+ data[3], "k.-", label="Total Cells", alpha=0.7)
+    # Disegno le somme: Total, Healthy, Cancer e OAR Cells
+    plt.plot(data[0], data[1] + data[2] + data[3], "k.-", label="Total Cells", alpha=0.7)
     plt.plot(data[0], data[1], "g.-", label="Healthy Cells", alpha=0.7)
     plt.plot(data[0], data[2], "r.-", label="Cancer Cells", alpha=0.7)
     plt.plot(data[0], data[3], "y.-", label="OAR Cells", alpha=0.1)
 
-
     plt.yscale('log')
-
     plt.xlabel('Hours')
     plt.ylabel('Cell sum')
     plt.title('Cell count')
     plt.legend()
-    plt.grid()
 
-    # Salvo i grafici
-    output_path = os.path.join(path_out, f'cells_sum.png')
+    # Imposta la griglia:
+    # Vengono disegnate sia le linee verticali che quelle orizzontali, 
+    # corrispondenti rispettivamente ai tick degli assi x e y,
+    # entrambe come linee continue.
+    plt.grid(True, which='major', axis='both', linestyle='-', linewidth=0.5)
+
+    # Salvo il grafico
+    out_name = os.path.splitext(file_name)[0]
+    output_path = os.path.join(path_out, out_name + '.png')
+
     plt.savefig(output_path)
     plt.close()
 
 
 
+
+
 path_in_tab  = "/home/ale/Documenti/programming/proj_radio_rein/cpp/results/data/tabs/"
 path_in_num  = "/home/ale/Documenti/programming/proj_radio_rein/cpp/results/data/cell_num/"
-dir_out_sum = "/home/ale/Documenti/programming/proj_radio_rein/cpp/results/graphs/"
+dir_out = "/home/ale/Documenti/programming/proj_radio_rein/cpp/results/graphs/"
+dir_out_sum = "/home/ale/Documenti/programming/proj_radio_rein/cpp/results/graphs/sum"
 dir_out_3d = "/home/ale/Documenti/programming/proj_radio_rein/cpp/results/graphs/3d"
 dir_out_2d = "/home/ale/Documenti/programming/proj_radio_rein/cpp/results/graphs/2d"
 xsize = 21
 ysize = 21
-zsize = 21
-num_hour = 400
-divisor = 4
+zsize = 21 
 
-intervals = get_intervals(num_hour, divisor)
-print(intervals)
-plot_3d(xsize, ysize, zsize, intervals, path_in_tab, dir_out_3d) 
-cells_num("cell_counts.txt", path_in_num, dir_out_sum)
+
+# Creazione delle cartelle se non esistono
+os.makedirs(dir_out, exist_ok=True)
+os.makedirs(dir_out_sum, exist_ok=True)
+os.makedirs(dir_out_3d, exist_ok=True)
+os.makedirs(dir_out_2d, exist_ok=True)
+
+# --- GROWTH ---
+
+num_hour_g = 400
+divisor_g = 100
+intervals_g = get_intervals(num_hour_g, divisor_g)
+# print(intervals)
+# plot_3d(xsize, ysize, zsize, intervals, path_in_tab, dir_out_3d) 
+cells_num("cell_counts_gr.txt", path_in_num, dir_out_sum)
+
+
+# --- THERAPHY ---
+
+week = 2; # Weeks of tratments
+rad_days = 5; # Number of days in which we send radiation
+rest_days = 2; # Number of days without radiation
+dose = 2.0; # Dose per day
+
+num_hour_t = 24 * (rad_days + rest_days) * week
+divisor_t = (rad_days + rest_days) * week
+intervals_t = get_intervals(num_hour_g, divisor_g)
+
+cells_num("cell_counts_tr.txt", path_in_num, dir_out_sum)
+
 print(os.getcwd())
