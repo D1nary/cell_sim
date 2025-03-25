@@ -362,14 +362,22 @@ void Controller::tempDataTab() {
     for (int z = 0; z < zsize; ++z) {
         for (int x = 0; x < xsize; ++x) {
             for (int y = 0; y < ysize; ++y) {
+
+                double health = grid->getHealthyCount(x, y, z);
+                double cancer = grid->getCancerCount(x, y, z);
+                double  oar = grid->getOARCount(x, y, z);
+                double total = health + cancer + oar;
+
                 std::vector<double> row;
+                
                 row.push_back(static_cast<double>(tick)); // tick corrente
                 row.push_back(static_cast<double>(x)); // coordinata x
                 row.push_back(static_cast<double>(y)); // coordinata y
                 row.push_back(static_cast<double>(z));  // coordinata z
-                row.push_back(static_cast<double>(grid->getHealthyCount(x, y, z))); // numero di cellule sane
-                row.push_back(static_cast<double>(grid->getCancerCount(x, y, z)));  // numero di cellule cancerose
-                row.push_back(static_cast<double>(grid->getOARCount(x, y, z))); // numero di cellule OAR
+                row.push_back(static_cast<double>(total)); // numero totale di cellule
+                row.push_back(static_cast<double>(health)); // numero di cellule sane
+                row.push_back(static_cast<double>(cancer));  // numero di cellule cancerose
+                row.push_back(static_cast<double>(oar)); // numero di cellule OAR
                 row.push_back(glu[z][x][y]); // livello di glucosio
                 row.push_back(oxy[z][x][y]); // livello di ossigeno
                 row.push_back(static_cast<double>(grid->pixel_type(x, y, z))); // tipo del voxel
