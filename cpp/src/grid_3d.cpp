@@ -63,12 +63,12 @@ void CellList::add(CellNode * newNode, char type){
         newNode -> next = nullptr;
     }
     else if (type == 'h' || type == 'o'){ // or
-        tail -> next = newNode; // Adding the node at the end
+        tail -> next = newNode; // Add the node at the end
         tail = newNode;
         newNode -> next = nullptr;
     } else if(type == 'c'){
         newNode -> next = head;
-        head = newNode; // Adding the node at the end 
+        head = newNode; // Add the node at the end 
     }
     if (type == 'o')
         oar_count++;
@@ -523,7 +523,7 @@ int Grid::rand_adj(int x, int y, int z) {
                 // Escludiamo il voxel centrale (nessun offset)
                 if (dz == 0 && dx == 0 && dy == 0)
                     continue;
-                    
+
                 // Checks if the voxel (x+dx, y+dy, z+dz) is within bounds and, if so,
                 // adds it to the array of candidate positions.
                 // NOTE:
@@ -543,19 +543,20 @@ int Grid::rand_adj(int x, int y, int z) {
 }
 
 /**
- * Helper for rand_adj 
+ * Helper for rand_adj
  *
- * Verifica che le coordinate (x, y, z) siano all'interno dei limiti della griglia.
- * Se lo sono, codifica le coordinate in un unico intero usando la formula:
+ * Checks whether the coordinates (x, y, z) are within the grid bounds.
+ * If they are, it encodes the coordinates into a single integer using the formula:
  * index = z * (xsize * ysize) + x * ysize + y
- * e lo aggiunge all'array dei candidati.
+ * and adds it to the array of candidates.
  *
  * @param x The x-coordinate to check.
  * @param y The y-coordinate to check.
  * @param z The z-coordinate to check.
- * @param pos L'array in cui vengono salvate le posizioni valide.
- * @param counter Riferimento al contatore delle posizioni valide trovate.
+ * @param pos The array where valid positions are stored.
+ * @param counter Reference to the counter of valid positions found.
  */
+
 void Grid::adj_helper(int x, int y, int z, int* pos, int& counter) {
     if (x >= 0 && x < xsize &&
         y >= 0 && y < ysize &&
@@ -573,7 +574,7 @@ void Grid::compute_center(){
     center_y = 0.0;
     center_z = 0.0;
     
-    // Itera su tutti i voxel: z (layer), x (righe) e y (colonne)
+    // Iteration over all voxels: z (layers), x (rows), and y (columns)
     for (int k = 0; k < zsize; k++){
         for (int i = 0; i < xsize; i++){
             for (int j = 0; j < ysize; j++){
@@ -588,7 +589,6 @@ void Grid::compute_center(){
             }
         }
     }
-    // Si presuppone che count > 0, altrimenti occorre gestire il caso di divisione per zero.
     center_x /= count;
     center_y /= count;
     center_z /= count;
@@ -616,32 +616,32 @@ double Grid::get_center_z(){
  *
  */
 void Grid::cycle_cells() {
-    // Creiamo una lista temporanea per accumulare le nuove cellule
+    // Creating a temporary list to accumulate the new cells  
     CellList *toAdd = new CellList();
     
-    // Iteriamo su tutti i voxel: k -> layer (z), i -> righe (x), j -> colonne (y)
+    // Iterate over all voxels  
     for (int k = 0; k < zsize; k++) {
         for (int i = 0; i < xsize; i++) {
             for (int j = 0; j < ysize; j++) {
                 CellNode *current = cells[k][i][j].head;
                 while (current) {
-                    // Avanziamo il ciclo della cellula corrente
-                    // Nota: il parametro della densità è dato dal contatore dei vicini sommato al numero di cellule nel voxel
+                    // Advance the cycle of the current cell  
+                    // Note: the density parameter is given by the neighbor counter plus the number of cells in the voxel  
                     cell_cycle_res result = current->cell->cycle(
                         glucose[k][i][j],
                         oxygen[k][i][j],
                         neigh_counts[k][i][j] + cells[k][i][j].size
                     );
                     
-                    // Aggiorniamo il glucosio e l'ossigeno in base al consumo
+                    // Update glucose and oxygen based on consumption  
                     glucose[k][i][j] -= result.glucose;
                     oxygen[k][i][j] -= result.oxygen;
                     
-                    // Gestiamo la nascita di nuove cellule in base al valore di result.new_cell
-                    if (result.new_cell == 'h') { // Nuova cellula sana
+                    // New cells are created based on result.new_cell  
+                    if (result.new_cell == 'h') { // New healthy cell
                         int downhill = rand_min(i, j, k, 5);
                         if (downhill >= 0) {
-                            // Decodifichiamo l'indice in coordinate (newX, newY, newZ)
+                            // Decode the new position (newX, newY, newZ)  
                             int newZ = downhill / (xsize * ysize);
                             int rem = downhill % (xsize * ysize);
                             int newX = rem / ysize;
@@ -652,7 +652,7 @@ void Grid::cycle_cells() {
                         }
                     }
                     
-                    if (result.new_cell == 'c') { // Nuova cellula cancerosa
+                    if (result.new_cell == 'c') { // New cancerous cell  
                         int downhill = rand_adj(i, j, k);
                         if (downhill >= 0) {
                             int newZ = downhill / (xsize * ysize);
@@ -663,7 +663,7 @@ void Grid::cycle_cells() {
                         }
                     }
                     
-                    if (result.new_cell == 'o') { // Nuova cellula OAR
+                    if (result.new_cell == 'o') { // New OAR cell  
                         int downhill = find_missing_oar(i, j, k);
                         if (downhill >= 0) {
                             int newZ = downhill / (xsize * ysize);
@@ -676,20 +676,20 @@ void Grid::cycle_cells() {
                         }
                     }
                     
-                    if (result.new_cell == 'w') { // La cellula è morta per carenza di nutrienti
+                    if (result.new_cell == 'w') { // The cell has died due to lack of nutrients  
                         wake_surrounding_oar(i, j, k);
                     }
                     
                     current = current->next;
                 }
-                // Salviamo il numero iniziale di cellule nel voxel per aggiornare i contatori dei vicini
+                // Save the initial number of cells in the voxel to update the neighbor counters  
                 int init_count = cells[k][i][j].size;
                 cells[k][i][j].deleteDeadAndSort();
                 change_neigh_counts(i, j, k, cells[k][i][j].size - init_count);
             }
         }
     }
-    // Aggiungiamo tutte le nuove cellule accumulate nella lista toAdd alla griglia 3D
+    // Add all the new cells accumulated in the toAdd list to the 3D grid  
     addToGrid(toAdd);
 }
 
@@ -704,10 +704,13 @@ void Grid::addToGrid(CellList * newCells) {
         // Save pointer to the next node before reassigning current
         CellNode * next = current->next;
         // Insert the current node into the correct voxel's CellList using its (x, y, z) coordinates.
+        // Note: The pointer (current) is "moved" by the add() method from the newCells list to the voxel's list.
         cells[current->z][current->x][current->y].add(current, current->type);
         current = next;
     }
     // Clear the newCells list and free its memory.
+    // Note: After the iteration, newCells is empty of nodes because everyone of them 
+    // is moved into the voxel list
     newCells->head = nullptr;
     newCells->tail = nullptr;
     newCells->size = 0;
@@ -749,7 +752,8 @@ int Grid::rand_min(int x, int y, int z, int max) {
 
 /**
  * Helper function for rand_min.
- * Aggiorna l'array dei candidati (pos) con il voxel (x, y, z) se la sua densità è inferiore o uguale a quella minima trovata.
+ * Updates the candidate array (pos) with the voxel (x, y, z) if its density 
+ * is less than or equal to the minimum found
  *
  * @param x The x coordinate of the candidate voxel.
  * @param y The y coordinate of the candidate voxel.
@@ -759,13 +763,13 @@ int Grid::rand_min(int x, int y, int z, int max) {
  * @param counter Reference to the count of candidate positions.
  */
 void Grid::min_helper(int x, int y, int z, int &curr_min, int *pos, int &counter) {
-    // Se il voxel appartiene alla zona OAR, lo saltiamo
+    // If the voxel belongs to the OAR region, we skip it
     if (oar && x >= oar->x1 && x < oar->x2 &&
               y >= oar->y1 && y < oar->y2 &&
               z >= oar->z1 && z < oar->z2)
         return;
 
-    // Verifica che il voxel sia all'interno della griglia
+    // Checks that the voxel is within the grid
     if (x >= 0 && x < xsize &&
         y >= 0 && y < ysize &&
         z >= 0 && z < zsize) {
@@ -859,14 +863,14 @@ void Grid::wake_surrounding_oar(int x, int y, int z) {
 
 /**
  * Helper function for wake_surrounding_oar.
- * Sveglia le OARCells presenti nel voxel specificato se questo appartiene alla zona OAR.
+ * Wakes up the OARCells present in the specified voxel if it belongs to the OAR region.
  *
  * @param x The x coordinate of the voxel.
  * @param y The y coordinate of the voxel.
  * @param z The z coordinate of the voxel.
  */
 void Grid::wake_helper(int x, int y, int z) {
-    // Se il voxel è nella zona OAR, sveglia tutte le OARCells presenti
+    // If the voxel is in the OAR region, wake up all the OARCells present
     if (oar && x >= oar->x1 && x < oar->x2 &&
               y >= oar->y1 && y < oar->y2 &&
               z >= oar->z1 && z < oar->z2) {
@@ -927,7 +931,7 @@ void diffuse_helper(double ***src, double ***dest, int xsize, int ysize, int zsi
  * Diffuse glucose and oxygen over the entire 3D grid.
  *
  * This function applies the diffusion process to both the glucose and oxygen arrays
- * across the 3D grid. For each substance, it calls the 3D version of diffuse_helper(),
+ * across the 3D grid. For each substance, it calls diffuse_helper(),
  * which computes the new diffused values for every voxel based on a given diffusion factor.
  * Once the diffusion is computed, the source array is swapped with the helper array so that
  * the updated (diffused) values become the current state of the grid.
@@ -935,13 +939,13 @@ void diffuse_helper(double ***src, double ***dest, int xsize, int ysize, int zsi
  * @param diff_factor The fraction of each voxel's content that should be diffused to its neighboring voxels.
  */
 void Grid::diffuse(double diff_factor) {
-    // Diffuse the glucose in the 3D grid.
+    // Diffuse the glucose
     diffuse_helper(glucose, glucose_helper, xsize, ysize, zsize, diff_factor);
     double ***temp = glucose;
     glucose = glucose_helper;
     glucose_helper = temp;
     
-    // Diffuse the oxygen in the 3D grid.
+    // Diffuse the oxygen
     diffuse_helper(oxygen, oxygen_helper, xsize, ysize, zsize, diff_factor);
     temp = oxygen;
     oxygen = oxygen_helper;
@@ -993,8 +997,8 @@ double *** Grid::currentOxygen(){
  * Return the number of helathy cells of a voxel
  */
 int Grid::getHealthyCount(int x, int y, int z) {
-    // Le cellule sane sono ottenute sottraendo il numero di cellule cancerose (ccell_count)
-    // e il numero di cellule OAR (oar_count) al numero totale di cellule (size)
+// Healthy cells are obtained by subtracting the number of cancerous cells (ccell_count)
+// and the number of OAR cells (oar_count) from the total number of cells (size)
     return cells[z][x][y].size - cells[z][x][y].ccell_count - cells[z][x][y].oar_count;
 }
 
@@ -1013,20 +1017,21 @@ int Grid::getOARCount(int x, int y, int z) {
 }
 
 /**
- * Calcola la distanza euclidea tra due punti in uno spazio 3D.
+ * Calculates the Euclidean distance between two points in a 3D space.
  *
- * @param x1, y1, z1 Coordinate del primo punto (tipicamente indici interi della griglia).
- * @param x2, y2, z2 Coordinate del secondo punto (valori in virgola mobile).
- * @return La distanza euclidea tra i due punti.
+ * @param x1, y1, z1 Coordinates of the first point (typically integer grid indices).
+ * @param x2, y2, z2 Coordinates of the second point (floating-point values).
+ * @return The Euclidean distance between the two points.
  */
 double distance(int x1, int y1, int z1, double x2, double y2, double z2) {
-    // Calcola le differenze lungo ciascun asse
+    // Calculate the differences along each axis
     double dist_x = x1 - x2;
     double dist_y = y1 - y2;
     double dist_z = z1 - z2;
-    // Restituisce la radice quadrata della somma dei quadrati delle differenze
+    // Return the square root of the sum of the squares of the differences
     return sqrt(dist_x * dist_x + dist_y * dist_y + dist_z * dist_z);
 }
+
 /**
  * Computes the dose depending on the distance to the tumor's center
  *
@@ -1050,30 +1055,30 @@ double scale(double radius, double x, double multiplicator){
 }
 
 /**
- * Irradia le cellule intorno ad un centro specifico con una dose e un raggio dati. No OAR cells
+ * Irradiates the cells around a specific center with a given dose and radius. No OAR cells
  *
- * @param dose La dose di radiazione (in grays)
- * @param radius Il raggio della radiazione (95 % della dose completa a 1 raggio dal centro)
- * @param center_x La coordinata x del centro di radiazione
- * @param center_y La coordinata y del centro di radiazione
- * @param center_z La coordinata z del centro di radiazione
+ * @param dose The radiation dose (in grays)
+ * @param radius The radiation radius (95% of the full dose at 1 radius from the center)
+ * @param center_x The x-coordinate of the radiation center
+ * @param center_y The y-coordinate of the radiation center
+ * @param center_z The z-coordinate of the radiation center
  */
 void Grid::irradiate(double dose, double radius, double center_x, double center_y, double center_z) {
-    // Se la dose è 0, non si applica alcuna irradiazione
+    // If the dose is 0, no irradiation is applied  
     if (dose == 0)
         return;
 
-    // Calcola il moltiplicatore per normalizzare la dose in base al raggio
+    // Calculate the multiplier to normalize the dose 
     double multiplicator = get_multiplicator(dose, radius);
-    // Parametri del modello per il calcolo della dose (valori fissi, eventualmente modificabili)
+    // Model parameters for dose calculation (fixed values, can be modified)
     double oer_m = 3.0;
     double k_m = 3.0;
 
-    // Itera su ogni voxel della griglia 3D: k per la profondità (z), i per le righe (x) e j per le colonne (y)
+    // Iterate over each voxel in the grid  
     for (int k = 0; k < zsize; k++) {
         for (int i = 0; i < xsize; i++) {
             for (int j = 0; j < ysize; j++) {
-                // Calcolo la distanza dal centro
+                // Calculate the distance from the center
                 double dist = distance(i, j, k, center_x, center_y, center_x);
                 if (cells[k][i][j].size && dist < 3 * radius){ //If there are cells on the pixel
                     CellNode * current = cells[k][i][j].head;
@@ -1107,11 +1112,11 @@ double Grid::tumor_radius(int center_x, int center_y, int center_z) {
         return -1.0;
     }
     double dist = -1.0;
-    // Itera su ogni voxel della griglia 3D
+    // Iterate over each voxel in the grid  
     for (int k = 0; k < zsize; k++) {
         for (int i = 0; i < xsize; i++) {
             for (int j = 0; j < ysize; j++) {
-                // Se il voxel contiene almeno una cellula e la prima cellula è cancerosa
+                // If the voxel contains at least one cell and the first cell is cancerous
                 if (cells[k][i][j].size > 0 && cells[k][i][j].head->type == 'c') {
                     int dist_x = i - center_x;
                     int dist_y = j - center_y;
@@ -1122,7 +1127,7 @@ double Grid::tumor_radius(int center_x, int center_y, int center_z) {
             }
         }
     }
-    // Si vuole il raggio massimo
+    // The goal is to get the maximum radius
     if (dist < 3.0)
         dist = 3.0;
     return dist;
@@ -1136,6 +1141,3 @@ void Grid::irradiate(double dose){
     double radius = tumor_radius(center_x, center_y, center_z);
     irradiate(dose, radius, center_x, center_y, center_z);
 }
-
-
-//Questo processo permette di aggiornare direttamente il campo next dei nodi senza dover tenere esplicitamente un puntatore "precedente" e senza dover scorrere nuovamente la lista. 
