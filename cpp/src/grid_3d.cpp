@@ -4,7 +4,7 @@
 #include <math.h> 
 #include <iostream>
 
-#include <cstdlib>  // Per rand() e srand()
+#include <cstdlib>  // For rand() and srand()
 
 using namespace std;
 
@@ -25,22 +25,19 @@ CellList::~CellList() {
     CellNode * current = head;
     CellNode * next;
     
-    //Finché current non è nullptr (nullptr = puntatore nullo)
-    while (current){ // Delete all the CellNodes and Cells in the CellList
+    // Delete all the CellNodes and Cells in the CellList
+    while (current){ // Continue iteration while 'current' is not a null pointer (nullptr)
 
-        // Accede ai membri di un oggetto attraverso un puntatore.
-        // ptr->member. 
-        // Il primo next è il puntatore dichiarato nel distruttore
-        // mentre il secondo next è un MEMBRO di CellNode.
-        // Il primo next (cioè la variabile puntatore next dichiarata nel distruttore) 
-        // conterrà il valore del membro next del nodo corrente (current->next). 
-        // Questo valore rappresenta un puntatore al nodo successivo nella lista concatenata.
+        // Accesses the members of an object through a pointer.
+        // The first 'next' refers to the pointer declared in the destructor,
+        // while the second 'next' refers to a member of the CellNode class.
+        // The first 'next' will store the value of the 'next' member of the current node (current->next).
         next = current -> next;
         
-        //La memoria associata al membro cell dell'oggetto CellNode corrente viene liberata.
+        // Deallocating the memory associated with the 'cell' member of the current CellNode object.
         delete current -> cell;
         
-        //La memoria dell'oggetto CellNode stesso viene deallocata.
+        // Deallocating the memory of the CellNode object
         delete current;
         current = next;
     }
@@ -56,15 +53,8 @@ CellList::~CellList() {
  * @param type The type of the Cell
  */
 void CellList::add(CellNode * newNode, char type){
-    /*
-    Esempio assertassert(expression);
-    expression è una condizione booleana che si presume essere vera.
-     
-    Se expression è vera, il programma continua normalmente.
-    Se expression è falsa, assert termina il programma, 
-    stampa un messaggio di errore sullo standard error (stderr) 
-    e indica il file e il numero di riga in cui l'asserzione ha fallito.
-    */
+    // If the expression (assert parameter 'newNode') is true, the programm continues
+    // Otherwise return an error
     assert(newNode);
 
     if (size == 0){
@@ -73,14 +63,12 @@ void CellList::add(CellNode * newNode, char type){
         newNode -> next = nullptr;
     }
     else if (type == 'h' || type == 'o'){ // or
-        // Accedo al membro "next" corrispondente all'oggetto a cui
-        // punta il puntatore "tail" e gli assegno il valore di "newNode"
-        tail -> next = newNode; // Aggiungo il nodo alla fine
+        tail -> next = newNode; // Adding the node at the end
         tail = newNode;
         newNode -> next = nullptr;
     } else if(type == 'c'){
         newNode -> next = head;
-        head = newNode; // Aggiungo il nodo all'inizio di CellList
+        head = newNode; // Adding the node at the end 
     }
     if (type == 'o')
         oar_count++;
@@ -97,7 +85,7 @@ void CellList::add(CellNode * newNode, char type){
  * @param type The type of the Cell
  */
 void CellList::add(Cell *cell, char type) {
-    CellNode * newNode = new CellNode; // Creo un oggetto di tipo new CellNode
+    CellNode * newNode = new CellNode; // Create a CellNode object
     assert(cell);
     newNode -> cell = cell;
     newNode -> type = type;
@@ -111,13 +99,11 @@ void CellList::add(Cell *cell, char type) {
  * @param type The type of the Cell
  * @param x The x coordinate of the cell on the grid
  * @param y The y coordinate of the cell on the grid
- * @param z The y coordinate of the cell on the grid
+ * @param z The z coordinate (layer) of the cell on the grid
  */
 void CellList::add(Cell *cell, char type, int x, int y, int z) {
-    /*
-    Qui viene creato un nuovo nodo CellNode e il puntatore
-    newNode contiene l'indirizzo della memoria allocata per questo nodo.
-    */
+
+    // Creating a new CellNode node
     CellNode * newNode = new CellNode;
     assert(cell);
     newNode -> cell = cell;
@@ -133,25 +119,19 @@ void CellList::add(Cell *cell, char type, int x, int y, int z) {
  *
  * Ensures that the order of cells (cancer cells first) is kept and that the links stay sound to avoid segfaults
  * 
- * La funzione CellList::deleteDeadAndSort ha lo scopo di: 
- * - Eliminare le cellule morte dalla lista.
- * - Aggiorna la testa (head) e la coda (tail) della lista.
- * - Mantiene i puntatori coerenti per evitare errori di accesso alla memoria.
+ * The loop scans each node (while(current)):
+ * 1. If the cell is dead, the node is removed from memory (if).
+ * 2. If it’s the FIRST live cell found (i.e., found_head = false), we update head and tail (else if).
+ * 3. If the cell is alive (but not the first), it means we are processing the rest of the list. 
+ *    tail is updated to maintain the reference to the last live node. The pointers are updated accordingly.
  */
 void CellList::deleteDeadAndSort(){
     bool found_head = false; // Used to ensure that we have a head to the list at the end of traversal
     CellNode * current = head;
-    CellNode ** previous_next_pointer; // Puntatore doppio
-    /**
-     * Il ciclo scansiona ogni nodo (while(current)):
-     * 1. Se la cellula è morta, il nodo viene rimosso dalla memoria (if). 
-     * 2. Se è la PRIMA cellula viva trovata, aggiorniamo head e tail (else if).
-     * 3. Se la cellula è viva e found_head == true (condizione dell'else), significa 
-     *    che stiamo processando il resto della lista. tail viene aggiornata per mantenere 
-     *    il riferimento all'ultimo nodo vivo. I puntatori vengono agigornati.
-     */
-    while(current){
-        if (!(current -> cell -> alive)){ // Cellulla morta
+    CellNode ** previous_next_pointer;
+    
+    while(current){ // Iterating over the cells in the list
+        if (!(current -> cell -> alive)){ // Dead cell
             delete current->cell;
             if (current -> type == 'o')
                 oar_count--;
@@ -161,49 +141,39 @@ void CellList::deleteDeadAndSort(){
             current = current -> next;
             delete toDel;
             size--;
-        } else if (!found_head){ // Verifico che found_head sia falsa 
-                                 // cioè ho già trovato il primo nodo "vivo"
-                                 // La condizione precedente non viene soddisfatta --> non ci sono cellule vive
+
+        // Checking that found_head is false
+        // If found_head is false, it means i found the first live node since the previous condition is not met.
+        } else if (!found_head){                 
             head = current;
             tail = current;
-            previous_next_pointer = & (current -> next);// Puntatore di un puntatore
-                                                        // & restituisce l'indirizzo di current -> next
+            
+            previous_next_pointer = & (current -> next); // & returns the address of current -> next                                       
             current = current -> next;
+
             found_head = true;
         }
         else{
             tail = current;
-            // Modifico solo l'assegnazione al primo puntatore,
-            // cioè quella relativa al nodo.
+
+            // Modifying the content of 'next'.
+            // Now 'next' corresponds to the address of 'current'.
             *previous_next_pointer = current;
-            // Modifico l'assegnazione al puntatore next del nodo current
-            // in consideranzione
+
             previous_next_pointer = & (current -> next);
+            // Traversing the CellList
             current = current -> next;
         }
     }
-    /**
-     * Se found_head rimane false alla fine dell'iterazione:
-     *  - Significa che non è stata trovata nessuna cellula viva nella lista.
-     *  - Tutti i nodi sono stati eliminati perché contenevano cellule morte.
-     *  - La lista è quindi completamente vuota.
-     * 
-     * Verifica che la lista sia effettivamente vuota con assert(size == 0);
-     * Se size != 0, significa che c'è un bug nella gestione della memoria e il programma 
-     * si interrompe con un errore.
-     */
-    if (!found_head){// The list is now empty after the traversal
+    // If no live nodes were found
+    if (!found_head){
 
-        // Controllo se l'espressione size == 0 è vera (true).
-        // Altrimenti stampo un messaggio di errore terminando il programma
+        // Check if the expression size == 0 is true.
         assert(size == 0);
         head = nullptr;
         tail = nullptr;
     } else{
-        /**
-         * Se invece viene trovata almeno una cellula viva s
-         * 
-         */
+        // If there is at least one alive node
         tail -> next = nullptr;
     }
 }
@@ -240,7 +210,7 @@ void CellList::wake_oar(){
     }
 }
 
-/**previous_next_pointer
+/**
  * Constructor of SourceList
  *
  * A SourceList is a linked list of Source (nutrient sources) objects, which ensures that they are easy to iterate and
@@ -267,14 +237,11 @@ SourceList::~SourceList() {
  *
  * @param x The x coordinate of the Source on the grid
  * @param y The y coordinate of the Source on the grid
- * @param z The z coordinate of the Source on the grid (which layer)
+ * @param z The z coordinate of the Source on the grid (layer)
  */
 void SourceList::add(int x, int y, int z) {
-    /**
-     * Alloco dinamicamente un oggetto di tipo Source (new Source) all'heap
-     * Questo nuovo oggetto sarà puntato dal puntatore newNode
-     */ 
-
+    // Dynamic allocation of a Source object (new Source) on the heap  
+    // This new object will be pointed to by the pointer newNode
     Source * newNode = new Source; 
     newNode -> x = x;
     newNode -> y = y;
@@ -283,8 +250,7 @@ void SourceList::add(int x, int y, int z) {
     if (size == 0){
         head = newNode;
     } else{
-        // Siccome tail sarà il penultimo nodo e newNode l'ultimo, è necessario impostare
-        // l'elemento next del penultimo nodo come il nuovo ultimo nodo (newNode)
+        // I set the next of the second-to-last node to the new node
         tail -> next = newNode;   
     }
     tail = newNode;
@@ -294,17 +260,17 @@ void SourceList::add(int x, int y, int z) {
 /**
  * Constructor of Grid without an OAR zone
  *
- * The grid is the base of the simulation, it is made out of 3 superimposed 2D layers : one contains the CellLists for
+ * The grid is the base of the simulation, it is made out of 3 superimposed 3D matrixs : one contains the CellLists for
  * each pixel, one contains the glucose amount on each pixel and one contains the oxygen amount on each pixel.
  *
- * @param xsize The number of rows of the grid ****MODIFICA****
+ * @param xsize The number of rows of the grid 
  * @param ysize The number of columns of the grid
- * @param zsize The number of columns of the grid
+ * @param zsize The number of layers of the grid
  * @param sources_num The number of nutrient sources that should be added to the grid
  * 
  */
 Grid::Grid(int xsize, int ysize, int zsize, int sources_num):xsize(xsize), ysize(ysize), zsize(zsize), oar(nullptr){
-    // Allocazione dinamica delle matrici 3D con la nuova convenzione [z][x][y]
+    // Dynamic allocation of the 3D arrays following the convention [z][x][y]
     cells = new CellList**[zsize];
     glucose = new double**[zsize];
     glucose_helper = new double**[zsize];
@@ -312,7 +278,7 @@ Grid::Grid(int xsize, int ysize, int zsize, int sources_num):xsize(xsize), ysize
     oxygen_helper = new double**[zsize];
     neigh_counts = new int**[zsize];
 
-    for(int k = 0; k < zsize; k++) { // Profondità (z)
+    for(int k = 0; k < zsize; k++) { // z layers
         cells[k] = new CellList*[xsize];
         glucose[k] = new double*[xsize];
         glucose_helper[k] = new double*[xsize];
@@ -320,52 +286,55 @@ Grid::Grid(int xsize, int ysize, int zsize, int sources_num):xsize(xsize), ysize
         oxygen_helper[k] = new double*[xsize];
         neigh_counts[k] = new int*[xsize];
 
-        for(int i = 0; i < xsize; i++) { // Righe (x)
+        for(int i = 0; i < xsize; i++) { // Rows (x)
             cells[k][i] = new CellList[ysize];
             glucose[k][i] = new double[ysize];
             glucose_helper[k][i] = new double[ysize];
             oxygen[k][i] = new double[ysize];
             oxygen_helper[k][i] = new double[ysize];
-            neigh_counts[k][i] = new int[ysize](); // Inizializzazione a 0 grazie a "()"
+            neigh_counts[k][i] = new int[ysize](); // Initialization to 0 using "()"
 
-            // Inizializzazione dei valori di glucosio e ossigeno
+            // Initialization of glucose and oxygen values
             std::fill_n(glucose[k][i], ysize, 100.0); // 1E-6 mg O'Neil
             std::fill_n(oxygen[k][i], ysize, 1000.0); // 1 E-6 ml Jalalimanesh
         }
     }
 
-    // Aggiunta off-set ai bordi della matrce
-    for (int k = 0; k < zsize; k++) {         // Scorri i layer (asse z)
-        for (int i = 0; i < xsize; i++) {     // Scorri le righe (asse x)
-            for (int j = 0; j < ysize; j++) { // Scorri le colonne (asse y)
-                // Determino le possibilità in base alla posizione
+    // Adding offset to the matrix edges
+    for (int k = 0; k < zsize; k++) {
+        for (int i = 0; i < xsize; i++) {
+            for (int j = 0; j < ysize; j++) {
+
+                // Calculating possible values based on position
+                // Syntax: condition ? value_if_true : value_if_false;
                 int poss_z = (k == 0 || k == zsize - 1) ? 2 : 3;
                 int poss_x = (i == 0 || i == xsize - 1) ? 2 : 3;
                 int poss_y = (j == 0 || j == ysize - 1) ? 2 : 3;
                 
-                // Calcolo il prodotto delle possibilità:
+                // Product of possible values
                 int prod = poss_z * poss_x * poss_y;
-                // Calcolo il valore: valore = n_max - vicini = 27 - prod
-                int valore = 27 - prod;
+                // Calculating value as: valore = n_max - neighbors = 27 - prod
+                int value = 27 - prod;
                 
-                // Poiché ogni elemento è inizializzato a 0, possiamo semplicemente assegnare:
-                neigh_counts[k][i][j] = valore;
+                // Since every element is initialized to 0, we can simply assign:
+                neigh_counts[k][i][j] = value;
             }
         }
     }
 
 
-    // Creazione della lista delle sorgenti di nutrienti
+    // Creation of nutrients list
     sources = new SourceList();
 
     for (int i = 0; i < sources_num; i++) {
-        sources->add(rand() % xsize, rand() % ysize, rand() % zsize); // Set the sources at random locations on the grid
+        // Set the sources at random locations on the grid
+        sources->add(rand() % xsize, rand() % ysize, rand() % zsize);
     }
 }
  /**
- * Constructor of Grid with an OAR zone (3D version)
+ * Constructor of Grid with an OAR zone
  *
- * The grid is the base of the simulation, now made up of a 3D matrix:
+ * The grid is the base of the simulation, now made up of a 3D matrices:
  * one contains the CellLists for each voxel, one contains the glucose amount and one contains the oxygen amount.
  * The OAR zone is represented by coordinates that define a cuboid within the grid.
  * Every voxel in that cuboid will contain an OARCell.
@@ -383,14 +352,14 @@ Grid::Grid(int xsize, int ysize, int zsize, int sources_num, OARZone * oar_zone)
 }
 
 /**
- * Destructor of Grid (3D version)
+ * Destructor of Grid
  *
  */
 Grid::~Grid() {
-    // Deallocazione delle matrici 3D
-    for (int k = 0; k < zsize; k++) { // Itera sui layer (z)
-        for (int i = 0; i < xsize; i++) { // Itera sulle righe (x)
-            // Dealloca gli array di ogni colonna (y)
+    // Deallocate the 3D matrices
+    for (int k = 0; k < zsize; k++) {
+        for (int i = 0; i < xsize; i++) {
+            // Deallocate the columns of the matrices
             delete[] cells[k][i];
             delete[] glucose[k][i];
             delete[] oxygen[k][i];
@@ -398,7 +367,7 @@ Grid::~Grid() {
             delete[] oxygen_helper[k][i];
             delete[] neigh_counts[k][i];
         }
-        // Dealloca l'array di puntatori relativo alle righe
+        // Deallocate the rows in the matrices
         delete[] cells[k];
         delete[] glucose[k];
         delete[] oxygen[k];
@@ -406,7 +375,7 @@ Grid::~Grid() {
         delete[] oxygen_helper[k];
         delete[] neigh_counts[k];
     }
-    // Dealloca gli array dei layer
+    // Deallocate the layer arrays
     delete[] cells;
     delete[] glucose;
     delete[] oxygen;
@@ -414,49 +383,50 @@ Grid::~Grid() {
     delete[] oxygen_helper;
     delete[] neigh_counts;
 
-    // Dealloca la lista delle sorgenti di nutrienti
+    // Deallocates the SourceList
     delete sources;
 }
 
 /**
- * Aggiunge "val" al contatore dei vicini del voxel di coordinate (x, y, z)
+ * Adds "val" to the neighbor count of the voxel at coordinates (x, y, z)
  * 
- * La funzione aggiorna i contatori dei 26 voxel adiacenti (intorno al voxel centrale)
+ * The function updates the counts of the 26 adjacent voxels (around the central voxel)
  *
- * @param x La coordinata x del voxel centrale
- * @param y La coordinata y del voxel centrale
- * @param z La coordinata z del voxel centrale
- * @param val Il valore da sommare (o sottrarre, se negativo) al contatore dei vicini
+ * @param x The x-coordinate of the central voxel
+ * @param y The y-coordinate of the central voxel
+ * @param z The z-coordinate of the central voxel
+ * @param val The value to be added (or subtracted, if negative) to the neighbor count
  */
 void Grid::change_neigh_counts(int x, int y, int z, int val) {
-    // Ciclo su tutte le possibili variazioni lungo l'asse z (-1, 0, 1)
+    // Loop over all possible variations along the z-axis (-1, 0, 1)
     for (int dz = -1; dz <= 1; dz++) {
         int nz = z + dz;
         if (nz < 0 || nz >= zsize)
-            continue;  // Se siamo fuori dai limiti in z, salta questa iterazione
+            continue;  // If we are out of bounds in z, skip this iteration
 
-        // Ciclo sulle variazioni lungo l'asse x (-1, 0, 1)
+        // Loop over variations along the x-axis (-1, 0, 1)
         for (int dx = -1; dx <= 1; dx++) {
             int nx = x + dx;
             if (nx < 0 || nx >= xsize)
-                continue;  // Se siamo fuori dai limiti in x, salta questa iterazione
+                continue;  // If we are out of bounds in x, skip this iteration
 
-            // Ciclo sulle variazioni lungo l'asse y (-1, 0, 1)
+            // Loop over variations along the y-axis (-1, 0, 1)
             for (int dy = -1; dy <= 1; dy++) {
                 int ny = y + dy;
                 if (ny < 0 || ny >= ysize)
-                    continue;  // Se siamo fuori dai limiti in y, salta questa iterazione
+                    continue;  // If we are out of bounds in y, skip this iteration
 
-                // Escludo il voxel centrale (nessun offset)
+                // Exclude the central voxel (no offset)
                 if (dz == 0 && dx == 0 && dy == 0)
                     continue;
 
-                // Aggiorno il contatore per il voxel adiacente
+                // Update the counter for the adjacent voxel
                 neigh_counts[nz][nx][ny] += val;
             }
         }
     }
 }
+
 
 /**
  * Add a cell to a position on the grid
@@ -469,21 +439,26 @@ void Grid::change_neigh_counts(int x, int y, int z, int val) {
  */
 void Grid::addCell(int x, int y, int z, Cell *cell, char type) {
     cells[z][x][y].add(cell, type,x, y, z);
-    // Perchè change_neigh_counts? Vedi appunti
     change_neigh_counts(x, y, z, 1);
 }
 
+/**
+ * Updates nutrient levels at each source's location and occasionally moves the source.
+ *
+ * For each nutrient source in the grid, this method adds the specified amounts of glucose and oxygen
+ * to the corresponding voxel. It also randomly moves the source to a neighboring voxel to simulate daily movement.
+ */
 void Grid::fill_sources(double glu, double oxy) {
     Source * current = sources->head;
     while (current) { 
-        // Aggiunge nutrienti al voxel corrente (3D: [z][x][y])
+        // Add nutrients in the current voxel
         glucose[current->z][current->x][current->y] += glu;
         oxygen[current->z][current->x][current->y] += oxy;
         
-        // Il source si muove in media una volta al giorno
+        // The source moves on average once per day
         if ((rand() % 24) < 1) {
             int newPos = sourceMove(current->x, current->y, current->z);
-            // Decodifica la nuova posizione:
+            // Decode the new position:
             int newZ = newPos / (xsize * ysize);
             int rem = newPos % (xsize * ysize);
             int newX = rem / ysize;
@@ -499,7 +474,7 @@ void Grid::fill_sources(double glu, double oxy) {
 
 int Grid::sourceMove(int x, int y, int z) {
 
-    // Movimento verso il centro del tumore
+    // Movement toward the center of the tumor
     if (rand() % 50000 < CancerCell::count) {
         // cout << "center_x = " << center_x << endl;
         // cout << "center_y = " << center_y << endl;
@@ -519,11 +494,11 @@ int Grid::sourceMove(int x, int y, int z) {
         else if (z > center_z)
             z--;
             
-        // Codifica la nuova posizione in un singolo intero:
+        // Encode the new position into a single integer
         // (z * xsize * ysize) + (x * ysize) + y
         return z * xsize * ysize + x * ysize + y;
     } else { 
-        // Movimento in una direzione casuale (assicurarsi di avere la versione 3D di rand_adj)
+        // Movement in a random direction
         return rand_adj(x, y, z); 
     }
 }
@@ -539,33 +514,36 @@ int Grid::sourceMove(int x, int y, int z) {
  */
 int Grid::rand_adj(int x, int y, int z) {
     int counter = 0;
-    int pos[26]; // In 3D, un voxel ha al massimo 26 vicini (3^3 - 1 = 26).
+    int pos[26]; // In 3D, a voxel has maximum 26 neighbors
 
-    // Scorriamo tutte le variazioni lungo gli assi z, x e y.
+    // Loop through all directions along the z, x, and y axes.
     for (int dz = -1; dz <= 1; dz++) {
         for (int dx = -1; dx <= 1; dx++) {
             for (int dy = -1; dy <= 1; dy++) {
                 // Escludiamo il voxel centrale (nessun offset)
                 if (dz == 0 && dx == 0 && dy == 0)
                     continue;
-                // Verifica se il voxel (x+dx, y+dy, z+dz) è all'interno dei limiti e, in caso affermativo,
-                // lo aggiunge all'array delle posizioni candidate.
+                    
+                // Checks if the voxel (x+dx, y+dy, z+dz) is within bounds and, if so,
+                // adds it to the array of candidate positions.
+                // NOTE:
+                // "pos" and "counter" are local to rand_adj but passed by pointer/reference to adj_helper,
+                // so their updates are reflected directly without needing to return them.
                 adj_helper(x + dx, y + dy, z + dz, pos, counter);
             }
         }
     }
     
-    // Se non è stato trovato alcun voxel adiacente valido (caso raro, ad es. in un angolo in 3D),
-    // si può decidere di restituire -1 oppure gestire diversamente il caso.
+    // If no valid adjacent voxel was found (a rare case, e.g., in a corner in 3D)
     if (counter == 0)
         return -1;
     
-    // Seleziona casualmente una posizione tra quelle valide
+    // Select radomly a position
     return pos[rand() % counter];
 }
 
 /**
- * Helper for rand_adj in 3D.
+ * Helper for rand_adj 
  *
  * Verifica che le coordinate (x, y, z) siano all'interno dei limiti della griglia.
  * Se lo sono, codifica le coordinate in un unico intero usando la formula:
@@ -1158,3 +1136,6 @@ void Grid::irradiate(double dose){
     double radius = tumor_radius(center_x, center_y, center_z);
     irradiate(dose, radius, center_x, center_y, center_z);
 }
+
+
+//Questo processo permette di aggiornare direttamente il campo next dei nodi senza dover tenere esplicitamente un puntatore "precedente" e senza dover scorrere nuovamente la lista. 

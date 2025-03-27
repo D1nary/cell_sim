@@ -18,7 +18,7 @@ struct OARZone{
 class CellList
 {
 public:
-    CellNode *head, *tail; // Puntatori a oggetti di tipo CellNode
+    CellNode *head, *tail;
     int size;
     int oar_count;
     int ccell_count;

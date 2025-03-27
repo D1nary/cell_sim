@@ -9,9 +9,8 @@ static float quiescent_glucose_level = 17.28; // 1.728 E-7 mg/cell O'Neil
 //static float max_glucose_absorption = .72; //
 static float average_glucose_absorption = .36; // 3.6E-9 mg/cell/hour O'Neil
 static float average_cancer_glucose_absorption = .54; // 5.4 E-9 mg/cell/hour O'Neil
-// For 3D version
-static int critical_neighbors = 27;
 // static int critical_neighbors = 9; // Density to get one cell per pixel, O'Neil
+static int critical_neighbors = 27; // For 3D version
 static float critical_glucose_level = 6.48; //6.48 E-8 mg/cell O'Neil
 static float alpha_tumor = 0.3; // Powathil
 static float beta_tumor = 0.03; // Powathil
@@ -117,7 +116,8 @@ cell_cycle_res HealthyCell::cycle(double glucose, double oxygen, int neigh_count
         age++;
     else
         repair--;
-    if (glucose < critical_glucose_level || oxygen < critical_oxygen_level) { //Check if the cell will survive this hour
+    //Check if the cell will survive this hour
+    if (glucose < critical_glucose_level || oxygen < critical_oxygen_level) { 
         alive = false;
         count--;
         return result;
