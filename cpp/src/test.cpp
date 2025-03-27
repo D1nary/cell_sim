@@ -1,23 +1,25 @@
 #include <iostream>
-#include <filesystem> // Per la creazione dei path
+#include <filesystem> // For path creation
 
-#include <vector> // Per la gestione dei path
-#include <string> // Per la gestione dei path
+#include <vector> // For path management
+#include <string> // For path management
+
+#include <algorithm> // For find()
+
+#include <cstdlib>  // For rand() and srand()
+#include <ctime>    // For time()
 
 #include "grid_3d.h" 
 #include "controller_3d.h"
-
-#include <algorithm> // Per find()
-
-#include <cstdlib>  // Per rand() e srand()
-#include <ctime>    // Per time()
 
 using namespace std;
 
 int main() {
 
-    // Da inserire una funzione (main in questo caso)
-    std::srand(static_cast<unsigned int>(std::time(nullptr))); 
+    // Generate seed
+    std::srand(static_cast<unsigned int>(std::time(nullptr)));
+
+    // Grid variables
     int xsize = 21;
     int ysize = 21;
     int zsize = 21;
@@ -30,14 +32,16 @@ int main() {
     int* intervals2; // For sum data growth, sum data treatment
     int*** noFilledGrid;
 
-    int num_hour = 400;
-
     // Radiation variables
     int week = 2; // Weeks of tratments
     int rad_days = 5; // Number of days in which we send radiation
     int rest_days = 2; // Number of days without radiation
     double dose = 2.0; // Dose per day
 
+    // Hours for tumor growth
+    int num_hour = 400;
+
+    // Create directories paths
     std::filesystem::path current = std::filesystem::current_path();
     std::filesystem::path res_path = current.parent_path() / "cpp" / "results"; // results path
     std::filesystem::path data_path = res_path / "data";// data path
@@ -46,33 +50,23 @@ int main() {
     std::filesystem::path data_path_tab_treat = data_path_tab / "treatments";// treatments tab
     std::filesystem::path data_path_num = data_path / "cell_num";// data cell_num
 
-
+    // Create a paths array
     std::vector<std::string> paths = {res_path, data_path, data_path_tab, data_path_num,
         data_path_tab_growth, data_path_tab_treat};
     
-
+    // Initialize the controller
     Controller * controller = new Controller(xsize, ysize, zsize, sources_num, intervals1);
 
-    // Creazione degli intervalli per il salvataggio dei dati (2D e 3D)
-    
+    // Create intervals for voxels data saving (2D and 3D)
     int divisor1 = 4;
     intervals1 = controller -> get_intervals(num_hour, divisor1);
 
-    // Creazione degli intervalli per il salvataggio dei dati (sum)
+    // Create intervals for cell counters data saving
     int divisor2 = 100;
     intervals2 = controller -> get_intervals(num_hour, divisor2);
 
-    // intervals per il salvataggio dei risultati
+    // Create directories
     controller->createDirectories(paths);
-
-    // Creazione del vettore di path per i trattamenti
-    // std::vector<std::filesystem::path> treatmentPaths;
-    // for (int i = 1; i <= week; i++) {
-    //     // Ogni path si basa su data_path_tab_treat con l'aggiunta della sottocartella "tr<i>"
-    //     std::filesystem::path treatmentPath = data_path_tab_treat / ("tr" + std::to_string(i));
-    //     treatmentPaths.push_back(treatmentPath);
-    //     std::filesystem::create_directories(treatmentPath);
-    // }
 
 
     // Creazione file_name per i dati 2D e 3D per growth
@@ -159,3 +153,6 @@ int main() {
     return 0;
 }
 
+
+// VERIFICA sleep()
+// CONTROLLA salvataggio a t0
