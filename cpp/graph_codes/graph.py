@@ -8,12 +8,11 @@ def get_intervals(num_hour, divisor):
 
 def plot_3d(xsize, ysize, zsize, intervals, path_in, dir_out):
     for i in intervals:
-    # for i, file_data_names in enumerate(os.listdir(path_in)):
         for file_data_name in os.listdir(path_in):
             if "t"+ str(i) + "_" in file_data_name: 
                 print(file_data_name)
         
-                # Leggo il file
+                # Read file
                 data = np.loadtxt(os.path.join(path_in, file_data_name), comments='#') 
             
 
@@ -29,29 +28,28 @@ def plot_3d(xsize, ysize, zsize, intervals, path_in, dir_out):
                 plot3d.set_ylim([0, ysize])
                 plot3d.set_zlim([0, zsize])
 
-
-                # Impostare i limiti degli assi
+                # Set grid limits  
                 plot3d.set_xlim([0, xsize])
                 plot3d.set_ylim([0, ysize])
                 plot3d.set_zlim([0, zsize])
 
-                # Genera i valori dei tick a multipli di 5
+                # Generate tick values as multiples of 5  
                 x_ticks = np.arange(0, xsize+1, 5)
                 y_ticks = np.arange(0, ysize+1, 5)
                 z_ticks = np.arange(0, zsize+1, 5)
 
-                # Imposta i tick sugli assi
+                # Set ticks on the axes  
                 plot3d.set_xticks(x_ticks)
                 plot3d.set_yticks(y_ticks)
                 plot3d.set_zticks(z_ticks)
 
-                # Formatto i tick degli assi come interi
+                # Format axis ticks as integers  
                 plot3d.xaxis.set_major_formatter(plt.FormatStrFormatter('%d'))
                 plot3d.yaxis.set_major_formatter(plt.FormatStrFormatter('%d'))
                 plot3d.zaxis.set_major_formatter(plt.FormatStrFormatter('%d'))
 
 
-                # STAMPO SIA HEALTHY CHE CANCER CELLS
+                # PLOT ONLY HEALTHY
                 #_ = [
                 #    plot3d.bar3d(
                 #        data[j][0], data[j][1], data[j][2],
@@ -62,7 +60,7 @@ def plot_3d(xsize, ysize, zsize, intervals, path_in, dir_out):
                 #    for j in range(len(data)) if data[j][9] in [1, -1]
                 #]
 
-                # STAMPO SOLO CANCER
+                # PLOT ONLY CANCER
                 _ = [
                     plot3d.bar3d(
                         data[j][1], data[j][2], data[j][3],
@@ -73,89 +71,53 @@ def plot_3d(xsize, ysize, zsize, intervals, path_in, dir_out):
                     for j in range(len(data)) if data[j][10] == -1
                 ]
         
-                # Salvare il grafico come immagine nella cartella di output
+                # Save the plot as an image in the output folder  
                 output_path = os.path.join(dir_out, f't{i}_gd_3d.png')
                 plt.savefig(output_path)
                 plt.close()
 
-#def plot_2d(xsize, ysize, zsize, layers, intervals, path_in, dir_out):
-#    # Itero su tutti i file (diversi valori di tick_list)
-#    for i, file_data_names in enumerate(os.listdir(path_in)):
-#
-#        # Leggo il file
-#        data = np.loadtxt(os.path.join(path_in, file_data_names), comments='#')
-#
-#        for layer in layers:
-#
-#            # La prima colonna contiene il layer. Siccome ce ne possono sono diversi
-#            # seleziono solo quelli corrispondente al layer delll'iterazuione
-#            # Esegui lo slicing per mantenere solo le righe in cui il valore della terza colonna è uguale a layer
-#            # filtered_data = data[data[:, 4] == layer]
-#
-#            # MODIFICA 1
-#
-#            # Grafico della cell_proliferation:
-#            fig, axs = plt.subplots(2, 2, constrained_layout=True)
-#            fig.suptitle('Cell proliferation at t = ' + str(intervals[i])
-#            + ' for layer = ' + str(layer))
-#
-#            # Set titles
-#            titles = ['Type of cells', 'Cell density', 'Glucose density', 'Oxygen density']
-#            for ax, title in zip(axs.flat, titles):
-#                ax.set(title=title)
-#
-#            # MODIFICA 2
-#
-#            # Salvo i grafici
-#            output_path = os.path.join(dir_out, 
-#            f't{intervals[i]}_l{layer}_gd_2d.png')
-#            plt.savefig(output_path)
-#            plt.close()
-
 
 def plot_2d(xsize, ysize, zsize, layers, intervals, path_in, dir_out):
-
-    # Itero su tutti i file (diversi valori di tick_list)
+    # Iterate over all files (different tick_list values)
     for i in intervals:
-    # for i, file_data_names in enumerate(os.listdir(path_in)):
         for file_data_name in os.listdir(path_in):
-            if "t"+ str(i) + "_" in file_data_name: 
+            if "t" + str(i) + "_" in file_data_name: 
                 print(file_data_name)
-        
 
-                # Leggo il file
+                # Read the file
                 data = np.loadtxt(os.path.join(path_in, file_data_name), comments='#')
 
                 for layer in layers:
-                    # MODIFICA 1: Filtro dei dati per layer
-                    # Seleziono solo le righe in cui il valore della quarta colonna (indice 3) è uguale a layer
+                    
+                    # Data filtering by layer
+                    # Select only rows where the value in the fourth column (index 3) equals layer
                     filtered_data = data[data[:, 3] == layer]
 
-                    # Preparazione delle matrici (immagini) per ciascun grafico.
-                    # Le dimensioni delle matrici sono date da ysize (altezza) e xsize (larghezza)
-                    img_tl = np.zeros((ysize, xsize))  # Top left: valori dalla quinta colonna (indice 4)
-                    img_tr = np.zeros((ysize, xsize))  # Top right: valori dall'undicesima colonna (indice 10)
-                    img_bl = np.zeros((ysize, xsize))  # Bottom left: valori dalla nona colonna (indice 8)
-                    img_br = np.zeros((ysize, xsize))  # Bottom right: valori dalla decima colonna (indice 9)
+                    # Prepare matrices (images) for each plot
+                    # The dimensions of the matrices are defined by ysize (height) and xsize (width)
+                    img_tl = np.zeros((ysize, xsize))  # Top left: values from the fifth column (index 4)
+                    img_tr = np.zeros((ysize, xsize))  # Top right: values from the eleventh column (index 10)
+                    img_bl = np.zeros((ysize, xsize))  # Bottom left: values from the ninth column (index 8)
+                    img_br = np.zeros((ysize, xsize))  # Bottom right: values from the tenth column (index 9)
 
                     if filtered_data.size > 0:
-                        # Ottengo le coordinate dei pixel dalle colonne 2 e 3 (indici 1 e 2)
+                        # Get pixel coordinates from columns 2 and 3 (indices 1 and 2)
                         x_coords = filtered_data[:, 1].astype(int)
                         y_coords = filtered_data[:, 2].astype(int)
 
-                        # Assegno i valori alle matrici:
-                        # Ogni riga in filtered_data viene usata per posizionare il valore nel pixel corrispondente
-                        img_tl[y_coords, x_coords] = filtered_data[:, 4]   # Gradiente per il subplot in alto a sinistra
-                        img_tr[y_coords, x_coords] = filtered_data[:, 10]  # Gradiente per il subplot in alto a destra
-                        img_bl[y_coords, x_coords] = filtered_data[:, 8]   # Gradiente per il subplot in basso a sinistra
-                        img_br[y_coords, x_coords] = filtered_data[:, 9]   # Gradiente per il subplot in basso a destra
+                        # Assign values to the matrices
+                        # Each row in filtered_data is used to place the value in the corresponding pixel
+                        img_tl[y_coords, x_coords] = filtered_data[:, 4]   # Gradient for top-left subplot
+                        img_tr[y_coords, x_coords] = filtered_data[:, 10]  # Gradient for top-right subplot
+                        img_bl[y_coords, x_coords] = filtered_data[:, 8]   # Gradient for bottom-left subplot
+                        img_br[y_coords, x_coords] = filtered_data[:, 9]   # Gradient for bottom-right subplot
 
-                    # MODIFICA 2: Creazione del layout con 4 subplot (2x2) usando imshow per visualizzare le immagini
+                    # Create a layout with 4 subplots (2x2) using imshow to display the images
                     fig, axs = plt.subplots(2, 2, constrained_layout=True)
                     fig.suptitle('Cell proliferation at t = ' + str(i) +
                          ' for layer = ' + str(layer))
 
-                    # In alto a sinistra: immagine basata sui valori della quinta colonna (indice 4)
+                    # Top-left: image based on values from the fifth column (index 4)
                     ax = axs[0, 0]
                     im = ax.imshow(img_tl, origin='lower', cmap='viridis')
                     ax.set_title('Cells number')
@@ -163,7 +125,7 @@ def plot_2d(xsize, ysize, zsize, layers, intervals, path_in, dir_out):
                     ax.set_ylabel('Y')
                     fig.colorbar(im, ax=ax, format='%d')
 
-                    # In alto a destra: immagine basata sui valori dell’undicesima colonna (indice 10)
+                    # Top-right: image based on values from the eleventh column (index 10)
                     ax = axs[0, 1]
                     im = ax.imshow(img_tr, origin='lower', cmap='viridis')
                     ax.set_title('Cells type')
@@ -171,9 +133,7 @@ def plot_2d(xsize, ysize, zsize, layers, intervals, path_in, dir_out):
                     ax.set_ylabel('Y')
                     fig.colorbar(im, ax=ax, ticks=[-1, 0, 1], format='%d')
 
-
-
-                    # In basso a sinistra: immagine basata sui valori della nona colonna (indice 8)
+                    # Bottom-left: image based on values from the ninth column (index 8)
                     ax = axs[1, 0]
                     im = ax.imshow(img_bl, origin='lower', cmap='viridis')
                     ax.set_title('Glucose amount')
@@ -181,7 +141,7 @@ def plot_2d(xsize, ysize, zsize, layers, intervals, path_in, dir_out):
                     ax.set_ylabel('Y')
                     fig.colorbar(im, ax=ax)
 
-                    # In basso a destra: immagine basata sui valori della decima colonna (indice 9)
+                    # Bottom-right: image based on values from the tenth column (index 9)
                     ax = axs[1, 1]
                     im = ax.imshow(img_br, origin='lower', cmap='viridis')
                     ax.set_title('Oxygen amount')
@@ -189,45 +149,24 @@ def plot_2d(xsize, ysize, zsize, layers, intervals, path_in, dir_out):
                     ax.set_ylabel('Y')
                     fig.colorbar(im, ax=ax)
 
-                    # Salvo i grafici
+                    # Save the plots
                     output_path = os.path.join(dir_out, f't{i}_l{layer}_gd_2d.png')
                     plt.savefig(output_path)
                     plt.close(fig)
 
 
-            
-def create_matrix(xsize, ysize, data):
-
-    # Correggiamo la creazione della matrice dei colori per essere tridimensionale
-    color_matrix = np.zeros((xsize, ysize, 3), dtype=float)
-    density_matrix = np.empty((xsize, ysize), dtype=float)
-    glucose_matrix = np.zeros((xsize, ysize), dtype=float)
-    oxygen_matrix = np.empty((xsize, ysize), dtype=float)
-
-
-# Riempie la matrice dei colori con i valori RGB per le coordinate corrispondenti
-    for row in data:
-        x, y = int(row[0]), int(row[1])
-        r, g, b = row[3:6]
-        color_matrix[x, y] = [r / 255.0, g / 255.0, b / 255.0]  # Normalizza i valori RGB da 0-255 a 0-1
-        density_matrix[x,y] =  row[3]
-        glucose_matrix[x,y] = row[7]
-        oxygen_matrix[x,y] = row[8]
-
-    # return color_matrix , density_matrix
-    return color_matrix, density_matrix, glucose_matrix, oxygen_matrix
-
 def cells_num(file_name, path_in, path_out):
-    # Leggo il file
+
+    # Read the file
     data = np.loadtxt(os.path.join(path_in, file_name), comments='#')
     data = data.T
 
     fig, ax = plt.subplots()
-    # Disegno le somme: Total, Healthy, Cancer e OAR Cells
+    # Plot the sums: Total, Healthy, Cancer, and OAR Cells
     plt.plot(data[0], data[1] + data[2] + data[3], "k.-", label="Total Cells", alpha=0.7)
     plt.plot(data[0], data[1], "g.-", label="Healthy Cells", alpha=0.7)
     plt.plot(data[0], data[2], "r.-", label="Cancer Cells", alpha=0.7)
-    plt.plot(data[0], data[3], "y.-", label="OAR Cells", alpha=0.1)
+    # plt.plot(data[0], data[3], "y.-", label="OAR Cells", alpha=0.1)
 
     plt.yscale('log')
     plt.xlabel('Hours')
@@ -235,18 +174,19 @@ def cells_num(file_name, path_in, path_out):
     plt.title('Cell count')
     plt.legend()
 
-    # Imposta la griglia:
-    # Vengono disegnate sia le linee verticali che quelle orizzontali, 
-    # corrispondenti rispettivamente ai tick degli assi x e y,
-    # entrambe come linee continue.
+    # Set the grid:
+    # Both vertical and horizontal lines are drawn, 
+    # corresponding to the x and y axis ticks, respectively,
+    # both as solid lines.
     plt.grid(True, which='major', axis='both', linestyle='-', linewidth=0.5)
 
-    # Salvo il grafico
+    # Save the plot
     out_name = os.path.splitext(file_name)[0]
     output_path = os.path.join(path_out, out_name + '.png')
 
     plt.savefig(output_path)
     plt.close()
+
 
 
 
@@ -268,7 +208,7 @@ dir_out_2d_growth = dir_out_2d + "growth/"
 dir_out_2d_therapy = dir_out_2d + "therapy/"
 
 
-# Creazione delle cartelle se non esistono
+# Create ditectories if they don't exists
 os.makedirs(dir_out, exist_ok=True)
 os.makedirs(dir_out_sum, exist_ok=True)
 os.makedirs(dir_out_3d, exist_ok=True)
