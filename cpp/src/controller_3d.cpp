@@ -549,6 +549,7 @@ void Controller::createDirectories(const std::vector<std::string>& paths) {
  * @param rest_days Number of days without irradiation
  * @param dose Daily radiation dose
  */
+
 void Controller::treatment(int week, int rad_days, int rest_days, int dose){
 
     // Clear any previous data
@@ -582,3 +583,18 @@ void Controller::treatment(int week, int rad_days, int rest_days, int dose){
         tempDataTab(); // Save voxel data every theraphy week
     }
 }
+
+/**
+ * Check the intervals array
+ * 
+ * @param divisor Divisor of the total number of hours. intervals size will be divisor + 1
+ * @param intervals Pointer to the intervals array
+ */
+void Controller::printIntervals(int divisor, int* intervals){
+    cout << "\n" << endl;
+    for (int i = 0; i <= divisor; i++) {
+        std::cout << "interval[" << i << "] = " << intervals[i] << std::endl;
+    }
+    cout << "\n" << endl;
+}
+

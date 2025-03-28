@@ -46,6 +46,7 @@ public:
     void clear_tempCellCounts();
     void tempDataTab();
     void clear_tempDataTab();
+    void printIntervals(int divisor, int* intervals);
 
     void treatment(int week, int rad_days, int rest_days, int dose);
 
