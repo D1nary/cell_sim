@@ -69,39 +69,18 @@ int main() {
     controller->createDirectories(paths);
 
 
-    // Creazione file_name per i dati 2D e 3D per growth
+    // Create file names for tumor growth
     std::vector<std::string> file_name_g;
     for (int i = 0; i <= divisor1; i++) {
         file_name_g.push_back("t" + std::to_string(intervals1[i]) + "_gd.txt");
     }
 
-    // Creazione della griglia con 1, -1 e 0
+    /// Create grid with 1, 0, -1
     noFilledGrid = controller->grid_creation(cradius, hradius);
 
-
-    // for (int k = 0; k < zsize; k++) {
-    //     cout << "Layer " << k << ":\n";
-    //     for (int i = 0; i < xsize; i++) {
-    //         for (int j = 0; j < ysize; j++) {
-    //             cout << noFilledGrid[k][i][j] << " ";
-    //         }
-    //         cout << endl;
-    //     }
-    //     cout << endl; // Riga vuota per separare i layer
-    // }
-
-
-    // Controllo i valori di intervals
-    // cout << "\n" << endl;
-    // for (int i = 0; i <= divisor; i++) {
-    //     std::cout << "interval[" << i << "] = " << intervals[i] << std::endl;
-    //     cout << file_name[i] << endl;
-    // }
-    // cout << "\n" << endl;
-    // exit(0);
-
-    // Riempimento della griglia creata
+    // Fill the Grid object with helthy and cancer cells
     controller -> fill_grid(hcells, ccells, noFilledGrid);
+
 
     // --- GROWING ---
     int count = -1;
@@ -109,26 +88,29 @@ int main() {
         // cout << i << ", " << controller -> tick << endl;
         if (std::find(intervals1, intervals1 + (divisor1 + 1), i) != intervals1 + (divisor1 + 1)) {
             count += 1;
-            // Nota: ad ogni chiamata di saveDataTab salvo su un file diverso
-            // controller -> saveDataTab(data_path_tab_growth, file_name[count]);
+
+            // Save voxel data
             controller -> tempDataTab();
 
-            // Print cell count
-            cout << controller -> tick << ", " << HealthyCell::count << ", " 
-            << CancerCell::count << ", " << OARCell::count << endl;
+            // Print cell counters
+            cout << "tick: " << controller -> tick << "\n"
+            << "Healthy cells: " << HealthyCell::count << "\n" 
+            << "Cancer cells: " << CancerCell::count << endl;
         }
         if (std::find(intervals2, intervals2 + (divisor2 + 1), i) != intervals2 + (divisor2 + 1)) {
-            // Nota: ad ogni chiamata di tempCellCounts salvo i dati in un array
+            // Save countrer data in a matrix
             controller -> tempCellCounts();
         }
+        // Advance the grid cells by one hour
         controller->go();
     }
+
+    // Save growth data in files
     controller -> saveDataTab(data_path_tab_growth, file_name_g, intervals1, (divisor1 + 1));
     controller -> saveCellCounts(data_path_num, "cell_counts_gr.txt");
 
-    // --- RADIATON TREATMENT ---
 
-    controller -> tick = 0;
+    // --- RADIATON TREATMENT ---
 
     num_hour =  24 * (rad_days + rest_days) * week;
     // divisor1 = (rad_days + rest_days) * week; // For sum data treatment
@@ -142,17 +124,17 @@ int main() {
     for (int i = 0; i <= divisor1; i++) {
         file_name_t.push_back("t" + std::to_string(intervals1[i]) + "_gd.txt");
     }
-    // for (int i = 0; i <= divisor1; i++){
-    //     cout << file_name_t[i]<< endl;
-    // }
 
+
+    // Reset tick counter
+    controller -> tick = 0;
+
+    // Perform the tratment to the grid
     controller -> treatment(week, rad_days, rest_days, dose); 
+    
+    //Save treatment data in files
     controller -> saveCellCounts(data_path_num, "cell_counts_tr.txt");
     controller -> saveDataTab(data_path_tab_treat, file_name_t, intervals1, (divisor1+1));
 
     return 0;
 }
-
-
-// VERIFICA sleep()
-// CONTROLLA salvataggio a t0
