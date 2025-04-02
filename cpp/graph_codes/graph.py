@@ -10,7 +10,7 @@ def plot_3d(xsize, ysize, zsize, intervals, path_in, dir_out):
     for i in intervals:
         for file_data_name in os.listdir(path_in):
             if "t"+ str(i) + "_" in file_data_name: 
-                print(file_data_name)
+                print("Creating graph from ",file_data_name, " file")
         
                 # Read file
                 data = np.loadtxt(os.path.join(path_in, file_data_name), comments='#') 
@@ -82,7 +82,7 @@ def plot_2d(xsize, ysize, zsize, layers, intervals, path_in, dir_out):
     for i in intervals:
         for file_data_name in os.listdir(path_in):
             if "t" + str(i) + "_" in file_data_name: 
-                print(file_data_name)
+                print("Creating graph from ",file_data_name, " file")
 
                 # Read the file
                 data = np.loadtxt(os.path.join(path_in, file_data_name), comments='#')
@@ -161,6 +161,8 @@ def cells_num(file_name, path_in, path_out):
     data = np.loadtxt(os.path.join(path_in, file_name), comments='#')
     data = data.T
 
+    print("Creating graph from ",file_name, " file")
+
     fig, ax = plt.subplots()
     # Plot the sums: Total, Healthy, Cancer, and OAR Cells
     plt.plot(data[0], data[1] + data[2] + data[3], "k.-", label="Total Cells", alpha=0.7)
@@ -227,18 +229,26 @@ layers = [10]
 
 # --- GROWTH ---
 
-num_hour_g = 400
+num_hour_g = 150
 divisor_g = 4
 intervals_g = get_intervals(num_hour_g, divisor_g)
 
+print("GROWTH GRAPHS")
+
 # Cells number graph
+print ("Plotting cell counter graphs:")
 cells_num("cell_counts_gr.txt", path_in_num, dir_out_sum)
+print("\n")
 
 # 2D Graphs
+print ("Plotting 2D graphs:")
 plot_2d(xsize,ysize,zsize,layers, intervals_g, path_in_tab_growth, dir_out_2d_growth)
+print("\n")
 
 # 3D Graphs
+print ("Plotting 3D graphs:")
 plot_3d(xsize, ysize, zsize, intervals_g, path_in_tab_growth, dir_out_3d_growth) 
+print("\n")
 
 # --- THERAPHY ---
 
@@ -251,11 +261,19 @@ num_hour_t = 24 * (rad_days + rest_days) * week
 divisor_t = 2
 intervals_t = get_intervals(num_hour_t, divisor_t)
 
+print("THERAPHY GRAPHS")
+
 # Cells number graph
+print ("Plotting cell counter graphs:")
 cells_num("cell_counts_tr.txt", path_in_num, dir_out_sum)
+print("\n")
 
 # 2D Graphs
+print ("Plotting 2D graphs:")
 plot_2d(xsize,ysize,zsize,layers, intervals_g, path_in_tab_growth, dir_out_2d_therapy)
+print("\n")
 
 # 3D Graphs
-plot_3d(xsize, ysize, zsize, intervals_t, path_in_tab_treat, dir_out_3d_therapy) 
+print ("Plotting 3D graphs:")
+plot_3d(xsize, ysize, zsize, intervals_t, path_in_tab_treat, dir_out_3d_therapy)
+print("\n")
