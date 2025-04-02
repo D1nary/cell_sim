@@ -39,7 +39,7 @@ int main() {
     double dose = 2.0; // Dose per day
 
     // Hours for tumor growth
-    int num_hour = 400;
+    int num_hour = 150;
 
     // Create directories paths
     std::filesystem::path current = std::filesystem::current_path();
@@ -83,6 +83,7 @@ int main() {
 
 
     // --- GROWING ---
+    cout << "TUMOR GROWTH" << endl;
     int count = -1;
     for (int i = 0; i <= num_hour; i++){
         // cout << i << ", " << controller -> tick << endl;
@@ -112,6 +113,8 @@ int main() {
 
     // --- RADIATON TREATMENT ---
 
+    cout << "BEGIN RADIATON TREATMENT" << endl;
+
     num_hour =  24 * (rad_days + rest_days) * week;
     // divisor1 = (rad_days + rest_days) * week; // For sum data treatment
     divisor1 = 2;
@@ -138,3 +141,8 @@ int main() {
 
     return 0;
 }
+// VERIFICA NEL CODICE I LIVELLI DI GLUCOSIO E OGGIGENO NELLA GRIGILA 3D. 
+// DEVONO ESSERE MAGGIORI RISPETTO ALLA GRIGLIA 2D? 
+
+
+// FAI CRESCERE IL TUMORE SOLO FINO A QUANDO LE CELLULE AL CENTRO NON MUOIONO
