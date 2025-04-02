@@ -270,7 +270,7 @@ print("\n")
 
 # 2D Graphs
 print ("Plotting 2D graphs:")
-plot_2d(xsize,ysize,zsize,layers, intervals_g, path_in_tab_growth, dir_out_2d_therapy)
+plot_2d(xsize, ysize, zsize, layers, intervals_t, path_in_tab_treat, dir_out_2d_therapy)
 print("\n")
 
 # 3D Graphs
