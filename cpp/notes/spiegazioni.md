@@ -509,3 +509,81 @@ Si itera su ogni voxel della griglia e per ciscuno di essi:
 3. Somma dei contributi. Il valore finale in ogni voxel `dest[k][i][j]` è dato dalla somma di:
     - Il residuo del voxel stesso, cioè $(1- \text{diff-factor})\cdot \text{src[k][i][j]}$
     - Tutti i contributi diffusi dai suoi 26 vicini, ognuno dei quali fornisce un valore di $\frac{\text{diff-factor}}{26}\cdot \text{src}_{\text{del vicino}}$
+
+# `deleteDeadAndSort()`
+
+Il metodo `deleteDeadAndSort()` si occupa di "ripulire" la lista collegata delle cellule, eliminando i nodi contenenti cellule morte e riorganizzando la lista in modo che i nodi con cellule vive siano correttamente collegati. In particolare, il ciclo `while(current)` analizza ogni nodo della lista ed esegue operazioni differenti a seconda dello stato della cellula:
+
+## Operazioni nel ciclo `while(current)`
+
+1. **Nodo con cellula morta:**  
+   - Se `current->cell->alive` è falso, la cellula è morta.  
+   - La cellula e il relativo nodo vengono eliminati (con `delete`), e si aggiornano i contatori (ad esempio, per le cellule di tipo 'o' o 'c').  
+   - Il puntatore `current` viene aggiornato al nodo successivo.
+
+2. **Primo nodo vivo (head non ancora impostata):**  
+   - Quando viene incontrato il primo nodo con una cellula viva, viene impostato come **testa** della lista (`head = current`) e anche come **coda** (`tail = current`).  
+   - Si imposta il puntatore-to-pointer `previous_next_pointer` per riferirsi al campo `next` di questo nodo, in modo da poter collegare agevolmente i successivi nodi vivi.  
+   - Si segna che la testa è stata trovata (`found_head = true`) e si passa al nodo successivo.
+
+3. **Nodi vivi successivi:**  
+   - Per ogni ulteriore nodo con cellula viva, il metodo aggiorna la **coda** (`tail = current`) e collega il nodo corrente al precedente vivo tramite `*previous_next_pointer = current`.  
+   - Il `previous_next_pointer` viene aggiornato per puntare al campo `next` del nodo corrente, così da preparare il collegamento per il prossimo nodo vivo.  
+   - Infine, si passa al nodo successivo.
+
+Al termine del ciclo, se nessun nodo vivo è stato trovato (ossia, la lista è completamente vuota), il metodo imposta `head` e `tail` a `nullptr` e verifica che il contatore `size` sia 0. Se almeno un nodo vivo è stato trovato, il campo `next` dell'ultimo nodo (tail) viene impostato a `nullptr` per terminare correttamente la lista.
+
+## Esempio Pratico
+
+Immaginiamo una lista di 4 nodi con le seguenti cellule:
+
+- **Nodo A:** Cellula viva  
+- **Nodo B:** Cellula morta  
+- **Nodo C:** Cellula viva  
+- **Nodo D:** Cellula morta
+
+### Iterazione 1:
+- **Nodo A (vivo):**
+  - Poiché è il primo nodo vivo incontrato (`found_head` è false), **A** diventa la nuova testa e la coda della lista.
+  - Viene impostato `previous_next_pointer` per puntare a `A->next`.
+  - Si segna `found_head = true` e si passa al nodo successivo.
+
+### Iterazione 2:
+- **Nodo B (morto):**
+  - La cellula di **B** è morta, quindi il nodo **B** viene eliminato.
+  - Il puntatore `current` passa al nodo successivo, **C**.
+
+### Iterazione 3:
+- **Nodo C (vivo):**
+  - Siccome la testa è già stata trovata, si collega il nodo **C** al precedente nodo vivo.  
+  - L'istruzione `*previous_next_pointer = C` fa sì che `A->next` punti a **C**.
+  - Si aggiorna `tail = C` e `previous_next_pointer` viene puntato a `C->next`.
+  - Si passa al nodo successivo, **D**.
+
+### Iterazione 4:
+- **Nodo D (morto):**
+  - La cellula di **D** è morta, quindi **D** viene eliminato.
+  - Il ciclo termina poiché non ci sono altri nodi.
+
+**Risultato finale:**  
+La lista viene riorganizzata in modo tale da contenere solo i nodi vivi, collegati come **A → C**. L’aggiornamento dei puntatori garantisce che la lista sia corretta e che non rimangano "buchi" nella catena.
+
+Questo meccanismo, grazie all'uso del puntatore-to-pointer (`previous_next_pointer`), permette di gestire in maniera efficiente e sicura la rimozione dei nodi, evitando la necessità di scorrere nuovamente l'intera lista per ricollegare i nodi vivi.
+
+## Approffondimento su `previous_next_pointer`
+- `current -> next`: Fornisce il contenuto della variabile `next` cioè il puntatore/indirizzo ad un oggetto
+- `&(current -> next)`: Indirizzo della variabile `next` (non il contenuto)
+
+Il contenuto di `previous_next_pointer` può essere schematizzato come: 
+`previous_next_pointer` --> `indirizzo 1` --> `indirizzo 2` (variabile `next`) --> `oggetto`
+
+Si vuole modificare l'`indirizzo 2` (cioè il contenuto di `next`) in modo che punti ad un altro oggetto.
+
+- Per accedere ad `indirizzo 1`: `previous_next_pointer`
+- Per accedere ad `indirizzo 2`: `*previous_next_pointer`
+
+Quindi, supponendo `C` essere un nodo in `CellList`, facendo `*previous_next_pointer = C` Stiamo assegnando alla variabile `next` un nuovo indirizzo ad un oggetto diverso dal precedente. 
+
+In questo modo si evita la necessità di scorrere nuovamente l'intera lista per ricollegare i nodi vivi.
+
+---
