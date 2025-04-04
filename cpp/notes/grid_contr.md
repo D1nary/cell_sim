@@ -2,7 +2,7 @@
 
 Il file modella il comportamento di un ambiente cellulare nella griglia 3D e integra la dinamica dei nutrienti e della radiazione.
 
-## Descriuzione generale delle funzioni del file
+## Descrizione generale delle funzioni del file
 ### Gestione delle Cellule (CellList)
 - **Creazione e distruzione**: Viene implementata una lista collegata (`CellList`) per gestire i nodi delle cellule (`CellNode`).
 
@@ -33,9 +33,42 @@ Il file modella il comportamento di un ambiente cellulare nella griglia 3D e int
 La radiazione inviata alle cellule segue una distribuzione gaussiana, con le cellule più vicine al centro di irradiazione che ricevono una dose maggiore rispetto a quelle più distanti, secondo un andamento a forma di campana.
 Viene quindi regolata la quantita di dose inviata in funzione del centro di irradiazione.
 
-Come centro di irradizione di considera il centro del tumore ottenuto con il metodo  `compute_center()`. Questo calcola il centroide delle cellule cancerose presenti nella griglia 3D, cioè la posizione media (centro del tumore) pesata in base al numero di cellule cancerose in ciascun voxel.
+Come centro di irradizione si considera il centro del tumore calcolato con il metodo  `compute_center()`. Questo calcola il centroide delle cellule cancerose presenti nella griglia 3D, cioè la posizione media pesata in base al numero di cellule cancerose in ciascun voxel.
 
 La dose per ogni cellula in ciascun voxel viene calcolata con 
 $$
-\text{multiplicator} \cdot \text{conv(centro)} = \frac{\text{dose}}{\text{conv(centro)}} \cdot \text{conv(centro)} = \text{dose}
+\text{dose} = \text{multiplicator} \cdot \text{conv(rad, dist)} \cdot \text{omf} 
 $$
+
+### conv()
+$\text{conv(rad, dist)}$ viene definita come $\text{erf}(\text{rad} - \text{x}) - \text{erf}(-\text{rad} - \text{x})$
+- $\text{erf()}$: Funzione di errore gaussiana (strettamente legata alla distibuzione normale)
+- $\text{rad}$: Raggio in cui si ha il 95% della radiazione totale
+- $\text{x}$: Distanza **normalizzata** dal centro di irradiazione
+
+Quello che si vuole ottenere è un valore di dose proporzionale alla distanza dal centro di irradiazione. Si vuole avere una dose più alta in posizioni vicine al centro e dosi basse in posizioni lontane. La funzione `conv()` permette di ottenere questo comportamento. Da notare che `conv()` non è un valore di dose ma una quantità che ci dice quanto deve essere alta o bassa la quantità di dose.
+
+`dist` è la distanza normalizzata dal centro di irradaizione. Essa viene passata come parametro alla funzione `conv()` come:
+$$
+\frac{x \cdot 10}{radius}
+$$
+Dove $x$ è la distanza, in voxel, dal centro e $\text{radius}$ è il raggio del tumore calcolato con `tumor_radius()` il quale trova la posizione più lontana dal centro in cui si trova una cellula tumorare e ne calcola la distanza.
+
+- Intervallo di valori di $x$ **prima della noramlizzazione**: $[0, 3 \cdot \text{radius}]$. In `irradiate()` (`grid_3d.cpp`) viene applicata radiazione alle cellule solo se è rispettata la condizione `if (cells[k][i][j].size && dist < 3 * radius)`.
+- Intervallo di valori di $x$ **dopo la noramlizzazione**: $[0, 30]$ qualunque sia il valore di $\text{radius}$.
+
+### multiplicator
+Siccome `conv()` non fornisce un valore effettivo di dose, è necessario introdurre il parametro `multiplicator`. Esso viene determinato tramite il metodo `get_multiplicator()`, che calcola il rapporto tra il valore massimo della `dose` e il valore di `conv()` al centro della distribuzione. In questo modo, moltiplicando `multiplicator` per il valore di `conv()` a una certa distanza dalla distribuzione, si ottiene il valore corretto di dose da passare come parametro a `radiate()`.
+
+### Oxygen Modification Factor (OMF)
+Per ogni voxel nella grglia viene calcolato l'OMF. Esso rappresenta l'effetto potenziante dell’ossigeno sulla radiosensibilità dei tessuti tumorali. Quando il livello di ossigeno nei tessuti è alto, il danno indotto dalle radiazioni ionizzanti sul DNA delle cellule tumorali è amplificato. Viene calcolato con:
+$$
+\text{OMF} = \frac{\frac{\text{oxygen}}{100} \cdot \text{oer}_m + k_m}{\left(\frac{\text{oxygen}}{100} + k_m\right) \cdot \text{oer}_m}
+$$
+dove:
+- $\text{oxygen}$ è il valore di ossigeno nel voxel (lettura da oxygen[k][i][j]),
+- `oer_m` e `k_m` sono costanti impostate entrambe a `3.0`.
+
+Questo fattore modifica la dose di radiazione applicata alle cellule:
+- Con alta ossigenazione l'omf risulterà maggiore, aumentando l'efficacia della dose.
+- Con bassa ossigenazione l'omf sarà minore, riflettendo la maggiore resistenza delle cellule ipossiche alla radiazione.
