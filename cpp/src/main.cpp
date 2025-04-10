@@ -83,7 +83,7 @@ int main() {
 
 
     // --- GROWING ---
-    cout << "TUMOR GROWTH" << endl;
+    cout << "\n" << "TUMOR GROWTH" << endl;
     int count = -1;
     for (int i = 0; i <= num_hour; i++){
         // cout << i << ", " << controller -> tick << endl;
@@ -113,7 +113,7 @@ int main() {
 
     // --- RADIATON TREATMENT ---
 
-    cout << "BEGIN RADIATON TREATMENT" << endl;
+    cout << "\n" << "BEGIN RADIATON TREATMENT" << endl;
 
     num_hour =  24 * (rad_days + rest_days) * week;
     // divisor1 = (rad_days + rest_days) * week; // For sum data treatment
