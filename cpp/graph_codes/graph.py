@@ -193,8 +193,7 @@ def cells_num(file_name, path_in, path_out):
 
 
 
-
-path_results = "/home/ale/Documenti/programming/proj_radio_rein/cpp/results/"
+path_results = os.getcwd() + "/cpp/results/"
 path_in_tab  = path_results + "data/tabs/"
 path_in_tab_growth = path_in_tab + "growth/"
 path_in_tab_treat = path_in_tab + "treatments/"
