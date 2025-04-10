@@ -566,7 +566,8 @@ void Grid::adj_helper(int x, int y, int z, int* pos, int& counter) {
 }
 
 /**
- * Compute the average position of cancer cells in the 3D grid.
+ * Compute the average position of cancer cells in the 3D grid i.e. 
+ * the mean position (tumor center) weighted by the number of cancer cells in each voxel
  */
 void Grid::compute_center(){ 
     int count = 0;
@@ -578,14 +579,10 @@ void Grid::compute_center(){
     for (int k = 0; k < zsize; k++){
         for (int i = 0; i < xsize; i++){
             for (int j = 0; j < ysize; j++){
-                // count += cells[k][i][j].ccell_count;
-                // center_x += cells[k][i][j].ccell_count * i;
-                // center_y += cells[k][i][j].ccell_count * j;
-                // center_z += cells[k][i][j].ccell_count * k;
-                count += 1;
-                center_x += 1 * i;
-                center_y += 1 * j;
-                center_z += 1 * k;
+                count += cells[k][i][j].ccell_count;
+                center_x += cells[k][i][j].ccell_count * i;
+                center_y += cells[k][i][j].ccell_count * j;
+                center_z += cells[k][i][j].ccell_count * k;
             }
         }
     }
@@ -1140,4 +1137,29 @@ void Grid::irradiate(double dose){
     compute_center();
     double radius = tumor_radius(center_x, center_y, center_z);
     irradiate(dose, radius, center_x, center_y, center_z);
+}
+
+/**
+ * Since neigh_count is private (in the .h file) this method
+ * allows external access to this matrix.
+ */ 
+ int*** Grid::getNeighCounts() const {
+    return neigh_counts;
+}
+
+/**
+ * Since sources is private (in the .h file) this method
+ * allows external access to this object.
+ */
+ 
+SourceList* Grid::getSources() const {
+    return sources;
+}
+/**
+ * 
+ * Since glucose is private (in the .h file) this method allows 
+ * external access to the glucose matrix.
+ */
+double*** Grid::getGlucose() const {
+    return glucose;
 }

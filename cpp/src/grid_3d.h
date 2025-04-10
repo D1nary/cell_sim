@@ -69,9 +69,14 @@ public:
     int getHealthyCount(int x, int y, int z);
     int getCancerCount(int x, int y, int z);
     int getOARCount(int x, int y, int z);
+    void change_neigh_counts(int x, int y, int z, int val);
+
+    int*** getNeighCounts() const;
+    SourceList* getSources() const;
+    double*** getGlucose() const;
     
 private:
-    void change_neigh_counts(int x, int y, int z, int val);
+    // void change_neigh_counts(int x, int y, int z, int val);
     int rand_min(int x, int y, int z, int max);
     int rand_adj(int x, int y, int z);
     int find_missing_oar(int x, int y, int z);
