@@ -147,7 +147,7 @@ CMAKE_PROJECT_DESCRIPTION:STATIC=
 CMAKE_PROJECT_HOMEPAGE_URL:STATIC=
 
 //Value Computed by CMake
-CMAKE_PROJECT_NAME:STATIC=TestGrid
+CMAKE_PROJECT_NAME:STATIC=cell_simulation
 
 //Path to a program.
 CMAKE_RANLIB:FILEPATH=/usr/bin/ranlib
@@ -215,13 +215,13 @@ CMAKE_TAPI:FILEPATH=CMAKE_TAPI-NOTFOUND
 CMAKE_VERBOSE_MAKEFILE:BOOL=FALSE
 
 //Value Computed by CMake
-TestGrid_BINARY_DIR:STATIC=/home/ale/Documenti/programming/proj_radio_rein/build
+cell_simulation_BINARY_DIR:STATIC=/home/ale/Documenti/programming/proj_radio_rein/build
 
 //Value Computed by CMake
-TestGrid_IS_TOP_LEVEL:STATIC=ON
+cell_simulation_IS_TOP_LEVEL:STATIC=ON
 
 //Value Computed by CMake
-TestGrid_SOURCE_DIR:STATIC=/home/ale/Documenti/programming/proj_radio_rein/cpp
+cell_simulation_SOURCE_DIR:STATIC=/home/ale/Documenti/programming/proj_radio_rein/cpp
 
 
 ########################

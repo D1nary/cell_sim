@@ -117,24 +117,24 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named test
+# Target rules for targets named main
 
 # Build rule for target.
-test: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 test
-.PHONY : test
+main: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 main
+.PHONY : main
 
 # fast build rule for target.
-test/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/build
-.PHONY : test/fast
+main/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/build
+.PHONY : main/fast
 
 src/cell.o: src/cell.cpp.o
 .PHONY : src/cell.o
 
 # target to build an object file
 src/cell.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/src/cell.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/cell.cpp.o
 .PHONY : src/cell.cpp.o
 
 src/cell.i: src/cell.cpp.i
@@ -142,7 +142,7 @@ src/cell.i: src/cell.cpp.i
 
 # target to preprocess a source file
 src/cell.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/src/cell.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/cell.cpp.i
 .PHONY : src/cell.cpp.i
 
 src/cell.s: src/cell.cpp.s
@@ -150,7 +150,7 @@ src/cell.s: src/cell.cpp.s
 
 # target to generate assembly for a file
 src/cell.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/src/cell.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/cell.cpp.s
 .PHONY : src/cell.cpp.s
 
 src/controller_3d.o: src/controller_3d.cpp.o
@@ -158,7 +158,7 @@ src/controller_3d.o: src/controller_3d.cpp.o
 
 # target to build an object file
 src/controller_3d.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/src/controller_3d.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/controller_3d.cpp.o
 .PHONY : src/controller_3d.cpp.o
 
 src/controller_3d.i: src/controller_3d.cpp.i
@@ -166,7 +166,7 @@ src/controller_3d.i: src/controller_3d.cpp.i
 
 # target to preprocess a source file
 src/controller_3d.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/src/controller_3d.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/controller_3d.cpp.i
 .PHONY : src/controller_3d.cpp.i
 
 src/controller_3d.s: src/controller_3d.cpp.s
@@ -174,7 +174,7 @@ src/controller_3d.s: src/controller_3d.cpp.s
 
 # target to generate assembly for a file
 src/controller_3d.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/src/controller_3d.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/controller_3d.cpp.s
 .PHONY : src/controller_3d.cpp.s
 
 src/grid_3d.o: src/grid_3d.cpp.o
@@ -182,7 +182,7 @@ src/grid_3d.o: src/grid_3d.cpp.o
 
 # target to build an object file
 src/grid_3d.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/src/grid_3d.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/grid_3d.cpp.o
 .PHONY : src/grid_3d.cpp.o
 
 src/grid_3d.i: src/grid_3d.cpp.i
@@ -190,7 +190,7 @@ src/grid_3d.i: src/grid_3d.cpp.i
 
 # target to preprocess a source file
 src/grid_3d.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/src/grid_3d.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/grid_3d.cpp.i
 .PHONY : src/grid_3d.cpp.i
 
 src/grid_3d.s: src/grid_3d.cpp.s
@@ -198,32 +198,32 @@ src/grid_3d.s: src/grid_3d.cpp.s
 
 # target to generate assembly for a file
 src/grid_3d.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/src/grid_3d.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/grid_3d.cpp.s
 .PHONY : src/grid_3d.cpp.s
 
-src/test.o: src/test.cpp.o
-.PHONY : src/test.o
+src/main.o: src/main.cpp.o
+.PHONY : src/main.o
 
 # target to build an object file
-src/test.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/src/test.cpp.o
-.PHONY : src/test.cpp.o
+src/main.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/main.cpp.o
+.PHONY : src/main.cpp.o
 
-src/test.i: src/test.cpp.i
-.PHONY : src/test.i
+src/main.i: src/main.cpp.i
+.PHONY : src/main.i
 
 # target to preprocess a source file
-src/test.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/src/test.cpp.i
-.PHONY : src/test.cpp.i
+src/main.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/main.cpp.i
+.PHONY : src/main.cpp.i
 
-src/test.s: src/test.cpp.s
-.PHONY : src/test.s
+src/main.s: src/main.cpp.s
+.PHONY : src/main.s
 
 # target to generate assembly for a file
-src/test.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/src/test.cpp.s
-.PHONY : src/test.cpp.s
+src/main.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/main.cpp.s
+.PHONY : src/main.cpp.s
 
 # Help Target
 help:
@@ -233,7 +233,7 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
-	@echo "... test"
+	@echo "... main"
 	@echo "... src/cell.o"
 	@echo "... src/cell.i"
 	@echo "... src/cell.s"
@@ -243,9 +243,9 @@ help:
 	@echo "... src/grid_3d.o"
 	@echo "... src/grid_3d.i"
 	@echo "... src/grid_3d.s"
-	@echo "... src/test.o"
-	@echo "... src/test.i"
-	@echo "... src/test.s"
+	@echo "... src/main.o"
+	@echo "... src/main.i"
+	@echo "... src/main.s"
 .PHONY : help
 
 
