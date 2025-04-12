@@ -43,7 +43,7 @@ int main() {
 
     // Create directories paths
     std::filesystem::path current = std::filesystem::current_path();
-    std::filesystem::path res_path = current.parent_path() / "cpp" / "results"; // results path
+    std::filesystem::path res_path = current.parent_path() / "results"; // results path
     std::filesystem::path data_path = res_path / "data";// data path
     std::filesystem::path data_path_tab = data_path / "tabs";// data tab
     std::filesystem::path data_path_tab_growth = data_path_tab / "growth";// growth tab
@@ -54,7 +54,7 @@ int main() {
     std::vector<std::string> paths = {res_path, data_path, data_path_tab, data_path_num,
         data_path_tab_growth, data_path_tab_treat};
     
-    // Initialize the controller
+    // Initialize the controller (and the grid)
     Controller * controller = new Controller(xsize, ysize, zsize, sources_num, intervals1);
 
     // Create intervals for voxels data saving (2D and 3D)
@@ -85,8 +85,10 @@ int main() {
     // --- GROWING ---
     cout << "\n" << "TUMOR GROWTH" << endl;
     int count = -1;
+    // Loop through each hour in the growth simulation
     for (int i = 0; i <= num_hour; i++){
-        // cout << i << ", " << controller -> tick << endl;
+        
+        // Check if the current hour matches a growth data saving interval
         if (std::find(intervals1, intervals1 + (divisor1 + 1), i) != intervals1 + (divisor1 + 1)) {
             count += 1;
 
@@ -98,7 +100,9 @@ int main() {
             << "Healthy cells: " << HealthyCell::count << "\n" 
             << "Cancer cells: " << CancerCell::count << endl;
         }
+        // Check if the current hour matches a cell count saving interval
         if (std::find(intervals2, intervals2 + (divisor2 + 1), i) != intervals2 + (divisor2 + 1)) {
+
             // Save countrer data in a matrix
             controller -> tempCellCounts();
         }
@@ -122,8 +126,9 @@ int main() {
     // intervals vector creation for tratment files
     intervals1 = controller -> get_intervals(num_hour, divisor1);
 
-    // Creazione file_name per i dati 2D e 3D per theraphy
+    // File name (file_name) creation for 2D and 3D therapy data
     std::vector<std::string> file_name_t;
+
     for (int i = 0; i <= divisor1; i++) {
         file_name_t.push_back("t" + std::to_string(intervals1[i]) + "_gd.txt");
     }
