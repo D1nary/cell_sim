@@ -193,8 +193,8 @@ def cells_num(file_name, path_in, path_out):
 
 
 
-current_dir = os.getcwd()
-parent_dir = os.path.dirname(current_dir)
+current_file_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_file_dir)
 path_results = os.path.join(parent_dir, "results") + "/"
 path_in_tab  = path_results + "data/tabs/"
 path_in_tab_growth = path_in_tab + "growth/"
