@@ -4,7 +4,7 @@ The simulation aims to reproduce the dynamics of a three-dimensional cellular en
 
 This repository contains the following folders:
 
-- **cpp**: Contains the simulation source files, test scripts, and plotting tools. The simulation output data will be saved in the `results` folder within this directory.
+- **cpp**: Contains the **run instructions**, the simulation source files, test scripts, and plotting tools. The simulation output data will be saved in the `results` folder within this directory.
 
 - **notes**: Contains notes and documentation related to the simulation.
 

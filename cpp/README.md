@@ -1,3 +1,16 @@
+# Build Requirements
+
+- **C++ Compiler**: GCC 13.3.0 (tested with `g++ (Ubuntu 13.3.0-6ubuntu2~24.04)`)
+- **Build System**: CMake 3.28.3
+- **Operating System**: Linux (tested on Ubuntu 24.04)
+
+Make sure `g++` and `cmake` are installed and accessible from your terminal. You can check your versions with:
+
+```bash
+g++ --version
+cmake --version
+```
+
 # Simulation Code Directories Structure
 
 This directory contains the main code folders for the simulation:
@@ -60,4 +73,3 @@ cell_sim/cpp/build/main
 }
 ```
 This way, CMake Tools will understand that it should use `cpp/CMakeLists.txt` and the `build/` folder will be created inside `cpp/`.
-
