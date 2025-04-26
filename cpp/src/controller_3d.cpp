@@ -28,7 +28,9 @@ using namespace std;
  * @param zsize The number of vertical layers of the grid.
  */
 
- Controller::Controller(int xsize, int ysize, int zsize, int sources_num,int *intervals)
+ Controller::Controller(int xsize, int ysize, int zsize, int sources_num, 
+    double cradius, double hradius, int hcells, int ccells, 
+    const std::vector<int>& intervals)
  : xsize(xsize),
    ysize(ysize),
    zsize(zsize),
@@ -37,12 +39,20 @@ using namespace std;
    oar(nullptr),
    intervals(intervals)
 {
+    int*** noFilledGrid;
     // Reset the cell counters
     HealthyCell::count = 0;
     CancerCell::count = 0;
     OARCell::count = 0;
     
-    std::vector<std::vector<int>> tempCounts;
+    vector<vector<int>> tempCounts;
+
+    // Create grid with 1, 0, -1
+    noFilledGrid = grid_creation(cradius, hradius);
+
+    // Fill the Grid object with helthy and cancer cells
+    fill_grid(hcells, ccells, noFilledGrid);
+
 }
 
 
@@ -346,9 +356,21 @@ double Controller::get_center_z(){
  * Calculate an array that contains the tick points at which we intend to save the data.
  * @return An array with the ticks
  */
-int* Controller::get_intervals(int num_hour, int divisor) {
-    int* intervals = new int[divisor + 1];
-    for (int i = 0; i <= divisor; i++) {
+// int* Controller::get_intervals(int num_hour, int divisor) {
+//     int* intervals = new int[divisor + 1];
+//     for (int i = 0; i <= divisor; i++) {
+//         intervals[i] = (i * num_hour) / divisor;
+//     }
+//     return intervals;
+// }
+
+/**
+ * Calculate an array that contains the tick points at which we intend to save the data.
+ * @return std::vector<int> of lenght (divisor+1) with the ticks
+ */
+std::vector<int> Controller::get_intervals(int num_hour, int divisor) {
+    std::vector<int> intervals(divisor + 1);
+    for (int i = 0; i <= divisor; ++i) {
         intervals[i] = (i * num_hour) / divisor;
     }
     return intervals;
@@ -415,7 +437,8 @@ void Controller::clear_tempDataTab() {
  * @param intervals Pointer to an array of integers representing intervals.
  * @param intervalsSize Integer indicating the number of intervals.
  */
-void Controller::saveDataTab(const std::string &path, const std::vector<std::string>& filenames, int* intervals, int intervalsSize) {
+void Controller::saveDataTab(const std::string &path, const std::vector<std::string>& filenames, 
+    const std::vector<int>& intervals, int intervalsSize) {
     // Check that the number of filenames matches the number of values in intervals  
     if (filenames.size() != static_cast<size_t>(intervalsSize)) {
         std::cerr << "The number of filenames does not match the number of values in intervals" << std::endl;
