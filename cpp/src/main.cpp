@@ -28,9 +28,12 @@ int main() {
     int hcells = 1;
     int ccells = 1;
     int sources_num = 20;
-    int* intervals1; // For: 2D/3D Data growth, 2D/3D Data treatment  
-    int* intervals2; // For sum data growth, sum data treatment
-    int*** noFilledGrid;
+    // int* intervals1; // For: 2D/3D Data growth, 2D/3D Data treatment  
+    // int* intervals2; // For sum data growth, sum data treatment
+    vector<int> intervals1;
+    vector<int> intervals2;
+
+    // int*** noFilledGrid;
 
     // Radiation variables
     int week = 2; // Weeks of tratments
@@ -42,44 +45,47 @@ int main() {
     int num_hour = 150;
 
     // Create directories paths
-    std::filesystem::path current = std::filesystem::current_path();
-    std::filesystem::path res_path = current.parent_path() / "results"; // results path
-    std::filesystem::path data_path = res_path / "data";// data path
-    std::filesystem::path data_path_tab = data_path / "tabs";// data tab
-    std::filesystem::path data_path_tab_growth = data_path_tab / "growth";// growth tab
-    std::filesystem::path data_path_tab_treat = data_path_tab / "treatments";// treatments tab
-    std::filesystem::path data_path_num = data_path / "cell_num";// data cell_num
+    filesystem::path current = std::filesystem::current_path();
+    filesystem::path res_path = current.parent_path() / "results"; // results path
+    filesystem::path data_path = res_path / "data";// data path
+    filesystem::path data_path_tab = data_path / "tabs";// data tab
+    filesystem::path data_path_tab_growth = data_path_tab / "growth";// growth tab
+    filesystem::path data_path_tab_treat = data_path_tab / "treatments";// treatments tab
+    filesystem::path data_path_num = data_path / "cell_num";// data cell_num
 
     // Create a paths array
-    std::vector<std::string> paths = {res_path, data_path, data_path_tab, data_path_num,
+    vector<std::string> paths = {res_path, data_path, data_path_tab, data_path_num,
         data_path_tab_growth, data_path_tab_treat};
     
     // Initialize the controller (and the grid)
-    Controller * controller = new Controller(xsize, ysize, zsize, sources_num, intervals1);
+    Controller controller(xsize, ysize, zsize, sources_num, 
+        cradius, hradius, hcells, ccells, intervals1);
 
     // Create intervals for voxels data saving (2D and 3D)
     int divisor1 = 4;
-    intervals1 = controller -> get_intervals(num_hour, divisor1);
+    intervals1 = controller.get_intervals(num_hour, divisor1);
+
+
 
     // Create intervals for cell counters data saving
     int divisor2 = 100;
-    intervals2 = controller -> get_intervals(num_hour, divisor2);
+    intervals2 = controller.get_intervals(num_hour, divisor2);
 
     // Create directories
-    controller->createDirectories(paths);
+    controller.createDirectories(paths);
 
 
     // Create file names for tumor growth
-    std::vector<std::string> file_name_g;
+    vector<std::string> file_name_g;
     for (int i = 0; i <= divisor1; i++) {
         file_name_g.push_back("t" + std::to_string(intervals1[i]) + "_gd.txt");
     }
 
-    /// Create grid with 1, 0, -1
-    noFilledGrid = controller->grid_creation(cradius, hradius);
+    // Create grid with 1, 0, -1
+    // noFilledGrid = controller.grid_creation(cradius, hradius);
 
     // Fill the Grid object with helthy and cancer cells
-    controller -> fill_grid(hcells, ccells, noFilledGrid);
+    // controller.fill_grid(hcells, ccells, noFilledGrid);
 
 
     // --- GROWING ---
@@ -89,30 +95,30 @@ int main() {
     for (int i = 0; i <= num_hour; i++){
         
         // Check if the current hour matches a growth data saving interval
-        if (std::find(intervals1, intervals1 + (divisor1 + 1), i) != intervals1 + (divisor1 + 1)) {
+        if (find(intervals1.begin(), intervals1.end(), i) != intervals1.end())  {
             count += 1;
 
             // Save voxel data
-            controller -> tempDataTab();
+            controller.tempDataTab();
 
             // Print cell counters
-            cout << "tick: " << controller -> tick << "\n"
+            cout << "tick: " << controller.tick << "\n"
             << "Healthy cells: " << HealthyCell::count << "\n" 
             << "Cancer cells: " << CancerCell::count << endl;
         }
-        // Check if the current hour matches a cell count saving interval
-        if (std::find(intervals2, intervals2 + (divisor2 + 1), i) != intervals2 + (divisor2 + 1)) {
+        // Check if the current hour matches a cell co.saving interval
+        if (find(intervals2.begin(), intervals2.end(), i) != intervals2.end())  {
 
             // Save countrer data in a matrix
-            controller -> tempCellCounts();
+            controller.tempCellCounts();
         }
         // Advance the grid cells by one hour
-        controller->go();
+        controller.go();
     }
 
     // Save growth data in files
-    controller -> saveDataTab(data_path_tab_growth, file_name_g, intervals1, (divisor1 + 1));
-    controller -> saveCellCounts(data_path_num, "cell_counts_gr.txt");
+    controller.saveDataTab(data_path_tab_growth, file_name_g, intervals1, (divisor1 + 1));
+    controller.saveCellCounts(data_path_num, "cell_counts_gr.txt");
 
 
     // --- RADIATON TREATMENT ---
@@ -124,10 +130,10 @@ int main() {
     divisor1 = 2;
 
     // intervals vector creation for tratment files
-    intervals1 = controller -> get_intervals(num_hour, divisor1);
+    intervals1 = controller.get_intervals(num_hour, divisor1);
 
     // File name (file_name) creation for 2D and 3D therapy data
-    std::vector<std::string> file_name_t;
+    vector<std::string> file_name_t;
 
     for (int i = 0; i <= divisor1; i++) {
         file_name_t.push_back("t" + std::to_string(intervals1[i]) + "_gd.txt");
@@ -135,14 +141,14 @@ int main() {
 
 
     // Reset tick counter
-    controller -> tick = 0;
+    controller.tick = 0;
 
     // Perform the tratment to the grid
-    controller -> treatment(week, rad_days, rest_days, dose); 
+    controller.treatment(week, rad_days, rest_days, dose); 
     
     //Save treatment data in files
-    controller -> saveCellCounts(data_path_num, "cell_counts_tr.txt");
-    controller -> saveDataTab(data_path_tab_treat, file_name_t, intervals1, (divisor1+1));
+    controller.saveCellCounts(data_path_num, "cell_counts_tr.txt");
+    controller.saveDataTab(data_path_tab_treat, file_name_t, intervals1, (divisor1+1));
 
     return 0;
 }
