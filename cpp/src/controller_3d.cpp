@@ -29,15 +29,13 @@ using namespace std;
  */
 
  Controller::Controller(int xsize, int ysize, int zsize, int sources_num, 
-    double cradius, double hradius, int hcells, int ccells, 
-    const std::vector<int>& intervals)
+    double cradius, double hradius, int hcells, int ccells)
  : xsize(xsize),
    ysize(ysize),
    zsize(zsize),
    sources_num(sources_num),
    tick(0),
-   oar(nullptr),
-   intervals(intervals)
+   oar(nullptr)
 {
     int*** noFilledGrid;
     // Reset the cell counters
@@ -573,7 +571,7 @@ void Controller::createDirectories(const std::vector<std::string>& paths) {
  * @param dose Daily radiation dose
  */
 
-void Controller::treatment(int week, int rad_days, int rest_days, int dose){
+void Controller::test_treatment(int week, int rad_days, int rest_days, double dose){
 
     // Clear any previous data
     clear_tempCellCounts();
@@ -621,3 +619,13 @@ void Controller::printIntervals(int divisor, int* intervals){
     cout << "\n" << endl;
 }
 
+/**
+ * Get the number of healthy and cancer cells in the simulazio
+ * @return Array composed of HealthyCell::count and CancerCell::count
+ */
+std::vector<int> Controller::get_cell_counts() const {
+    return {
+        HealthyCell::count,   // primo elemento
+        CancerCell::count     // secondo elemento
+    };
+}

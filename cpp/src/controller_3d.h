@@ -12,7 +12,7 @@ class Controller {
 public:
 
     Controller(int xsize, int ysize, int zsize, int sources_num, 
-        double cradius, double hradius, int hcells, int ccells, const std::vector<int>& intervals);
+        double cradius, double hradius, int hcells, int ccells);
     Controller(int hcells, int xsize, int ysize, int zsize, int sources_num,
                 int x1, int x2, int y1, int y2, int z1, int z2);
     ~Controller();
@@ -49,7 +49,8 @@ public:
     void clear_tempDataTab();
     void printIntervals(int divisor, int* intervals);
 
-    void treatment(int week, int rad_days, int rest_days, int dose);
+    void test_treatment(int week, int rad_days, int rest_days, double dose);
+    std::vector<int> get_cell_counts() const;
 
 
 private:
