@@ -199,7 +199,7 @@ parent_dir = os.path.dirname(python_dir)
 path_results = os.path.join(parent_dir, "results") + "/"
 path_in_tab  = path_results + "data/tabs/"
 path_in_tab_growth = path_in_tab + "growth/"
-path_in_tab_treat = path_in_tab + "treatments/"
+path_in_tab_treat = path_in_tab + "treatment/"
 path_in_num  = path_results + "data/cell_num/"
 
 dir_out = path_results + "graphs/"
@@ -235,8 +235,8 @@ num_hour_g = 150
 divisor_g = 4
 intervals_g = get_intervals(num_hour_g, divisor_g)
 
-print("GROWTH GRAPHS")
-
+# print("GROWTH GRAPHS")
+# 
 # Cells number graph
 print ("Plotting cell counter graphs:")
 cells_num("cell_counts_gr.txt", path_in_num, dir_out_sum)
@@ -246,11 +246,11 @@ print("\n")
 print ("Plotting 2D graphs:")
 plot_2d(xsize,ysize,zsize,layers, intervals_g, path_in_tab_growth, dir_out_2d_growth)
 print("\n")
-
-# 3D Graphs
-print ("Plotting 3D graphs:")
-plot_3d(xsize, ysize, zsize, intervals_g, path_in_tab_growth, dir_out_3d_growth) 
-print("\n")
+# 
+# # 3D Graphs
+# print ("Plotting 3D graphs:")
+# plot_3d(xsize, ysize, zsize, intervals_g, path_in_tab_growth, dir_out_3d_growth) 
+# print("\n")
 
 # --- THERAPHY ---
 
@@ -263,17 +263,17 @@ num_hour_t = 24 * (rad_days + rest_days) * week
 divisor_t = 2
 intervals_t = get_intervals(num_hour_t, divisor_t)
 
-# print("THERAPHY GRAPHS")
-# 
-# # Cells number graph
-# print ("Plotting cell counter graphs:")
-# cells_num("cell_counts_tr.txt", path_in_num, dir_out_sum)
-# print("\n")
-# 
-# # 2D Graphs
-# print ("Plotting 2D graphs:")
-# plot_2d(xsize, ysize, zsize, layers, intervals_t, path_in_tab_treat, dir_out_2d_therapy)
-# print("\n")
+print("THERAPHY GRAPHS")
+
+# Cells number graph
+print ("Plotting cell counter graphs:")
+cells_num("cell_counts_tr.txt", path_in_num, dir_out_sum)
+print("\n")
+
+# 2D Graphs
+print ("Plotting 2D graphs:")
+plot_2d(xsize, ysize, zsize, layers, intervals_t, path_in_tab_treat, dir_out_2d_therapy)
+print("\n")
 # 
 # # 3D Graphs
 # print ("Plotting 3D graphs:")
