@@ -28,14 +28,17 @@ using namespace std;
  * @param zsize The number of vertical layers of the grid.
  */
 
- Controller::Controller(int xsize, int ysize, int zsize, int sources_num, 
-    double cradius, double hradius, int hcells, int ccells)
+Controller::Controller(int xsize, int ysize, int zsize, int sources_num,
+    double cradius, double hradius, int hcells, int ccells,
+    int num_hour, const std::vector<int>& intervals)
  : xsize(xsize),
    ysize(ysize),
    zsize(zsize),
    sources_num(sources_num),
    tick(0),
-   oar(nullptr)
+   oar(nullptr),
+   num_hour(num_hour),
+   intervals(intervals)
 {
     int*** noFilledGrid;
     // Reset the cell counters
@@ -51,76 +54,6 @@ using namespace std;
     // Fill the Grid object with helthy and cancer cells
     fill_grid(hcells, ccells, noFilledGrid);
 
-}
-
-
-/**
- * Constructor of a Controller with an Organ-at-Risk (OAR) zone in 3D
- *
- * Will first create the grid, then randomly set hcells HealthyCells on the grid 
- * (only outside the OAR zone), and place a CancerCell in the center.
- * The OAR zone is a rectangular prism defined by (x1, x2), (y1, y2) and (z1, z2)
- *
- * @param hcells The number of HealthyCells to set randomly on the grid
- * @param xsize The number of rows of the grid
- * @param ysize The number of columns of the grid
- * @param zsize The number of vertical layers of the grid
- * @param sources_num The number of nutrient sources to put on the grid
- * @param x1, x2 The first and opposite x coordinates of the OAR zone
- * @param y1, y2 The first and opposite y coordinates of the OAR zone
- * @param z1, z2 The first and opposite z coordinates of the OAR zone
- */
-Controller::Controller(int hcells, int xsize, int ysize, int zsize, int sources_num,
-    int x1, int x2, int y1, int y2, int z1, int z2)
-: xsize(xsize), ysize(ysize), zsize(zsize), tick(0), self_grid(true), grid(nullptr), oar(nullptr)
-{
-// Reset cell counters
-HealthyCell::count = 0;
-CancerCell::count = 0;
-OARCell::count = 0;
-
-// Ensure that the coordinates are in ascending order  
-if(x1 > x2) { int temp = x1; x1 = x2; x2 = temp; }
-if(y1 > y2) { int temp = y1; y1 = y2; y2 = temp; }
-if(z1 > z2) { int temp = z1; z1 = z2; z2 = temp; }
-
-// Create the OAR zone and assign its boundaries  
-oar = new OARZone;
-oar->x1 = x1;
-oar->x2 = x2;
-oar->y1 = y1;
-oar->y2 = y2;
-oar->z1 = z1;
-oar->z2 = z2;
-
-    // Create the 3D grid with the OAR zone  
-    grid = new Grid(xsize, ysize, zsize, sources_num, oar);
-
-    char stages[5] = {'1', 's', '2', 'm', 'q'};
-
-    // Add OAR cells to all positions within the defined OAR zone  
-    for (int k = z1; k < z2; k++){
-        for (int i = x1; i < x2; i++){
-            for (int j = y1; j < y2; j++){
-                Cell *new_cell = new OARCell('q');
-                grid->addCell(i, j, k, new_cell, 'o');
-            }
-        }
-    }
-
-    // Add hcells (HealthyCells) in random positions outside the OAR zone  
-    for (int i = 0; i < hcells; i++){
-        int x = rand() % xsize;
-        int y = rand() % ysize;
-        int z = rand() % zsize;
-        if (!(x >= x1 && x < x2 && y >= y1 && y < y2 && z >= z1 && z < z2)) {
-            Cell *new_cell = new HealthyCell(stages[rand() % 5]);
-            grid->addCell(x, y, z, new_cell, 'h');
-        }
-    }
-
-    // Add the cancerous cell at the center of the grid  
-    grid->addCell(xsize / 2, ysize / 2, zsize / 2, new CancerCell(stages[rand() % 4]), 'c');
 }
 
 /**
@@ -629,3 +562,15 @@ std::vector<int> Controller::get_cell_counts() const {
         CancerCell::count     // secondo elemento
     };
 }
+
+/**
+ * Esegue 'go()' num_hour_ volte e restituisce una copia profonda della griglia.
+ */
++Grid* Controller::growth() {
+    +    for (int i = 0; i < num_hour_; ++i) {
+    +        go();
+    +    }
+    +    // Supponendo che Grid abbia un copy constructor profondo:
+    +    Grid* grid_copy = new Grid(*grid);
+    +    return grid_copy;
+    +}

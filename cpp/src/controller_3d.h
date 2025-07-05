@@ -11,10 +11,9 @@
 class Controller {
 public:
 
-    Controller(int xsize, int ysize, int zsize, int sources_num, 
-        double cradius, double hradius, int hcells, int ccells);
-    Controller(int hcells, int xsize, int ysize, int zsize, int sources_num,
-                int x1, int x2, int y1, int y2, int z1, int z2);
+    Controller(int xsize, int ysize, int zsize, int sources_num,
+        double cradius, double hradius, int hcells, int ccells,
+        int num_hour, const std::vector<int>& intervals);
     ~Controller();
 
     int*** grid_creation(double hradius, double cradius);
@@ -52,15 +51,19 @@ public:
     void test_treatment(int week, int rad_days, int rest_days, double dose);
     std::vector<int> get_cell_counts() const;
 
+    Grid* growth();
+
 
 private:
     bool self_grid;
     Grid * grid;
     OARZone * oar;
-    std::vector<int> intervals;
     int* intervals_sum;
     std::vector<std::vector<int>> tempCounts;
     std::vector<std::vector<double>> tempDataTabMatrix;
+
+    int num_hour;
+    std::vector<int> intervals;
 };
 
 

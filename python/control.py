@@ -74,7 +74,7 @@ if __name__ == "__main__":
 
     # Initialize controller
     ctrl = cell_sim.Controller(xsize, ysize, zsize, sources_num,
-                               cradius, hradius, hcells, ccells,)
+                               cradius, hradius, hcells, ccells)
 
     # Setup directories
     script_dir = pathlib.Path(__file__).resolve().parent
