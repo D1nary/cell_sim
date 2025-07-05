@@ -1076,7 +1076,7 @@ void Grid::irradiate(double dose, double radius, double center_x, double center_
         for (int i = 0; i < xsize; i++) {
             for (int j = 0; j < ysize; j++) {
                 // Calculate the distance from the center
-                double dist = distance(i, j, k, center_x, center_y, center_x);
+                double dist = distance(i, j, k, center_x, center_y, center_z);
                 if (cells[k][i][j].size && dist < 3 * radius){ //If there are cells on the pixel
                     CellNode * current = cells[k][i][j].head;
                     while (current){
