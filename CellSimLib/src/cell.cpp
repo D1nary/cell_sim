@@ -1,4 +1,4 @@
-#include "cell.h"
+#include "cellular_lib/cell.h"
 #include <random>
 #include <iostream>
 #include <math.h>

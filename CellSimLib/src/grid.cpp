@@ -1,5 +1,5 @@
 #include <algorithm>
-#include "grid_3d.h"
+#include "cellular_lib/grid.h"
 #include <assert.h> 
 #include <math.h> 
 #include <iostream>

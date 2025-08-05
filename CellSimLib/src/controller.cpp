@@ -1,6 +1,4 @@
-// controller_3d.cpp
-
-#include "controller_3d.h"
+#include "cellular_lib/controller.h"
 #include <stdlib.h>
 #include <iostream>
 #include <cmath>

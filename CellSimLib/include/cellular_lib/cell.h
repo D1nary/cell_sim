@@ -1,5 +1,5 @@
-#ifndef RADIO_RL_CELL_H
-#define RADIO_RL_CELL_H
+#ifndef CELLULAR_LIB_CELL_H
+#define CELLULAR_LIB_CELL_H
 
 typedef struct {
     double glucose;

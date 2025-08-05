@@ -1,8 +1,8 @@
-#ifndef RADIO_RL_CONTROLLER_H
-#define RADIO_RL_CONTROLLER_H
+#ifndef CELLULAR_LIB_CONTROLLER_H
+#define CELLULAR_LIB_CONTROLLER_H
 
-#include "grid_3d.h"
-#include "cell.h"
+#include "cellular_lib/grid.h"
+#include "cellular_lib/cell.h"
 
 #include <vector> // Per la gestione dei path
 #include <string>  // Necessario per std::string
