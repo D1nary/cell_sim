@@ -1,8 +1,8 @@
-#ifndef CELLULAR_LIB_CONTROLLER_H
-#define CELLULAR_LIB_CONTROLLER_H
+#ifndef RADIO_RL_CONTROLLER_H
+#define RADIO_RL_CONTROLLER_H
 
-#include "cellular_lib/grid.h"
-#include "cellular_lib/cell.h"
+#include "CellLib/grid.h"
+#include "cell.h"
 
 #include <vector> // Per la gestione dei path
 #include <string>  // Necessario per std::string
@@ -11,9 +11,9 @@
 class Controller {
 public:
 
-    Controller(int xsize, int ysize, int zsize, int sources_num, int* intervals);
-    Controller(int hcells, int xsize, int ysize, int zsize, int sources_num,
-                int x1, int x2, int y1, int y2, int z1, int z2);
+    Controller(int xsize, int ysize, int zsize, int sources_num,
+        double cradius, double hradius, int hcells, int ccells,
+        int num_hour, const std::vector<int>& intervals);
     ~Controller();
 
     int*** grid_creation(double hradius, double cradius);
@@ -36,10 +36,10 @@ public:
     double get_center_x();
     double get_center_y();
     double get_center_z();
-    int* get_intervals(int num_hour, int divisor);
+    std::vector<int> get_intervals(int num_hour, int divisor);
 
     void saveDataTab(const std::string &path, const std::vector<std::string>& filenames, 
-                    int* intervals, int intervalsSize);
+        const std::vector<int>& intervals, int intervalsSize);
     void saveCellCounts(const std::string &path, const std::string &filename);
     void createDirectories(const std::vector<std::string>& paths);
     void tempCellCounts();
@@ -48,17 +48,21 @@ public:
     void clear_tempDataTab();
     void printIntervals(int divisor, int* intervals);
 
-    void treatment(int week, int rad_days, int rest_days, int dose);
+    void test_treatment(int week, int rad_days, int rest_days, double dose);
+    std::vector<int> get_cell_counts() const;
+
 
 
 private:
     bool self_grid;
     Grid * grid;
     OARZone * oar;
-    int* intervals;
     int* intervals_sum;
     std::vector<std::vector<int>> tempCounts;
     std::vector<std::vector<double>> tempDataTabMatrix;
+
+    int num_hour;
+    std::vector<int> intervals;
 };
 
 

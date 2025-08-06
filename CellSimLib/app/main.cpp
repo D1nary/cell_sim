@@ -9,9 +9,8 @@
 #include <cstdlib>  // For rand() and srand()
 #include <ctime>    // For time()
 
-#include "grid_3d.h" 
-#include "controller_3d.h"
-
+#include "CellLib/grid.h" 
+#include "CellLib/controller.h" 
 using namespace std;
 
 int main() {
@@ -59,7 +58,7 @@ int main() {
     
     // Initialize the controller (and the grid)
     Controller controller(xsize, ysize, zsize, sources_num, 
-        cradius, hradius, hcells, ccells, intervals1);
+        cradius, hradius, hcells, ccells, num_hour, intervals1);
 
     // Create intervals for voxels data saving (2D and 3D)
     int divisor1 = 4;
@@ -144,7 +143,7 @@ int main() {
     controller.tick = 0;
 
     // Perform the tratment to the grid
-    controller.treatment(week, rad_days, rest_days, dose); 
+    controller.test_treatment(week, rad_days, rest_days, dose); 
     
     //Save treatment data in files
     controller.saveCellCounts(data_path_num, "cell_counts_tr.txt");

@@ -1,4 +1,6 @@
-#include "cellular_lib/controller.h"
+// controller_3d.cpp
+
+#include "CellLib/controller.h"
 #include <stdlib.h>
 #include <iostream>
 #include <cmath>
@@ -26,91 +28,32 @@ using namespace std;
  * @param zsize The number of vertical layers of the grid.
  */
 
- Controller::Controller(int xsize, int ysize, int zsize, int sources_num,int *intervals)
+Controller::Controller(int xsize, int ysize, int zsize, int sources_num,
+    double cradius, double hradius, int hcells, int ccells,
+    int num_hour, const std::vector<int>& intervals)
  : xsize(xsize),
    ysize(ysize),
    zsize(zsize),
    sources_num(sources_num),
    tick(0),
    oar(nullptr),
+   num_hour(num_hour),
    intervals(intervals)
 {
+    int*** noFilledGrid;
     // Reset the cell counters
     HealthyCell::count = 0;
     CancerCell::count = 0;
     OARCell::count = 0;
     
-    std::vector<std::vector<int>> tempCounts;
-}
+    vector<vector<int>> tempCounts;
 
+    // Create grid with 1, 0, -1
+    noFilledGrid = grid_creation(cradius, hradius);
 
-/**
- * Constructor of a Controller with an Organ-at-Risk (OAR) zone in 3D
- *
- * Will first create the grid, then randomly set hcells HealthyCells on the grid 
- * (only outside the OAR zone), and place a CancerCell in the center.
- * The OAR zone is a rectangular prism defined by (x1, x2), (y1, y2) and (z1, z2)
- *
- * @param hcells The number of HealthyCells to set randomly on the grid
- * @param xsize The number of rows of the grid
- * @param ysize The number of columns of the grid
- * @param zsize The number of vertical layers of the grid
- * @param sources_num The number of nutrient sources to put on the grid
- * @param x1, x2 The first and opposite x coordinates of the OAR zone
- * @param y1, y2 The first and opposite y coordinates of the OAR zone
- * @param z1, z2 The first and opposite z coordinates of the OAR zone
- */
-Controller::Controller(int hcells, int xsize, int ysize, int zsize, int sources_num,
-    int x1, int x2, int y1, int y2, int z1, int z2)
-: xsize(xsize), ysize(ysize), zsize(zsize), tick(0), self_grid(true), grid(nullptr), oar(nullptr)
-{
-// Reset cell counters
-HealthyCell::count = 0;
-CancerCell::count = 0;
-OARCell::count = 0;
+    // Fill the Grid object with helthy and cancer cells
+    fill_grid(hcells, ccells, noFilledGrid);
 
-// Ensure that the coordinates are in ascending order  
-if(x1 > x2) { int temp = x1; x1 = x2; x2 = temp; }
-if(y1 > y2) { int temp = y1; y1 = y2; y2 = temp; }
-if(z1 > z2) { int temp = z1; z1 = z2; z2 = temp; }
-
-// Create the OAR zone and assign its boundaries  
-oar = new OARZone;
-oar->x1 = x1;
-oar->x2 = x2;
-oar->y1 = y1;
-oar->y2 = y2;
-oar->z1 = z1;
-oar->z2 = z2;
-
-    // Create the 3D grid with the OAR zone  
-    grid = new Grid(xsize, ysize, zsize, sources_num, oar);
-
-    char stages[5] = {'1', 's', '2', 'm', 'q'};
-
-    // Add OAR cells to all positions within the defined OAR zone  
-    for (int k = z1; k < z2; k++){
-        for (int i = x1; i < x2; i++){
-            for (int j = y1; j < y2; j++){
-                Cell *new_cell = new OARCell('q');
-                grid->addCell(i, j, k, new_cell, 'o');
-            }
-        }
-    }
-
-    // Add hcells (HealthyCells) in random positions outside the OAR zone  
-    for (int i = 0; i < hcells; i++){
-        int x = rand() % xsize;
-        int y = rand() % ysize;
-        int z = rand() % zsize;
-        if (!(x >= x1 && x < x2 && y >= y1 && y < y2 && z >= z1 && z < z2)) {
-            Cell *new_cell = new HealthyCell(stages[rand() % 5]);
-            grid->addCell(x, y, z, new_cell, 'h');
-        }
-    }
-
-    // Add the cancerous cell at the center of the grid  
-    grid->addCell(xsize / 2, ysize / 2, zsize / 2, new CancerCell(stages[rand() % 4]), 'c');
 }
 
 /**
@@ -344,9 +287,21 @@ double Controller::get_center_z(){
  * Calculate an array that contains the tick points at which we intend to save the data.
  * @return An array with the ticks
  */
-int* Controller::get_intervals(int num_hour, int divisor) {
-    int* intervals = new int[divisor + 1];
-    for (int i = 0; i <= divisor; i++) {
+// int* Controller::get_intervals(int num_hour, int divisor) {
+//     int* intervals = new int[divisor + 1];
+//     for (int i = 0; i <= divisor; i++) {
+//         intervals[i] = (i * num_hour) / divisor;
+//     }
+//     return intervals;
+// }
+
+/**
+ * Calculate an array that contains the tick points at which we intend to save the data.
+ * @return std::vector<int> of lenght (divisor+1) with the ticks
+ */
+std::vector<int> Controller::get_intervals(int num_hour, int divisor) {
+    std::vector<int> intervals(divisor + 1);
+    for (int i = 0; i <= divisor; ++i) {
         intervals[i] = (i * num_hour) / divisor;
     }
     return intervals;
@@ -413,7 +368,8 @@ void Controller::clear_tempDataTab() {
  * @param intervals Pointer to an array of integers representing intervals.
  * @param intervalsSize Integer indicating the number of intervals.
  */
-void Controller::saveDataTab(const std::string &path, const std::vector<std::string>& filenames, int* intervals, int intervalsSize) {
+void Controller::saveDataTab(const std::string &path, const std::vector<std::string>& filenames, 
+    const std::vector<int>& intervals, int intervalsSize) {
     // Check that the number of filenames matches the number of values in intervals  
     if (filenames.size() != static_cast<size_t>(intervalsSize)) {
         std::cerr << "The number of filenames does not match the number of values in intervals" << std::endl;
@@ -548,7 +504,7 @@ void Controller::createDirectories(const std::vector<std::string>& paths) {
  * @param dose Daily radiation dose
  */
 
-void Controller::treatment(int week, int rad_days, int rest_days, int dose){
+void Controller::test_treatment(int week, int rad_days, int rest_days, double dose){
 
     // Clear any previous data
     clear_tempCellCounts();
@@ -596,3 +552,13 @@ void Controller::printIntervals(int divisor, int* intervals){
     cout << "\n" << endl;
 }
 
+/**
+ * Get the number of healthy and cancer cells in the simulazio
+ * @return Array composed of HealthyCell::count and CancerCell::count
+ */
+std::vector<int> Controller::get_cell_counts() const {
+    return {
+        HealthyCell::count,   // primo elemento
+        CancerCell::count     // secondo elemento
+    };
+}
