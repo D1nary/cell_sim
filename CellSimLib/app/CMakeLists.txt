@@ -1,31 +1,31 @@
-# Project that builds the core simulation library and a small demo
-project(CellSimLib)
+# Note: no project() call here, inherits from top‑level
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-# Library with the cellular simulation sources
+# Library target: cellular simulation core
 add_library(cell_sim
-    ../src/cell.cpp
-    ../src/controller.cpp
-    ../src/grid.cpp
+    # source files
+    ${CMAKE_CURRENT_LIST_DIR}/../src/cell.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/controller.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/grid.cpp
 )
 
-
-# Ensures that all headers under ../include are visible
-# when compiling cell_sim and any targets that will then bind it.
+# Include headers from the include directory
 target_include_directories(cell_sim
     PUBLIC
-        ../include
+        ${CMAKE_CURRENT_LIST_DIR}/../include
 )
 
-# Define an executable that compiles main.cpp
+# Executable for demo
 add_executable(CellSimDemo
-  main.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/main.cpp
 )
 
-# Link the executable to the library
+# Link demo against the library
 target_link_libraries(CellSimDemo
-  PRIVATE
-    cell_sim
+    PRIVATE
+        cell_sim
+)
+# Set output directories
+set_target_properties(CellSimDemo cell_sim PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin
+    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib
 )
