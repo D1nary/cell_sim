@@ -49,7 +49,7 @@ int main() {
     filesystem::path data_path = res_path / "data";// data path
     filesystem::path data_path_tab = data_path / "tabs";// data tab
     filesystem::path data_path_tab_growth = data_path_tab / "growth";// growth tab
-    filesystem::path data_path_tab_treat = data_path_tab / "treatments";// treatments tab
+    filesystem::path data_path_tab_treat = data_path_tab / "therapy";// treatments tab
     filesystem::path data_path_num = data_path / "cell_num";// data cell_num
 
     // Create a paths array

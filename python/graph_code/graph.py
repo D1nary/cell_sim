@@ -199,7 +199,7 @@ parent_dir = os.path.dirname(python_dir)
 path_results = os.path.join(parent_dir, "results") + "/"
 path_in_tab  = path_results + "data/tabs/"
 path_in_tab_growth = path_in_tab + "growth/"
-path_in_tab_treat = path_in_tab + "treatment/"
+path_in_tab_treat = path_in_tab + "therapy/"
 path_in_num  = path_results + "data/cell_num/"
 
 dir_out = path_results + "graphs/"
@@ -210,7 +210,6 @@ dir_out_3d_therapy = dir_out_3d + "therapy/"
 dir_out_2d = dir_out + "2d/"
 dir_out_2d_growth = dir_out_2d + "growth/"
 dir_out_2d_therapy = dir_out_2d + "therapy/"
-
 
 # Create ditectories if they don't exists
 os.makedirs(dir_out, exist_ok=True)
