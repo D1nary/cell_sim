@@ -246,10 +246,10 @@ print ("Plotting 2D graphs:")
 plot_2d(xsize,ysize,zsize,layers, intervals_g, path_in_tab_growth, dir_out_2d_growth)
 print("\n")
 # 
-# # 3D Graphs
-# print ("Plotting 3D graphs:")
-# plot_3d(xsize, ysize, zsize, intervals_g, path_in_tab_growth, dir_out_3d_growth) 
-# print("\n")
+# 3D Graphs
+print ("Plotting 3D graphs:")
+plot_3d(xsize, ysize, zsize, intervals_g, path_in_tab_growth, dir_out_3d_growth) 
+print("\n")
 
 # --- THERAPHY ---
 
@@ -275,6 +275,6 @@ plot_2d(xsize, ysize, zsize, layers, intervals_t, path_in_tab_treat, dir_out_2d_
 print("\n")
 # 
 # # 3D Graphs
-# print ("Plotting 3D graphs:")
-# plot_3d(xsize, ysize, zsize, intervals_t, path_in_tab_treat, dir_out_3d_therapy)
-# print("\n")
+print ("Plotting 3D graphs:")
+plot_3d(xsize, ysize, zsize, intervals_t, path_in_tab_treat, dir_out_3d_therapy)
+print("\n")
