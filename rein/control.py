@@ -83,7 +83,7 @@ if __name__ == "__main__":
     data_path = res_path / "data"
     data_tab = data_path / "tabs"
     data_tab_growth = data_tab / "growth"
-    data_tab_tr = data_tab / "treatment"
+    data_tab_tr = data_tab / "therapy"
     paths = [str(res_path), str(data_path), str(data_tab),
              str(data_tab_growth), str(data_tab_tr),
              str(data_path / "cell_num")]

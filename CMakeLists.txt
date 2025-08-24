@@ -19,3 +19,6 @@ file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/lib")
 
 # Add subdirectory for the core library and demo
 add_subdirectory(CellSimLib/app)
+
+# Python bindings for python controller used by rein/control.py
+add_subdirectory(rein)
