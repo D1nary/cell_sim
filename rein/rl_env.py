@@ -74,7 +74,7 @@ class CellSimEnv(gym.Env):
             dtype=np.float32,
         )
 
-        # Observation: counts of healthy and cancer cells
+        # Observation: counts of healthy and cancer cells (healthy, cancer)
         self.observation_space = spaces.Box(
             low=0.0,
             high=np.inf,
