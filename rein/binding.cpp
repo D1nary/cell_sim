@@ -2,7 +2,7 @@
 #include <pybind11/stl.h>
 
 // Binding for Controller in C++ simulation
-#include "../cpp/src/controller_3d.h"
+#include "../CellSimLib/include/CellLib/controller.h"
 
 namespace py = pybind11;
 

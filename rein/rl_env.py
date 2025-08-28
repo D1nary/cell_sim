@@ -89,8 +89,28 @@ class CellSimEnv(gym.Env):
 
     def step(self, action):
         """Apply an action and advance the simulation."""
-        # TODO: implement step logic
-        pass
+        # Action is (dose, wait_hours)
+        a = np.asarray(action, dtype=np.float32)
+        dose = float(np.clip(a[0], 0.0, self.max_dose))
+        hours = int(np.clip(a[1], 0.0, float(self.max_wait)))
+
+        # Irradiate with the given dose
+        if dose > 0.0:
+            self.ctrl.irradiate(dose)
+
+        # Advance simulation for the specified number of hours
+        for _ in range(hours):
+            self.ctrl.go()
+
+        # Observation: total healthy and cancer cell counts
+        counts = self.ctrl.get_cell_counts()
+        obs = np.asarray(counts, dtype=np.float32)
+
+        # Placeholder reward/done/info for Gym compatibility
+        reward = 0.0
+        done = False
+        info = {}
+        return obs, reward, done, info
 
     def close(self):
         """Release resources and perform any necessary cleanup."""

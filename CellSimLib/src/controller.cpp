@@ -558,7 +558,7 @@ void Controller::printIntervals(int divisor, int* intervals){
  */
 std::vector<int> Controller::get_cell_counts() const {
     return {
-        HealthyCell::count,   // primo elemento
-        CancerCell::count     // secondo elemento
+        HealthyCell::count,
+        CancerCell::count
     };
 }
