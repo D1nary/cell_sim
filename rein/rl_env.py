@@ -68,6 +68,8 @@ class CellSimEnv(gym.Env):
         # Action is (dose, wait_hours)
         self.max_dose = float(max_dose)
         self.max_wait = int(max_wait)
+        # Tracks cumulative simulated hours to detect timeout
+        self.elapsed_hours = 0
         self.action_space = spaces.Box(
             low=np.array([0.0, 0.0], dtype=np.float32),
             high=np.array([self.max_dose, float(self.max_wait)], dtype=np.float32),
@@ -101,16 +103,44 @@ class CellSimEnv(gym.Env):
         # Advance simulation for the specified number of hours
         for _ in range(hours):
             self.ctrl.go()
+        # Update cumulative time
+        self.hour_count += hours
 
         # Observation: total healthy and cancer cell counts
         counts = self.ctrl.get_cell_counts()
-        obs = np.asarray(counts, dtype=np.float32)
+        observation = np.asarray(counts, dtype=np.float32)
 
-        # Placeholder reward/done/info for Gym compatibility
+        # Terminal conditions based on observation and elapsed time
+        # Evaluate raw flags first
+        _successful = bool(observation[1] == 0)
+        _unsuccessful = bool(observation[0] <= 10)
+        _timeout = bool(self.elapsed_hours >= 1200)
+
+        # Enforce mutually-exclusive terminal reason, prioritizing success, then failure
+        if _successful:
+            successful, unsuccessful, timeout = True, False, False
+        elif _unsuccessful:
+            successful, unsuccessful, timeout = False, True, False
+        elif _timeout:
+            successful, unsuccessful, timeout = False, False, True
+        else:
+            successful, unsuccessful, timeout = False, False, False
+
+        # Terminated if success or failure; truncated if only timeout
+        terminated = successful or unsuccessful
+        truncated = timeout
+
+        # Placeholder reward; actual shaping can be plugged from rein/reward.py
         reward = 0.0
-        done = False
-        info = {}
-        return obs, reward, done, info
+
+        # Provide all flags and counters in info for downstream logic/analysis
+        info = {
+            "successful": successful,
+            "unsuccessful": unsuccessful,
+            "timeout": timeout,
+            "elapsed_hours": self.elapsed_hours,
+        }
+        return observation, reward, terminated, truncated, info
 
     def close(self):
         """Release resources and perform any necessary cleanup."""
