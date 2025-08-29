@@ -1,0 +1,2 @@
+Ricorda di azzerare il contatore delle ore tick prima di iniziare l'algoritmo
+rl perchè il contare tick viene usato dall'agente
