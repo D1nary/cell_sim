@@ -10,6 +10,9 @@ import gym
 from gym import spaces
 import numpy as np
 import cell_sim
+# Uso il . perchè importa dal modulo reward che si
+# trova nella stessa directory del file corrente.
+from .reward import reward_kd, terminal_reward_kd
 
 
 class CellSimEnv(gym.Env):
@@ -85,9 +88,17 @@ class CellSimEnv(gym.Env):
         )
 
     def reset(self):
-        """Reset the simulation and return the initial observation."""
-        # TODO: implement reset logic
-        pass
+        """Reset cached state and return the current observation.
+
+        Note: the underlying simulator does not expose a full reset API,
+        so this method reinitializes only the environment bookkeeping.
+        """
+        counts = self.ctrl.get_cell_counts()
+        self.initial_healthy = float(counts[0])
+        self.prev_counts = tuple(map(float, counts))
+        self.elapsed_hours = 0
+        self.total_dose = 0.0
+        return np.asarray(counts, dtype=np.float32)
 
     def step(self, action):
         """Apply an action and advance the simulation."""
@@ -99,21 +110,23 @@ class CellSimEnv(gym.Env):
         # Irradiate with the given dose
         if dose > 0.0:
             self.ctrl.irradiate(dose)
+            self.total_dose = float(getattr(self, "total_dose", 0.0) + dose)
 
         # Advance simulation for the specified number of hours
         for _ in range(hours):
             self.ctrl.go()
         # Update cumulative time
-        self.hour_count += hours
+        self.elapsed_hours = int(getattr(self, "elapsed_hours", 0) + hours)
 
         # Observation: total healthy and cancer cell counts
         counts = self.ctrl.get_cell_counts()
         observation = np.asarray(counts, dtype=np.float32)
+        healthy, cancer = float(observation[0]), float(observation[1])
 
         # Terminal conditions based on observation and elapsed time
         # Evaluate raw flags first
-        _successful = bool(observation[1] == 0)
-        _unsuccessful = bool(observation[0] <= 10)
+        _successful = bool(cancer == 0)
+        _unsuccessful = bool(healthy <= 10)
         _timeout = bool(self.elapsed_hours >= 1200)
 
         # Enforce mutually-exclusive terminal reason, prioritizing success, then failure
@@ -130,8 +143,23 @@ class CellSimEnv(gym.Env):
         terminated = successful or unsuccessful
         truncated = timeout
 
-        # Placeholder reward; actual shaping can be plugged from rein/reward.py
-        reward = 0.0
+        # Compute reward using functions from rein/reward.py
+        # Step deltas (killed counts in this step)
+        prev_h, prev_c = getattr(self, "prev_counts", (healthy, cancer))
+        healthy_killed = max(0.0, float(prev_h) - healthy)
+        cancer_killed = max(0.0, float(prev_c) - cancer)
+
+        if not terminated and not truncated:
+            # Non-terminal step: KD reward using this step dose
+            reward = reward_kd(cancer_killed, healthy_killed, dose)
+        elif terminated and successful:
+            # Terminal successful: KD terminal reward (penalize total dose)
+            init_h = float(getattr(self, "initial_healthy", healthy))
+            total_dose = float(getattr(self, "total_dose", dose))
+            reward = terminal_reward_kd(True, init_h, healthy, total_dose)
+        else:
+            # Terminal unsuccessful (or truncated-only path won't hit here): -1
+            reward = -1.0 if terminated else 0.0
 
         # Provide all flags and counters in info for downstream logic/analysis
         info = {
@@ -140,6 +168,9 @@ class CellSimEnv(gym.Env):
             "timeout": timeout,
             "elapsed_hours": self.elapsed_hours,
         }
+
+        # Update previous counts for next step
+        self.prev_counts = (healthy, cancer)
         return observation, reward, terminated, truncated, info
 
     def close(self):
