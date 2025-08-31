@@ -107,6 +107,11 @@ class CellSimEnv(gym.Env):
         dose = float(np.clip(a[0], 0.0, self.max_dose))
         hours = int(np.clip(a[1], 0.0, float(self.max_wait)))
 
+        # Compute healthy and cancer cells count before the radiation
+        counts = self.ctrl.get_cell_counts()
+        counts = np.asarray(counts, dtype=np.float32)
+        prev_h, prev_c = counts[0], count[1]
+
         # Irradiate with the given dose
         if dose > 0.0:
             self.ctrl.irradiate(dose)
@@ -145,7 +150,7 @@ class CellSimEnv(gym.Env):
 
         # Compute reward using functions from rein/reward.py
         # Step deltas (killed counts in this step)
-        prev_h, prev_c = getattr(self, "prev_counts", (healthy, cancer))
+        # prev_h, prev_c = getattr(self, "prev_counts", (healthy, cancer))
         healthy_killed = max(0.0, float(prev_h) - healthy)
         cancer_killed = max(0.0, float(prev_c) - cancer)
 
