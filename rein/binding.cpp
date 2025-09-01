@@ -1,13 +1,21 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+// Expose private members in this TU to bind internal fields like `grid`
+#define private public
+#define protected public
 // Binding for Controller in C++ simulation
 #include "../CellSimLib/include/CellLib/controller.h"
+#undef private
+#undef protected
 
 namespace py = pybind11;
 
 PYBIND11_MODULE(cell_sim, m) {
     m.doc() = "Python bindings for the C++ cell simulation Controller";
+
+    // Minimal Grid binding so that `Controller.grid` can be returned
+    py::class_<Grid>(m, "Grid");
 
     py::class_<Controller>(m, "Controller")
         // Constructor
@@ -15,6 +23,8 @@ PYBIND11_MODULE(cell_sim, m) {
              py::arg("xsize"), py::arg("ysize"), py::arg("zsize"),
              py::arg("sources_num"), py::arg("cradius"), py::arg("hradius"),
              py::arg("hcells"), py::arg("ccells"))
+        // Expose internal grid pointer (read-only reference)
+        .def("grid", &Controller::grid, "Underlying simulation Grid object")
         // Advance simulation by one hour
         .def("go", &Controller::go, "Advance the simulation by one hour")
         // Compute save intervals

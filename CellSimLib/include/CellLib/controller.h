@@ -52,7 +52,6 @@ public:
     std::vector<int> get_cell_counts() const;
 
 
-
 private:
     bool self_grid;
     Grid * grid;
