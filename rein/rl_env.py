@@ -110,7 +110,7 @@ class CellSimEnv(gym.Env):
         # Compute healthy and cancer cells count before the radiation
         counts = self.ctrl.get_cell_counts()
         counts = np.asarray(counts, dtype=np.float32)
-        prev_h, prev_c = counts[0], count[1]
+        prev_h, prev_c = float(counts[0]), float(counts[1])
 
         # Irradiate with the given dose
         if dose > 0.0:
