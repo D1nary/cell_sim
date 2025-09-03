@@ -24,27 +24,115 @@ CellList::CellList():head(nullptr), tail(nullptr), size(0), oar_count(0), ccell_
  * Destructor of CellList
  *
  */
-CellList::~CellList() {
+CellList::~CellList() noexcept {
+    clear_();
+}
+
+/**
+ * Clear the content of this CellList freeing all allocated nodes and cells
+ */
+void CellList::clear_(){
     CellNode * current = head;
-    CellNode * next;
-    
     // Delete all the CellNodes and Cells in the CellList
     while (current){ // Continue iteration while 'current' is not a null pointer (nullptr)
 
         // Accesses the members of an object through a pointer.
-        // The first 'next' refers to the pointer declared in the destructor,
-        // while the second 'next' refers to a member of the CellNode class.
-        // The first 'next' will store the value of the 'next' member of the current node (current->next).
-        next = current -> next;
-        
+         // The first 'next' refers to the pointer declared in the destructor,
+         // while the second 'next' refers to a member of the CellNode class.
+         // The first 'next' will store the value of the 'next' member of the current node (current->next).
+        CellNode * next = current -> next;
+
         // Deallocating the memory associated with the 'cell' member of the current CellNode object.
         delete current -> cell;
-        
+
         // Deallocating the memory of the CellNode object
         delete current;
         current = next;
     }
+    head = nullptr;
+    tail = nullptr;
+    size = 0;
+    oar_count = 0;
+    ccell_count = 0;
 }
+
+/**
+ * Copy all the nodes and cells from another CellList into this one
+ *
+ * @param other The CellList to copy from
+ */
+void CellList::copy_from_(const CellList& other){
+    CellNode * current = other.head;
+    while (current){
+        Cell * new_cell = nullptr;
+        switch(current -> type){
+            case 'h':
+                new_cell = new HealthyCell(*static_cast<HealthyCell*>(current -> cell));
+                break;
+            case 'c':
+                new_cell = new CancerCell(*static_cast<CancerCell*>(current -> cell));
+                break;
+            case 'o':
+                new_cell = new OARCell(*static_cast<OARCell*>(current -> cell));
+                break;
+            default:
+                break;
+        }
+
+        CellNode * newNode = new CellNode;
+        newNode -> x = current -> x;
+        newNode -> y = current -> y;
+        newNode -> z = current -> z;
+        newNode -> cell = new_cell;
+        newNode -> type = current -> type;
+
+        add(newNode, current -> type);
+        current = current -> next;
+    }
+}
+
+/**
+ * Copy constructor of CellList
+ */
+CellList::CellList(const CellList& other):head(nullptr), tail(nullptr), size(0), oar_count(0), ccell_count(0){
+    copy_from_(other);
+}
+
+/**
+ * Copy assignment operator of CellList
+ */
+CellList& CellList::operator=(const CellList& other){
+
+    // Check if the two objects are the same object in memory
+    if(this != &other){
+        clear_();
+        copy_from_(other);
+    }
+    return *this;
+}
+
+
+// CellList::~CellList() {
+//     CellNode * current = head;
+//     CellNode * next;
+//     
+//     // Delete all the CellNodes and Cells in the CellList
+//     while (current){ // Continue iteration while 'current' is not a null pointer (nullptr)
+// 
+//         // Accesses the members of an object through a pointer.
+//         // The first 'next' refers to the pointer declared in the destructor,
+//         // while the second 'next' refers to a member of the CellNode class.
+//         // The first 'next' will store the value of the 'next' member of the current node (current->next).
+//         next = current -> next;
+//         
+//         // Deallocating the memory associated with the 'cell' member of the current CellNode object.
+//         delete current -> cell;
+//         
+//         // Deallocating the memory of the CellNode object
+//         delete current;
+//         current = next;
+//     }
+// }
 
 
 /**
