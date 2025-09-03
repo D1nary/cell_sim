@@ -313,14 +313,67 @@ SourceList::SourceList():head(nullptr), tail(nullptr), size(0) {}
 /**
  * Destructor of SourceList
  */
-SourceList::~SourceList() {
+// SourceList::~SourceList() {
+//     Source * current = head;
+//     Source * next;
+//     while (current){
+//         next = current -> next;
+//         delete current;
+//         current = next;
+//     }
+// }
+
+/**
+ * Destructor of SourceList
+ */
+SourceList::~SourceList() noexcept {
+    clear_();
+}
+
+/**
+ * Clear the content of this SourceList freeing all allocated nodes
+ */
+void SourceList::clear_(){
     Source * current = head;
-    Source * next;
     while (current){
-        next = current -> next;
+        Source * next = current -> next;
         delete current;
         current = next;
     }
+    head = nullptr;
+    tail = nullptr;
+    size = 0;
+}
+
+/**
+ * Copy all sources from another SourceList into this one
+ *
+ * @param other The SourceList to copy from
+ */
+void SourceList::copy_from_(const SourceList& other){
+    Source * current = other.head;
+    while (current){
+        add(current -> x, current -> y, current -> z);
+        current = current -> next;
+    }
+}
+
+/**
+ * Copy constructor of SourceList
+ */
+SourceList::SourceList(const SourceList& other):head(nullptr), tail(nullptr), size(0){
+    copy_from_(other);
+}
+
+/**
+ * Copy assignment operator of SourceList
+ */
+SourceList& SourceList::operator=(const SourceList& other){
+    if(this != &other){
+        clear_();
+        copy_from_(other);
+    }
+    return *this;
 }
 
 /**
