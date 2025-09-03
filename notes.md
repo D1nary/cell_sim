@@ -43,6 +43,193 @@ Se non c’è → viene restituito il valore_default passato.
 
 - Con dtype puoi forzare il tipo degli elementi (qui np.float32).
 
+---
+
+# Deep Copy
+Nel file grid.cpp la deep copy è stata implementata per le classe CellList, SourceList e Grid. DI seguito è spiegato il caso della classe CellList
+
+## 1. Cosa significa *deep copy* in questo contesto
+
+* Una **shallow copy** (copia superficiale) copia solo i puntatori: sia l’oggetto originale che la copia puntano alle stesse celle in memoria → modificare uno modifica anche l’altro.
+* Una **deep copy** invece crea **nuove istanze indipendenti**: la copia possiede le proprie `Cell`, perciò gli oggetti originali e copiati non condividono più i dati.
+
+
+## 2. Implementazioni tipiche viste nei file
+
+Nel file `grid.h`, la classe `CellList` è stata modificata per includere:
+
+* **Copy constructor**
+
+  ```cpp
+  CellList(const CellList& other);
+  ```
+
+* **Copy assignment operator**
+
+  ```cpp
+  CellList& operator=(const CellList& other);
+  ```
+
+* **Destructor** (già presente) per liberare memoria allocata dinamicamente.
+
+
+## 3. Copy constructor (`CellList(const CellList& other)`)
+
+Questo costruttore viene chiamato quando crei una nuova lista a partire da un’altra, ad esempio:
+
+```cpp
+CellList list2 = list1;   // chiama il copy constructor
+```
+
+Funzionamento:
+
+* Alloca nuova memoria per ogni `Cell*` contenuta in `other`.
+* Clona ogni cella (di solito con `new Cell(*otherCell)`).
+* Inserisce i nuovi puntatori nella nuova lista.
+
+➡ Risultato: `list2` ha celle nuove, non condivise con `list1`.
+
+
+## 4. Copy assignment operator (`operator=(const CellList& other)`)
+
+Questo operatore entra in gioco quando assegni una lista già esistente ad un’altra:
+
+```cpp
+CellList list2;
+list2 = list1;   // chiama operator=
+```
+
+Funzionamento:
+
+1. **Protezione auto-assegnazione**: se stai facendo `list1 = list1;` non deve fare nulla.
+   Tipico pattern:
+
+   ```cpp
+   if (this == &other) return *this;
+   ```
+2. **Pulizia risorse attuali**: libera la memoria delle celle già presenti in `this`.
+3. **Copia profonda**: come nel copy constructor, clona tutte le celle da `other`.
+
+➡ Risultato: dopo l’assegnazione, `list2` è indipendente da `list1`.
+
+
+## 5. Distruttore (`~CellList()`)
+
+Serve a garantire che tutta la memoria allocata per le celle venga deallocata correttamente:
+
+```cpp
+~CellList() {
+    for (Cell* c : cells) delete c;
+}
+```
+
+In questo modo eviti **memory leak**.
+
+
+## 6. Schema riassuntivo
+
+* **Costruttore di copia** → crea una nuova lista clonando celle da un’altra lista.
+* **Operatore di assegnazione** → sostituisce le celle correnti con copie di un’altra lista.
+* **Distruttore** → pulisce la memoria allocata.
+
+Questi tre insieme implementano la cosiddetta **“Rule of Three”** in C++.
+
+
+## Due vie per il deep copy
+
+### 1. **Copy constructor**
+
+Si attiva quando crei un nuovo oggetto a partire da uno già esistente:
+
+```cpp
+CellList a;         // lista originale
+CellList b = a;     // copy constructor → deep copy
+CellList c(a);      // stessa cosa
+```
+
+🔹 Qui viene invocato il **costruttore di copia**.
+Risultato: `b` e `c` sono copie indipendenti di `a`.
+
+### 2. **Copy assignment operator**
+
+Si attiva quando assegni a un oggetto già esistente il contenuto di un altro:
+
+```cpp
+CellList a;
+CellList b;
+// ... magari b ha già delle celle dentro
+b = a;  // copy assignment operator → deep copy
+```
+
+🔹 In questo caso:
+
+1. `b` prima libera la memoria delle celle che già possiede.
+2. Poi ricrea copie profonde delle celle di `a`.
+
+Risultato: `b` diventa una copia indipendente di `a`.
+
+### 🔑 Differenza chiave
+
+* **Copy constructor** → usato nella fase di **inizializzazione** (quando stai creando un oggetto nuovo).
+* **Copy assignment** → usato nella fase di **assegnazione** (quando l’oggetto esiste già e deve diventare uguale a un altro).
+
+---
+
+## Differenza tra puntatore e alias
+Prendiamo per esempio un oggetto `SourceList`
+1. SourceList* (puntatore a SourceList)
+
+    - È una variabile che contiene l’indirizzo di un oggetto di tipo `SourceList`.
+    - Può essere `nullptr` (cioè non puntare a niente).
+    - Può essere riassegnato per puntare a un altro oggetto.
+    - Per accedere al contenuto serve la dereferenziazione *.
+
+2. SourceList& (reference a SourceList)
+
+    - È un alias (riferimento) a un oggetto esistente.
+    - Deve essere inizializzata subito e non può essere "nulla".
+    - Dopo l’inizializzazione, non può essere cambiata per riferirsi a un altro oggetto.
+    - Si usa come se fosse l’oggetto stesso (non serve `*` né `->`).
+
+3. Differenza chiave
+
+- Puntatore (`*`) → variabile che contiene un indirizzo; gestione più "manuale".
+- Reference (`&`) → un altro nome per l’oggetto; più sicura, non può essere nulla né riassegnata.
+
+4. Dato un puntatore `a` (per esempio un puntatore ad un oggetto `SourceList*`) e una reference `b` (`SourceList&`), se scriviamo `&b` si ottiene l’indirizzo in memoria dell’oggetto referenziato da `b`, quindi il tipo è un puntatore (`SourceList*`) come `a`.
+
+## this
+```cpp
+SourceList& SourceList::operator=(const SourceList& other){
+    if(this != &other){
+        clear_();
+        copy_from_(other);
+    }
+    return *this;
+}
+```
+`this` in C++ è un puntatore all’oggetto corrente, cioè dentro un metodo di istanza (SourceList::operator=) rappresenta l’indirizzo dell’oggetto su cui il metodo è stato invocato. Siccome `this` è un puntatore, il suo tipo è `SourceList*`.
+
+- Se abbiamo due oggetti di tipo `SourceList`:
+    '''cpp
+    SourceList a;
+    SourceList b;
+    a = b;
+    '''
+    - `this` → è un puntatore all’oggetto su cui viene chiamato il metodo, cioè `a` in questo caso.
+    - `other` → è il parametro passato, quindi una reference a `b`
+
+- Come mai posso confrontare `this` e `&other` in `if(this != &other)`? Perchè `this` è un puntatore ad un oggetto `SourceList` (`SourceList*`) mentre `&other` è l’indirizzo in memoria (quindi un puntatore) dell’oggetto referenziato da `other` (`other` referenzia un oggetto di tipo `SourceList`), quindi il tipo è `SourceList*`.
+
+- Come mai si fa `return *this` se il metodo deve ritornare una reference come specificato nella dichiarazione (`SourceList& SourceList::operator=(const SourceList& other)`)? 
+    - Se scrivi solo `this`, avresti un `SourceList*` (puntatore) → incompatibile con `SourceList&`.
+    - Se invece scrivi `*this`, stai dereferenziando il puntatore:
+        - `this` → `SourceList*`
+    `   - *this` → `SourceList&` (alias all’oggetto stesso)
+
+
+
+
 # Possibili errori
 Nel distruttore dell'oggetto controller in controller.cpp
 ```cpp
