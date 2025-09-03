@@ -1,2 +1,18 @@
 Ricorda di azzerare il contatore delle ore tick prima di iniziare l'algoritmo
 rl perchè il contare tick viene usato dall'agente
+
+-----------------------------------------------------
+In grid.h per la copiaprofonda:
+modifiche consigliate nella classe CellList:
+~CellList() noexcept;
+CellList(CellList&&) = delete;
+CellList& operator=(CellList&&) = delete; (Valuta di dichiarare anche i move
+ (Rule of Five) o,se non ti servono, disabilitarli:)
+
+Lo stesso nella classe SourceList
+SourceList(SourceList&&) = delete;
+SourceList& operator=(SourceList&&) = delete;
+~SourceList() noexcept;
+
+
+-----------------------------------------------------

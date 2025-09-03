@@ -15,28 +15,21 @@ struct OARZone{
     int x1, x2, y1, y2, z1, z2;
 };
 
-
-class CellList{
-private:
-    void clear_();
-    void copy_from_(const CellList& other);
-
+class CellList
+{
 public:
     CellNode *head, *tail;
     int size;
     int oar_count;
     int ccell_count;
     CellList();
-    ~CellList() noexcept;
+    ~CellList();
     void add(Cell * cell, char type);
     void deleteDeadAndSort();
     int CellTypeSum();
     void wake_oar();
     void add(Cell *cell, char type, int x, int y, int z);
     void add(CellNode * toAdd, char type);
-
-    CellList(const CellList& other);
-    CellList& operator=(const CellList& other);
 
 };
 
@@ -50,22 +43,14 @@ public:
     Source *head, *tail;
     int size;
     SourceList();
-    ~SourceList() noexcept;
+    ~SourceList();
     void add(int x, int y, int z);
-    SourceList(const SourceList& other);
-    SourceList& operator=(const SourceList& other);
-
-private:
-  void clear_();
-  void copy_from_(const SourceList& other);
-
 };
-
 class Grid {
 public:
     Grid(int xsize, int ysize, int zsize, int sources_num);
     Grid(int xsize, int ysize, int zsize, int sources_num, OARZone * oar);
-    ~Grid() noexcept;
+    ~Grid();
     void addCell(int x, int y, int z, Cell * cell, char type);
     void fill_sources(double glu, double oxy);
     void cycle_cells();
@@ -90,11 +75,6 @@ public:
     SourceList* getSources() const;
     double*** getGlucose() const;
     
-    Grid(const Grid& other);
-    Grid& operator=(const Grid& other);
-    // Evita move semantiche ambigue con raw pointer (fino a implementazione ad hoc)
-    Grid(Grid&&) = delete;
-    Grid& operator=(Grid&&) = delete;
 private:
     // void change_neigh_counts(int x, int y, int z, int val);
     int rand_min(int x, int y, int z, int max);
@@ -123,10 +103,6 @@ private:
     double center_y;
     double center_z;
     int * rand_helper;
-
-    void alloc_all_();
-    void free_all_();
-    void copy_from_(const Grid& other);
 };
 
 #endif

@@ -1,13 +1,10 @@
-#include <algorithm> // std::copy, std::swap and others
+#include <algorithm>
 #include "CellLib/grid.h"
 #include <assert.h> 
 #include <math.h> 
 #include <iostream>
 
 #include <cstdlib>  // For rand() and srand()
-
-#include <cstring>    // (opzionale) std::memcpy
-
 
 using namespace std;
 
