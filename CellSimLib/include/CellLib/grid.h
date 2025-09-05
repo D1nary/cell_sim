@@ -92,9 +92,7 @@ public:
     
     Grid(const Grid& other);
     Grid& operator=(const Grid& other);
-    // Evita move semantiche ambigue con raw pointer (fino a implementazione ad hoc)
-    Grid(Grid&&) = delete;
-    Grid& operator=(Grid&&) = delete;
+
 private:
     // void change_neigh_counts(int x, int y, int z, int val);
     int rand_min(int x, int y, int z, int max);
