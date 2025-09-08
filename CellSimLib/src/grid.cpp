@@ -499,36 +499,177 @@ Grid::Grid(int xsize, int ysize, int zsize, int sources_num, OARZone * oar_zone)
  * Destructor of Grid
  *
  */
-Grid::~Grid() {
-    // Deallocate the 3D matrices
-    for (int k = 0; k < zsize; k++) {
-        for (int i = 0; i < xsize; i++) {
-            // Deallocate the columns of the matrices
-            delete[] cells[k][i];
-            delete[] glucose[k][i];
-            delete[] oxygen[k][i];
-            delete[] glucose_helper[k][i];
-            delete[] oxygen_helper[k][i];
-            delete[] neigh_counts[k][i];
-        }
-        // Deallocate the rows in the matrices
-        delete[] cells[k];
-        delete[] glucose[k];
-        delete[] oxygen[k];
-        delete[] glucose_helper[k];
-        delete[] oxygen_helper[k];
-        delete[] neigh_counts[k];
-    }
-    // Deallocate the layer arrays
-    delete[] cells;
-    delete[] glucose;
-    delete[] oxygen;
-    delete[] glucose_helper;
-    delete[] oxygen_helper;
-    delete[] neigh_counts;
+Grid::~Grid() noexcept {
+    free_all_();
 
     // Deallocates the SourceList
     delete sources;
+}
+// Grid::~Grid() {
+//     // Deallocate the 3D matrices
+//     for (int k = 0; k < zsize; k++) {
+//         for (int i = 0; i < xsize; i++) {
+//             // Deallocate the columns of the matrices
+//             delete[] cells[k][i];
+//             delete[] glucose[k][i];
+//             delete[] oxygen[k][i];
+//             delete[] glucose_helper[k][i];
+//             delete[] oxygen_helper[k][i];
+//             delete[] neigh_counts[k][i];
+//         }
+//         // Deallocate the rows in the matrices
+//         delete[] cells[k];
+//         delete[] glucose[k];
+//         delete[] oxygen[k];
+//         delete[] glucose_helper[k];
+//         delete[] oxygen_helper[k];
+//         delete[] neigh_counts[k];
+//     }
+//     // Deallocate the layer arrays
+//     delete[] cells;
+//     delete[] glucose;
+//     delete[] oxygen;
+//     delete[] glucose_helper;
+//     delete[] oxygen_helper;
+//     delete[] neigh_counts;
+// 
+//     // Deallocates the SourceList
+//     delete sources;
+// }
+
+/**
+ * Copy constructor of Grid
+ *
+ * Creates a deep copy of another Grid object by calling copy_from_().
+ */
+Grid::Grid(const Grid& other)
+    : xsize(0), ysize(0), zsize(0),
+      cells(nullptr), glucose(nullptr), oxygen(nullptr),
+      glucose_helper(nullptr), oxygen_helper(nullptr),
+      neigh_counts(nullptr), sources(nullptr), oar(nullptr),
+      center_x(0), center_y(0), center_z(0), rand_helper(nullptr) {
+    copy_from_(other);
+}
+
+/**
+ * Copy assignment operator of Grid
+ *
+ * Deallocates existing resources and copies data from another Grid object.
+ */
+Grid& Grid::operator=(const Grid& other) {
+    if (this != &other) {
+        free_all_();
+        delete sources;
+        sources = nullptr;
+        copy_from_(other);
+    }
+    return *this;
+}
+
+/**
+ * Allocates all dynamic arrays of the Grid
+ *
+ * Initializes 3D arrays for cells, glucose, oxygen, and neighbor counts.
+ */
+void Grid::alloc_all_() {
+    cells = new CellList**[zsize];
+    glucose = new double**[zsize];
+    glucose_helper = new double**[zsize];
+    oxygen = new double**[zsize];
+    oxygen_helper = new double**[zsize];
+    neigh_counts = new int**[zsize];
+
+    for (int k = 0; k < zsize; ++k) {
+        cells[k] = new CellList*[xsize];
+        glucose[k] = new double*[xsize];
+        glucose_helper[k] = new double*[xsize];
+        oxygen[k] = new double*[xsize];
+        oxygen_helper[k] = new double*[xsize];
+        neigh_counts[k] = new int*[xsize];
+
+        for (int i = 0; i < xsize; ++i) {
+            cells[k][i] = new CellList[ysize];
+            glucose[k][i] = new double[ysize];
+            glucose_helper[k][i] = new double[ysize];
+            oxygen[k][i] = new double[ysize];
+            oxygen_helper[k][i] = new double[ysize];
+            neigh_counts[k][i] = new int[ysize];
+        }
+    }
+}
+
+/**
+ * Frees all dynamic arrays of the Grid
+ *
+ * Deallocates 3D arrays and sets pointers to nullptr.
+ */
+void Grid::free_all_() {
+    if (!cells) {
+        return;
+    }
+
+    for (int k = 0; k < zsize; ++k) {
+        for (int i = 0; i < xsize; ++i) {
+            delete[] cells[k][i];
+            delete[] glucose[k][i];
+            delete[] glucose_helper[k][i];
+            delete[] oxygen[k][i];
+            delete[] oxygen_helper[k][i];
+            delete[] neigh_counts[k][i];
+        }
+        delete[] cells[k];
+        delete[] glucose[k];
+        delete[] glucose_helper[k];
+        delete[] oxygen[k];
+        delete[] oxygen_helper[k];
+        delete[] neigh_counts[k];
+    }
+    delete[] cells;
+    delete[] glucose;
+    delete[] glucose_helper;
+    delete[] oxygen;
+    delete[] oxygen_helper;
+    delete[] neigh_counts;
+
+    cells = nullptr;
+    glucose = nullptr;
+    glucose_helper = nullptr;
+    oxygen = nullptr;
+    oxygen_helper = nullptr;
+    neigh_counts = nullptr;
+}
+
+/**
+ * Copies all data from another Grid
+ *
+ * Duplicates dimensions, arrays, and SourceList of another Grid object.
+ */
+void Grid::copy_from_(const Grid& other) {
+    xsize = other.xsize;
+    ysize = other.ysize;
+    zsize = other.zsize;
+    oar = other.oar;
+    center_x = other.center_x;
+    center_y = other.center_y;
+    center_z = other.center_z;
+
+    alloc_all_();
+
+    for (int k = 0; k < zsize; ++k) {
+        for (int i = 0; i < xsize; ++i) {
+            for (int j = 0; j < ysize; ++j) {
+                cells[k][i][j] = other.cells[k][i][j];
+                glucose[k][i][j] = other.glucose[k][i][j];
+                glucose_helper[k][i][j] = other.glucose_helper[k][i][j];
+                oxygen[k][i][j] = other.oxygen[k][i][j];
+                oxygen_helper[k][i][j] = other.oxygen_helper[k][i][j];
+                neigh_counts[k][i][j] = other.neigh_counts[k][i][j];
+            }
+        }
+    }
+
+    sources = other.sources ? new SourceList(*other.sources) : nullptr;
+    rand_helper = nullptr;
 }
 
 /**

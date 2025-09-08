@@ -129,5 +129,4 @@ private:
     void free_all_(); 
     void copy_from_(const Grid& other);
 };
-
 #endif
