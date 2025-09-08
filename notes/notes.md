@@ -113,7 +113,7 @@ Funzionamento:
 ➡ Risultato: dopo l’assegnazione, `list2` è indipendente da `list1`.
 
 
-## 5. Distruttore (`~CellList()`)
+## Distruttore (`~CellList()`)
 
 Serve a garantire che tutta la memoria allocata per le celle venga deallocata correttamente:
 
@@ -126,7 +126,7 @@ Serve a garantire che tutta la memoria allocata per le celle venga deallocata co
 In questo modo eviti **memory leak**.
 
 
-## 6. Schema riassuntivo
+## Schema riassuntivo
 
 * **Costruttore di copia** → crea una nuova lista clonando celle da un’altra lista.
 * **Operatore di assegnazione** → sostituisce le celle correnti con copie di un’altra lista.
