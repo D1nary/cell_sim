@@ -48,13 +48,13 @@ Se non c’è → viene restituito il valore_default passato.
 # Deep Copy
 Nel file grid.cpp la deep copy è stata implementata per le classe CellList, SourceList e Grid. DI seguito è spiegato il caso della classe CellList
 
-## 1. Cosa significa *deep copy* in questo contesto
+## Cosa significa *deep copy* in questo contesto
 
 * Una **shallow copy** (copia superficiale) copia solo i puntatori: sia l’oggetto originale che la copia puntano alle stesse celle in memoria → modificare uno modifica anche l’altro.
 * Una **deep copy** invece crea **nuove istanze indipendenti**: la copia possiede le proprie `Cell`, perciò gli oggetti originali e copiati non condividono più i dati.
 
 
-## 2. Implementazioni tipiche viste nei file
+## Implementazioni tipiche viste nei file
 
 Nel file `grid.h`, la classe `CellList` è stata modificata per includere:
 
@@ -70,10 +70,10 @@ Nel file `grid.h`, la classe `CellList` è stata modificata per includere:
   CellList& operator=(const CellList& other);
   ```
 
-* **Destructor** (già presente) per liberare memoria allocata dinamicamente.
+* **Destructor** per liberare memoria allocata dinamicamente.
 
 
-## 3. Copy constructor (`CellList(const CellList& other)`)
+## Copy constructor (`CellList(const CellList& other)`)
 
 Questo costruttore viene chiamato quando crei una nuova lista a partire da un’altra, ad esempio:
 
@@ -90,7 +90,7 @@ Funzionamento:
 ➡ Risultato: `list2` ha celle nuove, non condivise con `list1`.
 
 
-## 4. Copy assignment operator (`operator=(const CellList& other)`)
+## Copy assignment operator (`operator=(const CellList& other)`)
 
 Questo operatore entra in gioco quando assegni una lista già esistente ad un’altra:
 
@@ -198,7 +198,7 @@ Prendiamo per esempio un oggetto `SourceList`
 
 4. Dato un puntatore `a` (per esempio un puntatore ad un oggetto `SourceList*`) e una reference `b` (`SourceList&`), se scriviamo `&b` si ottiene l’indirizzo in memoria dell’oggetto referenziato da `b`, quindi il tipo è un puntatore (`SourceList*`) come `a`.
 
-## this
+## "this" operator
 ```cpp
 SourceList& SourceList::operator=(const SourceList& other){
     if(this != &other){
@@ -227,20 +227,50 @@ SourceList& SourceList::operator=(const SourceList& other){
         - `this` → `SourceList*`
     `   - *this` → `SourceList&` (alias all’oggetto stesso)
 
+---
+## Struttura 
+elemento z -> puntatore a puntatore a lista contenente oggetti CellList
 
+elemento y -> puntatore a lista contenente oggetti CellList
 
+elemento x -> oggetto CellList
 
-# Possibili errori
-Nel distruttore dell'oggetto controller in controller.cpp
+Matrice 2D
+[[x,x],[x,x]]
+
+Matrice 3D
+[[[x,x],[x,x]],[[x,x],[x,x]]]
+
+[
+[[x,x],[x,x]], // Piano 1
+[[x,x],[x,x]]  // Piano 2
+]
+
+[
+[[x,x],[x,x]], // Primo elemento: Puntatore alla prima matrice
+[[x,x],[x,x]]  // Secondo elemento: Puntatore alla seconda matrice
+]
+
+Primo elemento (Primo piano):
+[
+[x,x], // Puntatore alla prima riga (i.e puntatore alla prima lista di oggetti CellList) 
+[x,x]  // Puntatore alla seconda riga (i.e puntatore alla seconda lista di oggetti CellList)
+]
+
+Puntatore alla prima riga:
+[x,x] Riga composta da oggetti CellList
+---
+## delete[] in free_all_ (grid.cpp)
+Esempio:
 ```cpp
-/**
- * Destructor of the controller
- */
-Controller::~Controller() {
-    if (self_grid)
-        delete grid;
-    if(oar)
-        delete oar;
-}
+delete[] cells[k][i];
 ```
-FORSE da sostituire self_grid con grid
+
+In C++ esistono due versioni di delete:
+
+- delete ptr; → si usa quando la memoria è stata allocata con new (singolo oggetto).
+- delete[] ptr; → si usa quando la memoria è stata allocata con new[] (array di oggetti).
+
+Se usi delete al posto di delete[], viene chiamato il distruttore solo del primo elemento dell’array, mentre gli altri elementi non vengono distrutti correttamente → comportamento indefinito.
+
+

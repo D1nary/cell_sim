@@ -16,3 +16,10 @@ SourceList& operator=(SourceList&&) = delete;
 
 
 -----------------------------------------------------
+L'allocazione di memoria per la costruzione della griglia crea una struttura non completamente contigua in 3D:
+- ogni riga (cells[z][y]) è contigua in memoria;
+- ma i diversi array di righe e i piani sono allocazioni separate (struttura “jagged”).
+Se ti servisse un unico blocco 3D contiguo, l’allocazione andrebbe progettata diversamente.
+-----------------------------------------------------
+FORSE da sostituire self_grid con grid
+-----------------------------------------------------
