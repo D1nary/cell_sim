@@ -273,4 +273,18 @@ In C++ esistono due versioni di delete:
 
 Se usi delete al posto di delete[], viene chiamato il distruttore solo del primo elemento dell’array, mentre gli altri elementi non vengono distrutti correttamente → comportamento indefinito.
 
+## condizione ? valore_se_vero : valore_se_falso
+Questa forma di condizione è presente in grid.cpp:
 
+```cpp
+sources = other.sources ? new SourceList(*other.sources) : nullptr;
+```
+- other.sources → è un puntatore a SourceList.
+
+- La condizione other.sources ? ... : ... significa:
+"Se other.sources non è nullptr allora fai ..., altrimenti fai ...".
+
+- new SourceList(*other.sources) → crea un nuovo oggetto SourceList sullo heap, usando il costruttore di copia di SourceList.
+In pratica fa una deep copy: duplica i contenuti della lista delle sorgenti dell’altro Grid.
+
+- : nullptr → se invece other.sources era nullptr, allora anche sources diventa nullptr (quindi niente copia, non esiste lista sorgenti).
