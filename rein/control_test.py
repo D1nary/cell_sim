@@ -95,7 +95,9 @@ if __name__ == "__main__":
     
     print(type(ctrl.grid))
 
-    g2 = ctrl.grid.deepcopy()
+    import copy
+    g2 = copy.deepcopy(ctrl.grid)
+
     
     exit(0)
 
