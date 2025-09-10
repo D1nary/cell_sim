@@ -94,7 +94,8 @@ if __name__ == "__main__":
     tumor_growth(ctrl, data_tab_growth)
     
     print(type(ctrl.grid))
-    g2 = cell_sim.deepcopy(ctrl.grid)
+
+    g2 = ctrl.grid.deepcopy()
     
     exit(0)
 
