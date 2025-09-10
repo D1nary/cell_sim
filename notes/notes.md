@@ -288,3 +288,59 @@ sources = other.sources ? new SourceList(*other.sources) : nullptr;
 In pratica fa una deep copy: duplica i contenuti della lista delle sorgenti dell’altro Grid.
 
 - : nullptr → se invece other.sources era nullptr, allora anche sources diventa nullptr (quindi niente copia, non esiste lista sorgenti).
+
+## Deep copy in binding.cpp
+Come mai i costruttori di deep copy in binding.cpp non vengono costruiti come accade per gli altri metodi presenti (per esempio come venogono costruiti i metodi per la classe grid)?
+
+1. Il costruttore di copia non è un metodo da esporre con .def
+    - I normali metodi li esponi così: .def("step", &Grid::step), passando un member function pointer.
+    - Il costruttore di copia invece è una special member function e non esiste come &Grid::qualcosa; per esporre un costruttore si usa .def(py::init<...>()), non .def("nome", ...).
+
+2. Python usa __copy__/__deepcopy__, non il costruttore
+    - In Python, copy.copy(obj) chiama obj.__copy__() e copy.deepcopy(obj, memo) chiama obj.__deepcopy__(memo).
+    - Pybind11 non collega automaticamente il costruttore di copia C++ a questi special methods Python.
+    - Per integrarti col protocollo Python, devi definire esplicitamente __copy__ e __deepcopy__ nel binding. Da qui le lambda
+    
+### Differenze tra copy, deepcopy e clone
+1. copy.copy(obj) → __copy__ 
+    - Livello Python: chiama obj.__copy__().
+    - Nel binding: ritorna Grid(self).
+    - Deve produrre una nuova istanza, ma può fare una copia “superficiale”: in Python, per oggetti mutabili complessi, questo significa copiare solo il contenitore e condividere riferimenti interni.
+    - Nel tuo caso, dato che il costruttore di copia C++ fa già una deep copy dei buffer, copy.copy e deepcopy si comportano allo stesso modo (entrambe copiano a fondo la griglia).
+
+2. copy.deepcopy(obj, memo) → __deepcopy__
+    - Livello Python: chiama obj.__deepcopy__(memo).
+    - memo è un dizionario usato da Python per gestire riferimenti ciclici o condivisi durante una copia profonda:
+    - Se copi un grafo di oggetti con riferimenti incrociati, Python salva in memo gli oggetti già copiati per non duplicarli più volte e per evitare ricorsioni infinite.
+    - Nel binding lo puoi ignorare se il tuo Grid è autosufficiente
+
+3. clone() (metodo esplicito)
+    - Non fa parte del protocollo Python: è solo una comodità che hai deciso di esporre.
+    - Permette a un utente Python di scrivere:
+        ```cpp
+        g2 = g1.clone()
+        ```
+    senza importare copy.
+    - Internamente fa lo stesso (Grid(self)), quindi nel tuo caso equivale a deepcopy, ma è più esplicito e leggibile per chi usa la libreria.
+
+In sintesi: Dato che il costruttore di copia C++ è già profondo, tutte e tre le chiamate creano una copia indipendente identica. L’unica differenza funzionale è che deepcopy fornisce il memo per situazioni più complesse e fa parte del protocollo standard di Python per copie profonde, mentre clone è una scelta di design per chiarezza d’uso.
+
+### Utilizzo
+```cpp
+import copy
+
+# Crea una griglia di partenza
+g1 = Grid(width=5, height=5)   # esempio: costruttore della griglia
+
+# ---- 1) Shallow copy (copy.copy) ----
+g2 = copy.copy(g1)             # Chiama __copy__ → Grid(self)
+
+# ---- 2) Deep copy (copy.deepcopy) ----
+g3 = copy.deepcopy(g1)         # Chiama __deepcopy__ → Grid(self), usa memo interno di Python
+
+# ---- 3) Clone esplicito ----
+g4 = g1.clone()                # Chiama il metodo clone definito nel binding
+
+# Ora g2, g3 e g4 sono istanze indipendenti di Grid,
+# ciascuna con il proprio contenuto copiato dal costruttore di copia C++.
+```

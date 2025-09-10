@@ -4,7 +4,7 @@
 // Expose private members in this TU to bind internal fields like `grid`
 #define private public
 #define protected public
-// Binding for Controller in C++ simulation
+// Binding for Controller in C++ simulation (and Grid through it)
 #include "../CellSimLib/include/CellLib/controller.h"
 #undef private
 #undef protected
@@ -14,8 +14,20 @@ namespace py = pybind11;
 PYBIND11_MODULE(cell_sim, m) {
     m.doc() = "Python bindings for the C++ cell simulation Controller";
 
-    // Minimal Grid binding so that `Controller.grid` can be returned
-    py::class_<Grid>(m, "Grid");
+    // Expose Grid minimally, focusing on deep-copy helpers
+    py::class_<Grid>(m, "Grid")
+        // Python's copy.copy(obj)
+        .def("__copy__", [](const Grid& self) {
+            return Grid(self); // uses C++ deep-copy constructor
+        })
+        // Python's copy.deepcopy(obj)
+        .def("__deepcopy__", [](const Grid& self, py::dict /*memo*/) {
+            return Grid(self); // deep copy via copy ctor
+        })
+        // Optional explicit clone method for convenience from Python
+        .def("clone", [](const Grid& self) {
+            return Grid(self);
+        }, "Return a deep-copied Grid");
 
     py::class_<Controller>(m, "Controller")
         // Constructor
@@ -23,8 +35,11 @@ PYBIND11_MODULE(cell_sim, m) {
              py::arg("xsize"), py::arg("ysize"), py::arg("zsize"),
              py::arg("sources_num"), py::arg("cradius"), py::arg("hradius"),
              py::arg("hcells"), py::arg("ccells"))
-        // Expose internal grid pointer (read-only reference)
-        .def("grid", &Controller::grid, "Underlying simulation Grid object")
+        // Expose internal grid pointer as a read-only reference
+        .def_property_readonly("grid",
+            [](Controller& self) -> Grid& { return *self.grid; },
+            py::return_value_policy::reference,
+            "Underlying simulation Grid object")
         // Advance simulation by one hour
         .def("go", &Controller::go, "Advance the simulation by one hour")
         // Compute save intervals
@@ -63,6 +78,7 @@ PYBIND11_MODULE(cell_sim, m) {
         .def("get_cell_counts",
           &Controller::get_cell_counts,
           "Return [HealthyCell::count, CancerCell::count]")
+
         ;
 
     // For using C++ random numbers in Python

@@ -76,8 +76,6 @@ if __name__ == "__main__":
     ctrl = cell_sim.Controller(xsize, ysize, zsize, sources_num,
                                cradius, hradius, hcells, ccells)
     
-    print(type(ctrl.grid))
-    exit()
 
     # Setup directories
     script_dir = pathlib.Path(__file__).resolve().parent
@@ -94,6 +92,11 @@ if __name__ == "__main__":
 
     # TUMOR GROWTH
     tumor_growth(ctrl, data_tab_growth)
+    
+    print(type(ctrl.grid))
+    g2 = cell_sim.deepcopy(ctrl.grid)
+    
+    exit(0)
 
     # Clear temporary buffers and reset clock
     ctrl.clear_tempDataTab()
