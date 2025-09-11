@@ -7,14 +7,17 @@
     ```
 2. Compilazione:
     1. Utilizzando comando make:
-        - Compilazione di libreria e demo: `make`
-        - Compilazione solo della libreria `CellSimLib`: `make cell_sim`
+        - Compilazione di libreria, demo e file di binding: `make`
+        - Compilazione solo della libreria `CellSimLibz`: `make cell_sim`
         - Compilazione del demo (`main.cpp`): `make CellSimDemo`
+        - Compilazione del binding (`binding.cpp`): `make cell_sim_py`
+        
     
         I file risultanti verranno collocati in lib/ (libreria) e bin/ (eseguibile demo).
     
-    2. Compilazione del solo target `cell_sim`: 
-    `cmake --build . --target cell_sim`
+    2. Utilizzo comando cmake generico
+        - Compilazione del solo target `cell_sim`: `cmake --build . --target cell_sim`
+        - Compilazione del solo binding: cmake --build . --target cell_sim_py -j (da verificare)
 
 Differenza tra i comandi: Entrambi i comandi compilano il target cell_sim, ma lo fanno in modo diverso:
 - `cmake --build . --target cell_sim`: Make agisce da “wrapper” e invoca il sistema di build corretto per la piattaforma e il generatore scelti (Make, Ninja, MSBuild, ecc.). È quindi portabile e usa automaticamente le impostazioni di configurazione di CMake.

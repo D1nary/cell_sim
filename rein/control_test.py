@@ -1,6 +1,7 @@
 import time
 import pathlib
 import random
+import copy
 
 import cell_sim
 
@@ -90,14 +91,15 @@ if __name__ == "__main__":
              str(data_path / "cell_num")]
     create_directories(paths)
 
+    g2 = copy.deepcopy(ctrl.grid)
+
     # TUMOR GROWTH
     tumor_growth(ctrl, data_tab_growth)
     
     print(type(ctrl.grid))
 
-    import copy
+    print(ctrl.get_cell_counts())
     g2 = copy.deepcopy(ctrl.grid)
-
     
     exit(0)
 
@@ -105,6 +107,8 @@ if __name__ == "__main__":
     ctrl.clear_tempDataTab()
     ctrl.clear_tempCellCounts()
     ctrl.tick = 0
+
+    # Come posso fare grid = g2?
 
     # TRATMENT SIMULATION
     TestTreatment(ctrl, data_tab_tr)

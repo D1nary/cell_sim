@@ -29,16 +29,13 @@ using namespace std;
  */
 
 Controller::Controller(int xsize, int ysize, int zsize, int sources_num,
-    double cradius, double hradius, int hcells, int ccells,
-    int num_hour, const std::vector<int>& intervals)
+    double cradius, double hradius, int hcells, int ccells)
  : xsize(xsize),
    ysize(ysize),
    zsize(zsize),
    sources_num(sources_num),
    tick(0),
-   oar(nullptr),
-   num_hour(num_hour),
-   intervals(intervals)
+   oar(nullptr)
 {
     int*** noFilledGrid;
     // Reset the cell counters

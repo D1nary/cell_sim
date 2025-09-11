@@ -10,6 +10,9 @@ project(CELL_SIM VERSION 1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Build all targets with position-independent code (required for linking into shared modules)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 # Define PROJECT_ROOT for use in code
 add_compile_definitions(PROJECT_ROOT="${CMAKE_SOURCE_DIR}")
 

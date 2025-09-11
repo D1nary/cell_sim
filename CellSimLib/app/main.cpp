@@ -58,7 +58,7 @@ int main() {
     
     // Initialize the controller (and the grid)
     Controller controller(xsize, ysize, zsize, sources_num, 
-        cradius, hradius, hcells, ccells, num_hour, intervals1);
+        cradius, hradius, hcells, ccells);
 
     // Create intervals for voxels data saving (2D and 3D)
     int divisor1 = 4;

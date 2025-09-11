@@ -12,8 +12,7 @@ class Controller {
 public:
 
     Controller(int xsize, int ysize, int zsize, int sources_num,
-        double cradius, double hradius, int hcells, int ccells,
-        int num_hour, const std::vector<int>& intervals);
+        double cradius, double hradius, int hcells, int ccells);
     ~Controller();
 
     int*** grid_creation(double hradius, double cradius);
