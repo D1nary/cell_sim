@@ -30,7 +30,13 @@ PYBIND11_MODULE(cell_sim, m) {
       // Optional explicit clone method for convenience from Python
       .def(
           "clone", [](const Grid &self) { return Grid(self); },
-          "Return a deep-copied Grid");
+          "Return a deep-copied Grid")
+      .def("get_cell_counts", &Grid::getCellCounts,
+           "Return [healthy_count, cancer_count] tracked on this Grid")
+      .def_property_readonly(
+          "cell_counts",
+          [](const Grid &self) { return self.getCellCounts(); },
+          "[healthy_count, cancer_count] for this Grid");
 
   py::class_<Controller>(m, "Controller")
       // Constructor
@@ -45,6 +51,13 @@ PYBIND11_MODULE(cell_sim, m) {
           "Underlying simulation Grid object")
       // Advance simulation by one hour
       .def("go", &Controller::go, "Advance the simulation by one hour")
+      // Replace the internal grid content via deep copy (no pointer swap)
+      .def("set_grid", [](Controller &self, const Grid &g) {
+             // Deep-copy assign into existing grid to avoid ownership issues
+             *self.grid = g;
+           },
+           py::arg("grid"),
+           "Deep-copy the given Grid into the controller's internal grid")
       // Compute save intervals
       .def("get_intervals", &Controller::get_intervals, py::arg("num_hour"),
            py::arg("divisor"), "Compute tick intervals for data saving")

@@ -95,20 +95,22 @@ if __name__ == "__main__":
 
     # TUMOR GROWTH
     tumor_growth(ctrl, data_tab_growth)
-    
-    print(type(ctrl.grid))
 
-    print(ctrl.get_cell_counts())
-    g2 = copy.deepcopy(ctrl.grid)
-    
+    # g2 = copy.deepcopy(ctrl.grid)
+    print("Contatore g2:", g2.cell_counts)
+
+    print(ctrl.grid.cell_counts)
+
+    ctrl.grid = ctrl.set_grid(g2)
+
+    print(ctrl.grid.cell_counts)
+
     exit(0)
 
     # Clear temporary buffers and reset clock
     ctrl.clear_tempDataTab()
     ctrl.clear_tempCellCounts()
     ctrl.tick = 0
-
-    # Come posso fare grid = g2?
 
     # TRATMENT SIMULATION
     TestTreatment(ctrl, data_tab_tr)

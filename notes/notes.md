@@ -347,3 +347,24 @@ g4 = g1.clone()                # Chiama il metodo clone definito nel binding
 # Ora g2, g3 e g4 sono istanze indipendenti di Grid,
 # ciascuna con il proprio contenuto copiato dal costruttore di copia C++.
 ```
+# Errors
+## setter
+Cercando di eseguire una deep copy di ctrl.grid:
+```cpp
+g2 = copy.deepcopy(ctrl.grid)
+...
+ctrl.grid = copy.deepcopy(g2)
+```
+
+```bash
+Traceback (most recent call last):
+  File "/home/ale/Documenti/prog/cell_sim/rein/control_test.py", line 104, in <module>
+    ctrl.grid = copy.deepcopy(g2)
+    ^^^^^^^^^
+AttributeError: property of 'Controller' object has no setter
+```
+Motivo dell’errore: in binding.cpp Controller.grid è esposta come proprietà read-only che restituisce un riferimento alla Grid interna (return_value_policy::reference). Non esiste un setter, quindi ctrl.grid = ... solleva AttributeError.
+
+
+
+

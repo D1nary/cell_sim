@@ -421,6 +421,7 @@ Grid::Grid(int xsize, int ysize, int zsize, int sources_num):xsize(xsize), ysize
     oxygen = new double**[zsize];
     oxygen_helper = new double**[zsize];
     neigh_counts = new int**[zsize];
+    cell_counts = {0, 0};
 
     for(int k = 0; k < zsize; k++) { // z layers
         cells[k] = new CellList*[xsize];
@@ -652,6 +653,7 @@ void Grid::copy_from_(const Grid& other) {
     center_x = other.center_x;
     center_y = other.center_y;
     center_z = other.center_z;
+    cell_counts = other.cell_counts;
 
     alloc_all_();
 
@@ -725,6 +727,10 @@ void Grid::change_neigh_counts(int x, int y, int z, int val) {
 void Grid::addCell(int x, int y, int z, Cell *cell, char type) {
     cells[z][x][y].add(cell, type,x, y, z);
     change_neigh_counts(x, y, z, 1);
+    if (type == 'h')
+        cell_counts[0]++;
+    else if (type == 'c')
+        cell_counts[1]++;
 }
 
 /**
@@ -905,6 +911,11 @@ void Grid::cycle_cells() {
     for (int k = 0; k < zsize; k++) {
         for (int i = 0; i < xsize; i++) {
             for (int j = 0; j < ysize; j++) {
+                // Snapshot per-type counts before updates/deletions
+                int init_c = cells[k][i][j].ccell_count;
+                int init_o = cells[k][i][j].oar_count;
+                int init_sz = cells[k][i][j].size;
+                int init_h = init_sz - init_c - init_o;
                 CellNode *current = cells[k][i][j].head;
                 while (current) {
                     // Advance the cycle of the current cell  
@@ -968,6 +979,13 @@ void Grid::cycle_cells() {
                 int init_count = cells[k][i][j].size;
                 cells[k][i][j].deleteDeadAndSort();
                 change_neigh_counts(i, j, k, cells[k][i][j].size - init_count);
+                // Update global per-Grid counts for deaths in this voxel
+                int new_c = cells[k][i][j].ccell_count;
+                int new_o = cells[k][i][j].oar_count;
+                int new_sz = cells[k][i][j].size;
+                int new_h = new_sz - new_c - new_o;
+                cell_counts[0] += (new_h - init_h);
+                cell_counts[1] += (new_c - init_c);
             }
         }
     }
@@ -988,6 +1006,11 @@ void Grid::addToGrid(CellList * newCells) {
         // Insert the current node into the correct voxel's CellList using its (x, y, z) coordinates.
         // Note: The pointer (current) is "moved" by the add() method from the newCells list to the voxel's list.
         cells[current->z][current->x][current->y].add(current, current->type);
+        // Update global per-Grid counts for new-born cells being added
+        if (current->type == 'h')
+            cell_counts[0]++;
+        else if (current->type == 'c')
+            cell_counts[1]++;
         current = next;
     }
     // Clear the newCells list and free its memory.
@@ -1363,6 +1386,12 @@ void Grid::irradiate(double dose, double radius, double center_x, double center_
                 // Calculate the distance from the center
                 double dist = distance(i, j, k, center_x, center_y, center_z);
                 if (cells[k][i][j].size && dist < 3 * radius){ //If there are cells on the pixel
+                    // Snapshot per-type counts before radiation-induced deletions
+                    int init_c = cells[k][i][j].ccell_count;
+                    int init_o = cells[k][i][j].oar_count;
+                    int init_sz = cells[k][i][j].size;
+                    int init_h = init_sz - init_c - init_o;
+
                     CellNode * current = cells[k][i][j].head;
                     while (current){
                         // Include the effect of hypoxia, Powathil formula
@@ -1374,6 +1403,13 @@ void Grid::irradiate(double dose, double radius, double center_x, double center_
                     int init_count = cells[k][i][j].size;
                     cells[k][i][j].deleteDeadAndSort();
                     change_neigh_counts(i, j, k, cells[k][i][j].size - init_count);
+                    // Update global per-Grid counts for deaths in this voxel
+                    int new_c = cells[k][i][j].ccell_count;
+                    int new_o = cells[k][i][j].oar_count;
+                    int new_sz = cells[k][i][j].size;
+                    int new_h = new_sz - new_c - new_o;
+                    cell_counts[0] += (new_h - init_h);
+                    cell_counts[1] += (new_c - init_c);
                 }
             }
         }

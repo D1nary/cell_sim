@@ -550,7 +550,9 @@ void Controller::printIntervals(int divisor, int* intervals){
 }
 
 /**
- * Get the number of healthy and cancer cells in the simulazio
+ * Get the number of healthy and cancer cells in the simulation.
+ * Global static counters. For the non-global
+ *  grid-attached counter, see the cell_counts attribute.
  * @return Array composed of HealthyCell::count and CancerCell::count
  */
 std::vector<int> Controller::get_cell_counts() const {
@@ -559,3 +561,4 @@ std::vector<int> Controller::get_cell_counts() const {
         CancerCell::count
     };
 }
+

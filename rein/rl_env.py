@@ -9,9 +9,9 @@ from __future__ import annotations
 import gym
 from gym import spaces
 import numpy as np
+
 import cell_sim
-# Uso il . perchè importa dal modulo reward che si
-# trova nella stessa directory del file corrente.
+
 from .reward import reward_kd, terminal_reward_kd
 
 

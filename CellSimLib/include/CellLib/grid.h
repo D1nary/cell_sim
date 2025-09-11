@@ -2,6 +2,7 @@
 #define CELLULAR_LIB_GRID_H
 
 #include "cell.h"
+#include <array>
 
 struct CellNode
 {
@@ -89,6 +90,7 @@ public:
     int*** getNeighCounts() const;
     SourceList* getSources() const;
     double*** getGlucose() const;
+    std::array<int, 2> getCellCounts() const { return cell_counts; }
     
     Grid(const Grid& other);
     Grid& operator=(const Grid& other);
@@ -124,6 +126,8 @@ private:
     double center_y;
     double center_z;
     int * rand_helper;
+    // [healthy_count, cancer_count]
+    std::array<int, 2> cell_counts;
 
     void alloc_all_();
     void free_all_(); 
