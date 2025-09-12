@@ -49,6 +49,8 @@ public:
 
     void test_treatment(int week, int rad_days, int rest_days, double dose);
     std::vector<int> get_cell_counts() const;
+    // Deep-copy the given Grid into the controller's internal grid
+    void set_grid(const Grid& g);
 
 
 private:

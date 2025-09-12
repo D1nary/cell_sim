@@ -328,6 +328,8 @@ Come mai i costruttori di deep copy in binding.cpp non vengono costruiti come ac
 
 In sintesi: Dato che il costruttore di copia C++ è già profondo, tutte e tre le chiamate creano una copia indipendente identica. L’unica differenza funzionale è che deepcopy fornisce il memo per situazioni più complesse e fa parte del protocollo standard di Python per copie profonde, mentre clone è una scelta di design per chiarezza d’uso.
 
+4. Abbiamo un ulteriore metodo: Controller.set_grid(grid) → deep copy “in place” dentro ctrl.grid (non crea un nuovo oggetto Grid)
+
 ### Utilizzo
 ```cpp
 import copy
@@ -363,8 +365,73 @@ Traceback (most recent call last):
     ^^^^^^^^^
 AttributeError: property of 'Controller' object has no setter
 ```
-Motivo dell’errore: in binding.cpp Controller.grid è esposta come proprietà read-only che restituisce un riferimento alla Grid interna (return_value_policy::reference). Non esiste un setter, quindi ctrl.grid = ... solleva AttributeError.
+In pybind, Controller.grid era esposto come property read-only: def_property_readonly("grid", ...) che restituisce un riferimento alla Grid interna (return_value_policy::reference), senza setter.
+Quando fai ctrl.grid = ..., Python tenta di assegnare alla property, ma non essendoci un setter pybind solleva: “property of 'Controller' object has no setter”.
 
+Ho aggiunto un metodo Controller.set_grid(grid) che esegue una deep copy “in place” dentro la griglia posseduta dal Controller.
 
+Perché “in place”? La Controller possiede una Grid*. Sostituire il puntatore (swap) sarebbe rischioso per l’ownership e la distruzione. Copiare i contenuti nell’istanza esistente evita leak/dangling.
 
+## Funzione reset() rl_env.py
+```cpp
+        # Handle seeding for reproducibility
+        if seed is not None:
+            try:
+                super().reset(seed=seed)
+            except Exception:
+                # Older Gym versions may not support super().reset(seed=...)
+                pass
+            try:
+                # Seed the underlying C++ RNG as well (best-effort)
+                cell_sim.seed(int(seed) & 0xFFFFFFFF)
+            except Exception:
+                pass
+```
 
+- Condizione seed: se seed non è None, si tenta di inizializzare i generatori casuali per garantire riproducibilità.
+- super().reset(seed=seed): invoca il reset della classe base Gym passando il seed (supportato nelle versioni Gym più recenti) per sincronizzare lo stato casuale lato Python.
+Compatibilità Gym: il try/except attorno a super().reset(...) evita errori con versioni più vecchie di Gym che non accettano il parametro seed; in tal caso si ignora l’errore.
+- cell_sim.seed(int(seed) & 0xFFFFFFFF): setta anche il PRNG lato C++ (binding a std::srand). Il bitmask & 0xFFFFFFFF converte il seed in un intero non negativo a 32 bit, adatto all’API C/C++ e coerente tra piattaforme. In altre parole: sincronizza il generatore casuale lato C++ del simulatore, così Python e C++ usano lo stesso seed.
+- Best-effort robusto: anche qui il try/except impedisce che un’assenza o errore del binding C++ interrompa il reset.
+- Risultato: sia la parte Python sia quella C++ usano lo stesso seed, rendendo gli esperimenti riproducibili; se seed è None, non si modifica lo stato dei PRNG.
+
+## hasattr
+```cpp
+if hasattr(self.ctrl, "clear_tempDataTab"):
+    self.ctrl.clear_tempDataTab()
+```
+
+“hasattr(..., 'clear_tempDataTab')”: verifica a runtime se l’oggetto self.ctrl espone il metodo clear_tempDataTab. Serve per compatibilità: in build/versioni dove il metodo non esiste, si evita un AttributeError saltando la chiamata.
+
+self.ctrl.clear_tempDataTab(): se presente, svuota il buffer temporaneo dei dati voxel accumulati (usato per salvare tabulati durante la simulazione). In reset() garantisce che i dati temporanei non “contaminino” il nuovo episodio.
+
+Contesto: questi metodi vengono esposti nei binding C++ → Python del controller, vedi rein/binding.cpp.
+
+## Scopo funzione close() rl_env.py
+
+Scopo
+- Liberare risorse esterne che il GC non rilascia subito (window, file, engines).
+- Portare l’ambiente in stato “spento”; chiamate multiple devono essere sicure.
+
+Cosa Pulire
+- Rendering: chiudere finestre e contesti (pyglet/pygame/matplotlib).
+- Registrazione: stop/flush di RecordVideo o writer di video/log.
+- Simulatori: disconnettere physical engines (Mujoco/Bullet), rilasciare contesti GPU/GL.
+- Processi/thread: fermare timer, fare join dei worker, terminare subprocessi.
+- File/socket/tmp: chiudere file descriptor, socket, rimuovere cartelle/file temporanei.
+- Binding nativi: rimuovere riferimenti a oggetti C/C++ perché girino i distruttori.
+
+Linee Guida
+- Idempotente: non deve fallire se chiamata più volte.
+- Best‑effort: proteggere/ignorare eccezioni non critiche durante il cleanup.
+- Propagare: chiamare super().close() perché wrapper/classi base puliscano.
+- Effetti minimi: non modificare stato di apprendimento, non chiamare reset() implicitamente.
+- Documentare: specificare se l’env è riutilizzabile dopo close() (spesso serve reset()).
+
+Errori Comuni
+- Dimenticare join di thread/subprocessi (processo che non termina).
+- Perdere viewer o writer limitandosi ad azzerare riferimenti senza close().
+- Alzare errori su chiamate ripetute, rompendo catene di wrapper.
+
+Esempio
+- Una buona close(): svuota buffer temporanei, chiude renderer/recorder, fa join dei worker, rimuove - riferimenti a oggetti nativi pesanti, imposta _closed = True, e chiama super().close().

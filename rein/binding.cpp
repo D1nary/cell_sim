@@ -52,11 +52,7 @@ PYBIND11_MODULE(cell_sim, m) {
       // Advance simulation by one hour
       .def("go", &Controller::go, "Advance the simulation by one hour")
       // Replace the internal grid content via deep copy (no pointer swap)
-      .def("set_grid", [](Controller &self, const Grid &g) {
-             // Deep-copy assign into existing grid to avoid ownership issues
-             *self.grid = g;
-           },
-           py::arg("grid"),
+      .def("set_grid", &Controller::set_grid, py::arg("grid"),
            "Deep-copy the given Grid into the controller's internal grid")
       // Compute save intervals
       .def("get_intervals", &Controller::get_intervals, py::arg("num_hour"),

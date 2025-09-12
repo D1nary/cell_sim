@@ -7,6 +7,7 @@ environment for controllin radiation treatment.
 from __future__ import annotations
 
 import gym
+import copy
 from gym import spaces
 import numpy as np
 
@@ -56,6 +57,9 @@ class CellSimEnv(gym.Env):
 
         super().__init__()
 
+        # Environment starts open; used by close() idempotency
+        self._closed: bool = False
+
         # Simulator controller
         self.ctrl = cell_sim.Controller(
             xsize,
@@ -87,18 +91,67 @@ class CellSimEnv(gym.Env):
             dtype=np.float32,
         )
 
-    def reset(self):
-        """Reset cached state and return the current observation.
+        # Create a deep-copied snapshot of the current grid for resets
+        self.reset_grid = copy.deepcopy(self.ctrl.grid)
 
-        Note: the underlying simulator does not expose a full reset API,
-        so this method reinitializes only the environment bookkeeping.
+    def reset(self, *, seed: int | None = None, options: dict | None = None):
+        """Reset the simulator state and return initial observation.
+
+        Actions performed:
+        - Reset the controller's hour tick counter (`ctrl.tick = 0`).
+        - Restore the grid snapshot with `ctrl.set_grid(self.reset_grid)`.
+        - Clear controller temporary buffers (voxel and counts).
+        - Reset environment bookkeeping (elapsed hours, dose, prev counts).
+        - Optionally reseed RNG when ``seed`` is provided.
+
+        Returns a tuple ``(observation, info)`` as per Gym API.
         """
+        # Handle seeding for reproducibility
+        if seed is not None:
+            try:
+                super().reset(seed=seed)
+            except Exception:
+                # Older Gym versions may not support super().reset(seed=...)
+                pass
+            try:
+                # Seed the underlying C++ RNG as well (best-effort)
+                cell_sim.seed(int(seed) & 0xFFFFFFFF)
+            except Exception:
+                pass
+
+        # Restore simulator state
+        try:
+            # Reset simulated time and clear temp buffers
+            self.ctrl.tick = 0
+            if hasattr(self.ctrl, "clear_tempDataTab"):
+                self.ctrl.clear_tempDataTab()
+            if hasattr(self.ctrl, "clear_tempCellCounts"):
+                self.ctrl.clear_tempCellCounts()
+
+            # Restore the grid to the saved initial snapshot
+            self.ctrl.set_grid(self.reset_grid)
+        except Exception as e:
+            # If anything goes wrong, surface a clear error
+            raise RuntimeError(f"Failed to reset simulator: {e}")
+
+        # Read fresh counts from the restored grid
         counts = self.ctrl.get_cell_counts()
+
+        # Reset environment bookkeeping
         self.initial_healthy = float(counts[0])
         self.prev_counts = tuple(map(float, counts))
         self.elapsed_hours = 0
         self.total_dose = 0.0
-        return np.asarray(counts, dtype=np.float32)
+
+        observation = np.asarray(counts, dtype=np.float32)
+        info = {
+            "successful": False,
+            "unsuccessful": False,
+            "timeout": False,
+            "elapsed_hours": self.elapsed_hours,
+            "total_dose": self.total_dose,
+        }
+        return observation, info
 
     def step(self, action):
         """Apply an action and advance the simulation."""
@@ -180,8 +233,34 @@ class CellSimEnv(gym.Env):
 
     def close(self):
         """Release resources and perform any necessary cleanup."""
-        # TODO: implement close logic
-        pass
+        # Make close idempotent
+        if getattr(self, "_closed", False):
+            return
+
+        # Best-effort cleanup of simulator buffers
+        ctrl = getattr(self, "ctrl", None)
+        if ctrl is not None:
+            try:
+                if hasattr(ctrl, "clear_tempDataTab"):
+                    ctrl.clear_tempDataTab()
+            except Exception:
+                pass
+            try:
+                if hasattr(ctrl, "clear_tempCellCounts"):
+                    ctrl.clear_tempCellCounts()
+            except Exception:
+                pass
+
+        # Note: Do not set self.ctrl/reset_grid to None to avoid
+        # Optional attribute warnings from static checkers (Pylance).
+        # Actual resource release will occur when the env is GC'ed.
+
+        # Mark as closed and defer to Gym's close (no-op in many versions)
+        self._closed = True
+        try:
+            super().close()
+        except Exception:
+            pass
 
     def growth(self, num_hour, divisor1, divisor2, data_tab_growth):
         """Growth of the cellular environment before irradiation"""

@@ -99,11 +99,11 @@ if __name__ == "__main__":
     # g2 = copy.deepcopy(ctrl.grid)
     print("Contatore g2:", g2.cell_counts)
 
-    print(ctrl.grid.cell_counts)
+    print("Contatore grid dopo growth",ctrl.grid.cell_counts)
 
-    ctrl.grid = ctrl.set_grid(g2)
+    ctrl.set_grid(g2)
 
-    print(ctrl.grid.cell_counts)
+    print("Ripristino grid",ctrl.grid.cell_counts)
 
     exit(0)
 

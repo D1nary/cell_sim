@@ -249,6 +249,11 @@ int Controller::pixel_type(int x, int y, int z) {
     return grid->pixel_type(x, y, z);
 }
 
+// Deep-copy the given Grid into the controller's internal grid
+void Controller::set_grid(const Grid& g) {
+    *grid = g; // use Grid copy assignment (deep copy)
+}
+
 /**
  * Return the current glucose 3D array.
  *
@@ -561,4 +566,3 @@ std::vector<int> Controller::get_cell_counts() const {
         CancerCell::count
     };
 }
-
