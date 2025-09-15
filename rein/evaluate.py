@@ -8,7 +8,7 @@ import argparse
 from pathlib import Path
 from typing import List
 
-import gym
+import gymnasium as gym
 import numpy as np
 
 from .config import TrainConfig, default_config

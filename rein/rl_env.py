@@ -6,9 +6,9 @@ environment for controllin radiation treatment.
 
 from __future__ import annotations
 
-import gym
+import gymnasium as gym
 import copy
-from gym import spaces
+from gymnasium import spaces
 import numpy as np
 
 import cell_sim

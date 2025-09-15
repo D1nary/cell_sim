@@ -435,3 +435,96 @@ Errori Comuni
 
 Esempio
 - Una buona close(): svuota buffer temporanei, chiude renderer/recorder, fa join dei worker, rimuove - riferimenti a oggetti nativi pesanti, imposta _closed = True, e chiama super().close().
+
+## @dataclass
+
+Esempio nel codice:
+```cpp
+@dataclass
+class TrainConfig:
+    # Reproducibility and bookkeeping
+    seed: int = 42
+    project_dir: Path = Path("results/rl")
+    run_name: str = "debug"
+    ...
+```
+@dataclass è un decoratore fornito dal modulo dataclasses (introdotto in Python 3.7) che semplifica la creazione di classi usate principalmente come contenitori di dati.
+
+Quando applichi @dataclass a una classe:
+
+- Genera automaticamente metodi speciali basati sui campi dichiarati, come:
+    - __init__ → costruttore che accetta i campi come argomenti.
+    - __repr__ → rappresentazione leggibile dell’oggetto, utile per il debug.
+    - __eq__ → confronto di uguaglianza basato sui valori dei campi.
+    - (Facoltativi) __lt__, __le__, __gt__, __ge__ se specifichi order=True.
+- Mantiene il codice più conciso e leggibile, senza dover scrivere manualmente boilerplate (vedi dopo) come i costruttori.
+
+Esempio
+```python
+from dataclasses import dataclass
+
+@dataclass
+class Point:
+    x: float
+    y: float
+
+p1 = Point(3.0, 4.0)
+p2 = Point(3.0, 4.0)
+
+print(p1)        # ➡ Point(x=3.0, y=4.0)  (__repr__ automatico)
+print(p1 == p2)  # ➡ True                 (__eq__ automatico)
+```
+Senza @dataclass, avresti dovuto definire manualmente __init__, __repr__, e __eq__.
+
+## Boilerplate
+In programmazione, boilerplate indica porzioni di codice ripetitivo e standard che devi scrivere quasi sempre allo stesso modo, ma che non contengono logica nuova o interessante.
+
+Sono parti “meccaniche” del codice, spesso necessarie per motivi tecnici o di sintassi, ma che non aggiungono valore concettuale.
+
+Esempio senza @dataclass (tanto boilerplate):
+```python
+class Point:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def __repr__(self):
+        return f"Point(x={self.x}, y={self.y})"
+
+    def __eq__(self, other):
+        if isinstance(other, Point):
+            return self.x == other.x and self.y == other.y
+        return False
+```
+Con @dataclass (meno boilerplate):
+```python
+from dataclasses import dataclass
+
+@dataclass
+class Point:
+    x: float
+    y: float
+```
+In una sola dichiarazione ottieni automaticamente costruttore, __repr__, __eq__ ecc., eliminando il codice standard.wait_values
+
+## type hint
+In una dataclass (o in generale nelle dichiarazioni di variabili e parametri in Python 3.6+), il simbolo : introduce un type hint (annotazione di tipo).
+
+Esempio:
+```python
+seed: int = 42
+```
+- seed è il nome del campo.
+- : int dice che ci si aspetta un valore di tipo intero (int).
+- = 42 assegna il valore di default.
+
+Le annotazioni di tipo servono a strumenti come Pylance, mypy, o IDE (VS Code, PyCharm) per:
+- Controllare errori di tipo staticamente (senza eseguire il codice).
+- Fornire autocompletamento e documentazione migliorata.
+- Generare automaticamente metodi speciali (__init__, __repr__, ecc.) nella dataclass.
+
+APPUNTI:
+BASIC USAGE
+env.reset() --> prima osservazione dell'ambiente
+Possibile inizializzare l'ambinete con un seed particolare
+timestep: applico l'azione all'ambinte e osservo (obrservaition)

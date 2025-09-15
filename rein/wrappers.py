@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Tuple, Sequence
 
-import gym
+import gymnasium as gym
 import numpy as np
 
 
