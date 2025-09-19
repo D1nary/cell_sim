@@ -528,3 +528,43 @@ BASIC USAGE
 env.reset() --> prima osservazione dell'ambiente
 Possibile inizializzare l'ambinete con un seed particolare
 timestep: applico l'azione all'ambinte e osservo (obrservaition)
+
+## gym.make
+Osservando gli esempi sulla pagina di gymnsasium si nota che gli ambienti built-in vengono creati con la funzione make(). Questo può essere fatto anche con ambienti "esterni" utlizzando un register:
+```python
+# Register the environment so we can create it with gym.make()
+gym.register(
+    id="gymnasium_env/GridWorld-v0",
+    entry_point=GridWorldEnv,
+    max_episode_steps=300,  # Prevent infinite episodes
+)
+```
+Vantaggi
+- Permette un’integrazione uniforme con gli strumenti Gym/Gymnasium (es. agenti, vector envs, registri personalizzati) che si aspettano l’API gym.make.
+- Consente di parametrizzare l’ambiente passando gli argomenti direttamente a gym.make, utile se carichi configurazioni da file o CLI prima di creare l’ambiente.
+- Facilita la creazione dinamica di ambienti per esperimenti, hyperparameter tuning o librerie esterne che conoscono solo l’ID registrato.
+- Standardizza il ciclo gym.make → wrappers, rendendo il codice più leggibile per chi è abituato all’ecosistema Gym.
+
+Svantaggi
+- Richiede una fase di registrazione da mantenere allineata con il modulo reale (entry point, nome, parametri); eventuali refactor possono rompere l’ID registrato.
+- Perde esplicità: con CellSimEnv(...) vedi subito classi e costruttore; con gym.make l’origine dell’ambiente è meno evidente.
+- Il type checking/static analysis è più debole: gym.make ritorna un Env generico, mentre l’instanziazione diretta mantiene i tipi concreti.
+- Se la registrazione avviene all’import, può introdurre effetti collaterali indesiderati (p.es. caricare cell_sim) in contesti dove non serve o in ambienti di test.
+
+Dicendo che il type checking è più debole stiamo dicendo che mentre con Con CellSimEnv(...) il tipo concreto resta visibile al type checker: Pyright/mypy sanno che variabile è CellSimEnv, quindi possono verificare l’uso di attributi/metodi specifici come growth() o proprietà custom. Anche gli IDE offrono completamento contestuale accurato.
+
+Quando diciamo che il type checking è “più debole”, intendiamo questo:
+
+- Se usi CellSimEnv(...) direttamente, il tipo concreto rimane visibile al type checker (Pyright/mypy). Questo significa che lo strumento sa che la variabile è un CellSimEnv e può quindi verificare correttamente l’uso di metodi o attributi specifici, come growth() o proprietà personalizzate. Anche gli IDE, di conseguenza, forniscono un completamento automatico preciso e contestuale.
+
+- Se invece usi gym.make(...), il valore restituito è tipizzato come gym.Env o gymnasium.Env, cioè solo come l’interfaccia base. Dal punto di vista statico diventa una variabile “generica”: il type checker non può più garantire la presenza di attributi aggiuntivi (come env.ctrl o env.total_dose), e quindi potrebbe segnalare errori o — se disattivi i warning — lasciar passare potenziali bug.
+
+- Puoi recuperare il tipo corretto usando typing.cast(CellSimEnv, gym.make(...)), ma in questo caso stai facendo una promessa manuale: se per errore l’ID puntasse a un’altra classe, il cast maschererebbe il problema.
+
+In sintesi: l’instanziazione diretta mantiene automaticamente le garanzie del type checker, mentre gym.make richiede cast espliciti o wrapper aggiuntivi per non perdere il supporto del controllo statico.
+
+Di conseguenaza ho scelto di non utilizzare gym.make().
+
+## Wrappers di Gymnasium
+
+
