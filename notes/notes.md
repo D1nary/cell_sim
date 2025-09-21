@@ -566,5 +566,48 @@ In sintesi: l’instanziazione diretta mantiene automaticamente le garanzie del 
 Di conseguenaza ho scelto di non utilizzare gym.make().
 
 ## Wrappers di Gymnasium
+In Gymnasium (l’evoluzione di OpenAI Gym), i wrappers sono classi che “avvolgono” un ambiente per modificarne o arricchirne il comportamento senza dover toccare direttamente il codice dell’ambiente originale. Sono fondamentali per costruire pipeline di reinforcement learning flessibili e riutilizzabili.
 
+A cosa servono nello specifico:
+- Preprocessing delle osservazioni o delle azioni
+    - Esempio: ridimensionare immagini, convertire a scala di grigi, normalizzare vettori d’ingresso.
+    - Wrapper tipico: ObservationWrapper.
+- Modifica dello spazio delle azioni o delle osservazioni
+    - Esempio: discretizzare un’azione continua o limitare un range.
+    - Wrapper tipico: ActionWrapper.
+- Gestione delle ricompense
+    - Esempio: trasformare le ricompense (clipping, normalizzazione, shaping).
+    - Wrapper tipico: RewardWrapper.
+- Aggiunta di funzionalità extra
+    - Esempio: conteggio degli episodi, registrazione di video, monitoraggio delle metriche (RecordVideo, RecordEpisodeStatistics).
+- Combinazione modulare di trasformazioni
+    - Puoi concatenare più wrappers per applicare più trasformazioni in serie, mantenendo l’ambiente base intatto.
+    
+## Policy sequenziale e Policy ottimale
+### Policy sequenziale
+In reinforcement learning, sequenziale significa che l’agente non prende una sola decisione isolata, ma una serie di decisioni collegate nel tempo, dove ogni scelta influenza lo stato futuro dell’ambiente e quindi le decisioni successive.
+
+Nel caso del paper PMC7922060:
+- Ambiente: un modello cellulare che evolve nel tempo (cellule sane e tumorali cambiano dopo ogni dose).
+- Azione: in ogni fraction (passo temporale) l’agente sceglie la dose di radiazione da somministrare.
+- Transizione: la dose scelta modifica il numero di cellule tumorali e sane, cambiando lo stato dell’ambiente.
+- Conseguenza: le decisioni prese oggi influenzano quante cellule saranno presenti nei passi futuri, quindi cambiano le opzioni disponibili in seguito.
+
+Policy sequenziale: una strategia 𝜋(𝑠) che indica quale dose scegliere ad ogni stato futuro, non solo la prima volta. L’agente impara a pianificare lungo più frazioni per massimizzare il reward cumulativo (uccidere tumori minimizzando il danno alle cellule sane lungo tutto il trattamento).
+
+📌 Esempio intuitivo:
+Se l’agente usa una dose altissima subito, uccide molte cellule tumorali ma danneggia molto le sane, riducendo la “salute” dell’ambiente e potenzialmente compromettendo i trattamenti futuri. Una policy sequenziale gli insegna a bilanciare le dosi frazionate per un vantaggio maggiore alla fine dell’intero trattamento.
+
+### Policy ottimale nel caso dell'articolo
+Nel contesto della simulazione descritta nell’articolo (PMC7922060), la policy ottimale rappresenta:
+
+📋 Una strategia di trattamento completa: una mappa che, dato lo stato corrente della simulazione (es. quantità di cellule tumorali e sane, tempo trascorso, dosi già somministrate), indica quale dose di radiazione scegliere a quel passo.
+
+🧭 Il “piano” che massimizza il reward cumulativo: cioè la sequenza di decisioni che, nell’intero corso del trattamento, uccide il maggior numero possibile di cellule tumorali minimizzando il danno alle cellule sane.
+
+⏳ Una funzione a lungo termine: non guarda solo alla prossima frazione, ma pianifica l’effetto futuro delle scelte presenti — ad esempio, può decidere di somministrare una dose più bassa oggi per preservare cellule sane e ottenere un risultato migliore nei passi successivi.
+
+🧠 La conoscenza appresa dall’agente RL: dopo il training, la policy ottimale è il “comportamento” dell’agente: basta fornirle lo stato corrente della simulazione per ottenere la dose consigliata, senza dover ripetere l’addestramento.
+
+In pratica, la policy ottimale è il protocollo di radioterapia appreso automaticamente dall’agente, che specifica come frazionare le dosi nel tempo per ottenere il miglior compromesso tra efficacia contro il tumore e sicurezza per i tessuti sani.
 

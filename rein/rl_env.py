@@ -55,7 +55,7 @@ class CellSimEnv(gym.Env):
             Maximum number of hours to advance the simulation after dosing.
         """
 
-        super().__init__()
+        # super().__init__()
 
         # Environment starts open; used by close() idempotency
         self._closed: bool = False
