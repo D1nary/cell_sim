@@ -611,3 +611,20 @@ Nel contesto della simulazione descritta nell’articolo (PMC7922060), la policy
 
 In pratica, la policy ottimale è il protocollo di radioterapia appreso automaticamente dall’agente, che specifica come frazionare le dosi nel tempo per ottenere il miglior compromesso tra efficacia contro il tumore e sicurezza per i tessuti sani.
 
+## CUDA
+CUDA (Compute Unified Device Architecture) è una piattaforma di calcolo parallelo e un'API creata da NVIDIA.
+Serve a sfruttare la GPU (scheda grafica) non solo per la grafica, ma anche per eseguire calcoli generali ad alte prestazioni, come quelli usati nel machine learning, nell’elaborazione di immagini o nella simulazione scientifica.
+
+Come funziona
+- Le GPU sono composte da migliaia di core che possono eseguire tante operazioni in parallelo.
+- Con CUDA, puoi scrivere codice (in C, C++, Python tramite librerie come PyTorch o TensorFlow) che sposta parte del lavoro dalla CPU alla GPU.
+- PyTorch, ad esempio, usa CUDA per accelerare il training delle reti neurali.
+
+## Installazione Pytorch
+Installazione di PyTorch il quale gira sia su CPU che (quando presente) su GPU. L’installazione “GPU-enabled” funziona comunque su CPU: se non trova una GPU compatibile userà automaticamente la CPU.
+
+```bash
+pip install --upgrade pip
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+```
+
