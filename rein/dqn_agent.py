@@ -43,15 +43,18 @@ class DQNAgent:
             raise ValueError("discrete_actions must contain at least one action")
 
         self.state_dim = int(state_dim)
+        # Materialise the discrete proxy for the continuous action space once.
         self.actions: List[np.ndarray] = [np.asarray(a, dtype=np.float32) for a in discrete_actions]
         self.device = device
         self.config = config or DQNConfig()
 
+        # Policy and target networks share architecture but their parameters diverge between updates.
         self.policy_net = QNetwork(self.state_dim, len(self.actions), self.config.hidden_sizes).to(self.device)
         self.target_net = QNetwork(self.state_dim, len(self.actions), self.config.hidden_sizes).to(self.device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
 
+        # Optimiser for the policy network and the replay buffer backing off-policy learning.
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=self.config.learning_rate)
         self.replay_buffer = ReplayBuffer(self.config.buffer_size)
 
@@ -59,10 +62,12 @@ class DQNAgent:
 
     def select_action(self, state: np.ndarray, epsilon: float) -> Tuple[int, np.ndarray]:
         """Return the action index and value following an ε-greedy policy."""
+        # Exploration branch: sample a random discrete action.
         if random.random() < epsilon:
             idx = random.randrange(len(self.actions))
             return idx, self.actions[idx]
 
+        # Exploitation branch: pick the greedy action under the current policy network.
         state_tensor = torch.as_tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
         with torch.no_grad():
             q_values = self.policy_net(state_tensor)
@@ -94,8 +99,10 @@ class DQNAgent:
         batch = self.replay_buffer.sample(self.config.batch_size, self.device)
         states, actions, rewards, next_states, dones = batch
 
+        # Q(s,a) values for the sampled actions under the current policy network.
         current_q = self.policy_net(states).gather(1, actions.unsqueeze(1)).squeeze(1)
         with torch.no_grad():
+            # Double-DQN style target: argmax with policy net, value with target net.
             next_actions = torch.argmax(self.policy_net(next_states), dim=1, keepdim=True)
             next_q = self.target_net(next_states).gather(1, next_actions).squeeze(1)
             targets = rewards + (1.0 - dones) * self.config.gamma * next_q
@@ -103,6 +110,7 @@ class DQNAgent:
         loss = F.smooth_l1_loss(current_q, targets)
         self.optimizer.zero_grad()
         loss.backward()
+        # Stabilise training by clipping large gradients when requested.
         if self.config.gradient_clip is not None:
             torch.nn.utils.clip_grad_norm_(self.policy_net.parameters(), self.config.gradient_clip)
         self.optimizer.step()

@@ -131,14 +131,17 @@ def evaluate_policy(agent: DQNAgent, env: CellSimEnv, episodes: int, max_steps: 
 
 def main() -> None:
     """Run the full DQN training loop and optional evaluation."""
+    # Gather CLI configuration and lock reproducible behaviour.
     args = parse_args()
     device = resolve_device(args.device)
     seed_everything(args.seed)
 
+    # Build the environment and discretised action catalogue used by the DQN.
     env = CellSimEnv()
     discrete_actions = build_discrete_actions(env.action_space, args.dose_bins, args.wait_bins)
     state_dim = int(np.prod(env.observation_space.shape))
 
+    # Instantiate the agent with hyperparameters from the CLI.
     config = DQNConfig(
         gamma=args.gamma,
         learning_rate=args.lr,
@@ -153,19 +156,26 @@ def main() -> None:
     episode_rewards: List[float] = []
     losses: List[float] = []
 
+    # Main training loop over episodes.
     for episode in range(1, args.episodes + 1):
         state, _ = env.reset(seed=args.seed + episode)
         episode_reward = 0.0
         info = {}
 
         for _ in range(args.max_steps):
+
+            # Compute the current epsilon for the epsilon-greedy policy and select an action.
             current_epsilon = linear_epsilon(total_steps, args.epsilon_start, args.epsilon_end, args.epsilon_decay_steps)
             action_idx, action = agent.select_action(state, current_epsilon)
             next_state, reward, terminated, truncated, info = env.step(action)
             done = terminated or truncated
+
+            # Store the transition and, if ready, run a learning update.
             agent.store_transition(state, action_idx, reward, next_state, done)
 
+            # Update of DQN
             loss = agent.update()
+
             if loss is not None:
                 losses.append(loss)
 
@@ -180,6 +190,7 @@ def main() -> None:
         info_str = "success" if info.get("successful", False) else "timeout" if info.get("timeout", False) else "failure"
         avg_reward = np.mean(episode_rewards[-10:])
         avg_loss = np.mean(losses[-10:]) if losses else math.nan
+        
         print(
             f"Episode {episode:04d} | steps: {total_steps:06d} | reward: {episode_reward:.3f} | "
             f"avg10 reward: {avg_reward:.3f} | avg10 loss: {avg_loss:.5f} | eps: {current_epsilon:.3f} | {info_str}"
