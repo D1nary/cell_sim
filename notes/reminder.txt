@@ -23,3 +23,8 @@ Se ti servisse un unico blocco 3D contiguo, l’allocazione andrebbe progettata 
 -----------------------------------------------------
 FORSE da sostituire self_grid con grid
 -----------------------------------------------------
+
+
+VEDI TRAIN.PY
+Vedi args.save_path.parent.mkdir(parents=True, exist_ok=True)
+Vedi for _ in range(max_steps): in evaluate_policy e lo stesso in main()

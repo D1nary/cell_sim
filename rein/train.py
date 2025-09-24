@@ -18,48 +18,48 @@ from .rl_env import CellSimEnv
 def parse_args() -> argparse.Namespace:
     """Parse command line arguments for the training script."""
     parser = argparse.ArgumentParser(description="Train a DQN agent for CellSimEnv")
-    parser.add_argument("--episodes", type=int, default=500, help="Numero di episodi di training")
-    parser.add_argument("--max-steps", type=int, default=1_000, help="Numero massimo di step per episodio")
-    parser.add_argument("--seed", type=int, default=0, help="Seed di inizializzazione")
+    parser.add_argument("--episodes", type=int, default=500, help="Number of training episodes")
+    parser.add_argument("--max-steps", type=int, default=1_000, help="Maximum number of steps per episode")
+    parser.add_argument("--seed", type=int, default=0, help="Initialization seed")
     parser.add_argument(
         "--device",
         type=str,
         default="cpu",
         choices=("cpu", "cuda", "auto"),
-        help="Dispositivo da usare (predefinito CPU). USA 'auto' per preferire CUDA se disponibile",
+        help="Device to use (CPU by default). Use 'auto' to prefer CUDA when available",
     )
-    parser.add_argument("--dose-bins", type=int, default=5, help="Numero di discretizzazioni per la dose")
-    parser.add_argument("--wait-bins", type=int, default=6, help="Numero di discretizzazioni per il tempo di attesa")
-    parser.add_argument("--gamma", type=float, default=0.99, help="Sconto futuro gamma")
-    parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate per l'ottimizzatore")
-    parser.add_argument("--batch-size", type=int, default=64, help="Dimensione dei mini-batch")
-    parser.add_argument("--buffer-size", type=int, default=100_000, help="Capacità dell'esperience replay")
+    parser.add_argument("--dose-bins", type=int, default=5, help="Number of discretization bins for the dose")
+    parser.add_argument("--wait-bins", type=int, default=6, help="Number of discretization bins for the wait time")
+    parser.add_argument("--gamma", type=float, default=0.99, help="Discount factor gamma")
+    parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate for the optimizer")
+    parser.add_argument("--batch-size", type=int, default=64, help="Mini-batch size")
+    parser.add_argument("--buffer-size", type=int, default=100_000, help="Experience replay capacity")
     parser.add_argument(
         "--warmup-steps",
         type=int,
         default=5_000,
-        help="Numero minimo di transizioni nel buffer prima dell'aggiornamento",
+        help="Minimum transitions in the buffer before updates",
     )
-    parser.add_argument("--target-update", type=int, default=1_000, help="Intervallo di aggiornamento della rete target")
-    parser.add_argument("--epsilon-start", type=float, default=1.0, help="Valore iniziale di epsilon")
-    parser.add_argument("--epsilon-end", type=float, default=0.05, help="Valore minimo di epsilon")
+    parser.add_argument("--target-update", type=int, default=1_000, help="Target network update interval")
+    parser.add_argument("--epsilon-start", type=float, default=1.0, help="Initial epsilon value")
+    parser.add_argument("--epsilon-end", type=float, default=0.05, help="Minimum epsilon value")
     parser.add_argument(
         "--epsilon-decay-steps",
         type=int,
         default=100_000,
-        help="Numero di step per la decrescita lineare di epsilon",
+        help="Number of steps for the linear epsilon decay",
     )
     parser.add_argument(
         "--eval-episodes",
         type=int,
         default=5,
-        help="Numero di episodi da giocare in valutazione greedy al termine del training",
+        help="Number of greedy evaluation episodes after training",
     )
     parser.add_argument(
         "--save-path",
         type=Path,
         default=Path("results/dqn_agent.pt"),
-        help="Percorso dove salvare i pesi dell'agente",
+        help="Path where to save the agent weights",
     )
     return parser.parse_args()
 
@@ -187,12 +187,12 @@ def main() -> None:
 
     args.save_path.parent.mkdir(parents=True, exist_ok=True)
     agent.save(str(args.save_path))
-    print(f"Modello salvato in {args.save_path}")
+    print(f"Model saved to {args.save_path}")
 
     if args.eval_episodes > 0:
         mean_reward, success_rate = evaluate_policy(agent, env, args.eval_episodes, args.max_steps)
         print(
-            f"Valutazione finale -> reward media: {mean_reward:.3f}, tasso di successo: {success_rate:.2%}"
+            f"Final evaluation -> mean reward: {mean_reward:.3f}, success rate: {success_rate:.2%}"
         )
 
     env.close()

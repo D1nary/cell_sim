@@ -628,5 +628,66 @@ pip install --upgrade pip
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 ```
 
-## Escludere cartella da commit git
+## train.py
+### parse_args()
+parse_args() serve a leggere e interpretare gli argomenti passati da linea di comando quando esegui lo script train.py. In pratica ti permette di configurare l’allenamento senza modificare direttamente il codice.
 
+- Creazione di un parser
+    ```python
+    parser = argparse.ArgumentParser(description="Train a DQN agent for CellSimEnv")
+    ```
+    Questo oggetto raccoglierà tutti gli argomenti che lo script accetta.
+- Definisce gli argomenti (ognuno con nome, tipo, default e help). Ad esempio: 
+    - --episodes: numero di episodi di training (default 500).
+    - --max-steps: massimo numero di step per episodio (default 1000).
+- Restituisce i valori con `return parser.parse_args()`. Questi valori vengono messi dentro un oggetto Namespace, accessibile come args.qualcosa. Un singolo elemento di Namespace, è una coppia chiave-valore dove la chiave è il nome dell'argomento mentre il valore è quello inserito da teminale o, se non passato, di default
+
+Da terminale si può quindi eseguire, per esepio:
+```bash
+python train.py --episodes 1000 --device auto --lr 0.0005
+```
+### resolve_device()
+Questa funzione traduce la stringa passata con --device (che viene da parse_args()) in un oggetto torch.device di PyTorch, scegliendo in maniera intelligente se usare CPU o GPU (CUDA).
+
+1. Caso auto
+    - Se scrivi `--device auto`, la funzione controlla se CUDA è disponibile (torch.cuda.is_available()):
+        - Se sì → ritorna torch.device("cuda").
+        - Se no → ritorna torch.device("cpu").
+
+2. Caso cuda
+    - Se scrivi `--device cuda`, la funzione controlla comunque che CUDA sia disponibile:
+        - Se sì → ritorna torch.device("cuda").
+        - Se no → ricade alla CPU.
+3. Tutti gli altri casi (cpu o flag non validi)
+        - Ritorna sempre torch.device("cpu").
+        
+### build_discrete_actions()
+Per come sono state definite in CellSimEnv, le possibile azioni appartengono ad un range continuo. Per esempio, la dose potrebbe essere 1.37, 1.85, 0.05, ecc. Il problema è che l’algoritmo DQN funziona solo con azioni discrete, non continue. Quindi build_discrete_actions() trasforma lo spazio continuo in un insieme finito (una griglia). 
+
+Tramite la funzione linspace si divide dose e numero di ore in un numero bins di intervalli discreti. 
+```python
+dose_values = np.linspace(low_dose, high_dose, num=dose_bins)
+```
+### linear_epsilon()
+Serve a calcolare il valore di ε (epsilon) nell’ε-greedy policy.
+- In un DQN, ε rappresenta la probabilità di scegliere un’azione casuale invece di quella con Q-valore massimo.
+- All’inizio del training vogliamo molta esplorazione (ε alto, tipicamente 1.0).
+- Col passare degli step, vogliamo diminuire ε verso un valore minimo (es. 0.05), per fare più sfruttamento della policy appresa.
+
+linear_epsilon() implementa questa decrescita lineare di ε.
+
+1. Se decay_steps <= 0 → ritorna subito end (niente annealing, ε fisso).
+2. Calcola la frazione di progresso:
+    ```python
+    fraction = min(1.0, step / float(decay_steps))
+    ```
+    - 0.0 all’inizio (step=0)
+    - cresce fino a 1.0 dopo decay_steps passi.
+3. Interpola linearmente:
+    ```python
+    return start + fraction * (end - start)
+    ```
+    - start rappresenta il valore iniziale di ε (epsilon), cioè la probabilità di esplorazione all’inizio del training.
+    - Se fraction=0 → ε = start
+    - Se fraction=1 → ε = end
+    - Valori intermedi → interpolazione lineare.
