@@ -19,7 +19,7 @@ def parse_args() -> argparse.Namespace:
     """Parse command line arguments for the training script."""
     parser = argparse.ArgumentParser(description="Train a DQN agent for CellSimEnv")
     parser.add_argument("--episodes", type=int, default=500, help="Number of training episodes")
-    parser.add_argument("--max-steps", type=int, default=1_000, help="Maximum number of steps per episode")
+    parser.add_argument("--max-steps", type=int, default=1_200, help="Maximum number of steps per episode")
     parser.add_argument("--seed", type=int, default=0, help="Initialization seed")
     parser.add_argument(
         "--device",
@@ -139,7 +139,7 @@ def main() -> None:
     # Build the environment and discretised action catalogue used by the DQN.
     env = CellSimEnv()
     discrete_actions = build_discrete_actions(env.action_space, args.dose_bins, args.wait_bins)
-    state_dim = int(np.prod(env.observation_space.shape))
+    state_dim = int(np.prod(env.observation_space.shape)) # type: ignore
 
     # Instantiate the agent with hyperparameters from the CLI.
     config = DQNConfig(
@@ -161,6 +161,8 @@ def main() -> None:
         state, _ = env.reset(seed=args.seed + episode)
         episode_reward = 0.0
         info = {}
+
+        current_epsilon = args.epsilon_start  # Default value for Pylance error
 
         for _ in range(args.max_steps):
 
@@ -196,6 +198,9 @@ def main() -> None:
             f"avg10 reward: {avg_reward:.3f} | avg10 loss: {avg_loss:.5f} | eps: {current_epsilon:.3f} | {info_str}"
         )
 
+
+    # Saving data
+    # Root is considered the path of the main script’s directory
     args.save_path.parent.mkdir(parents=True, exist_ok=True)
     agent.save(str(args.save_path))
     print(f"Model saved to {args.save_path}")

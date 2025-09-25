@@ -39,19 +39,25 @@ class DQNAgent:
         device: torch.device,
         config: DQNConfig | None = None,
     ) -> None:
+        
         if len(discrete_actions) == 0:
             raise ValueError("discrete_actions must contain at least one action")
 
         self.state_dim = int(state_dim)
+
         # Materialise the discrete proxy for the continuous action space once.
         self.actions: List[np.ndarray] = [np.asarray(a, dtype=np.float32) for a in discrete_actions]
         self.device = device
         self.config = config or DQNConfig()
 
         # Policy and target networks share architecture but their parameters diverge between updates.
+        # Policy network creation
         self.policy_net = QNetwork(self.state_dim, len(self.actions), self.config.hidden_sizes).to(self.device)
+        # Target network creation
         self.target_net = QNetwork(self.state_dim, len(self.actions), self.config.hidden_sizes).to(self.device)
+        # Weight copy
         self.target_net.load_state_dict(self.policy_net.state_dict())
+        # Target network in evaluetion mode
         self.target_net.eval()
 
         # Optimiser for the policy network and the replay buffer backing off-policy learning.
@@ -62,6 +68,7 @@ class DQNAgent:
 
     def select_action(self, state: np.ndarray, epsilon: float) -> Tuple[int, np.ndarray]:
         """Return the action index and value following an ε-greedy policy."""
+        
         # Exploration branch: sample a random discrete action.
         if random.random() < epsilon:
             idx = random.randrange(len(self.actions))

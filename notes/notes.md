@@ -507,6 +507,17 @@ class Point:
 ```
 In una sola dichiarazione ottieni automaticamente costruttore, __repr__, __eq__ ecc., eliminando il codice standard.wait_values
 
+## Pylance
+Pylance è un estensione di Visual Studio Code sviluppata da Microsoft che fornisce un motore di analisi e completamento del codice per Python.
+
+In pratica, è il “cervello” che rende l’editing Python in VS Code molto più veloce e intelligente.
+Si basa su Pyright, un analizzatore statico per Python scritto in TypeScript, ed è ottimizzato per dare:
+- Completamento automatico (IntelliSense) molto rapido e preciso.
+- Type checking: controlla i tipi delle variabili, parametri e ritorni di funzioni per segnalare potenziali errori prima dell’esecuzione.
+- Go to Definition, Rename Symbol, Find References: strumenti per navigare facilmente nel codice.
+- Suggerimenti di import e correzioni rapide.
+- Supporto a type hints (PEP 484, PEP 561, ecc.) → migliora la leggibilità e riduce bug.
+
 ## type hint
 In una dataclass (o in generale nelle dichiarazioni di variabili e parametri in Python 3.6+), il simbolo : introduce un type hint (annotazione di tipo).
 
@@ -691,3 +702,62 @@ linear_epsilon() implementa questa decrescita lineare di ε.
     - Se fraction=0 → ε = start
     - Se fraction=1 → ε = end
     - Valori intermedi → interpolazione lineare.
+    
+### main()
+Come mai viene usato `state_dim = int(np.prod(env.observation_space.shape))`?
+self.observation_space è definito con
+```python
+self.observation_space = spaces.Box(
+    low=0.0,
+    high=np.inf,
+    shape=(2,),
+    dtype=np.float32,
+)
+```
+quindi è un oggetto box "contenente" un array di dimensione 2". L'attributo `env.observation_space.shape` restituisce una tupla (2,) cioè la dimensione dell'array di box. Per ottenere solo il numero che rappresenta la dimensione è necessario fare il prodotto dei valori allinterno della tupla ottenedo quindi solo 2
+
+## Errori
+Nella seguente riga di codice python, Pylance segna l'errore: No overloads for "prod" match the provided arguments 
+```python
+state_dim = int(np.prod(env.observation_space.shape))
+```
+L'avviso vuol dire che non riesce a capire che env.observation_space.shape è una sequenza di interi compatibile con np.prod.
+
+In pratica:
+- A runtime il codice funziona perfettamente.
+- Pylance, però, non trova un overload tipizzato di np.prod che accetti il tipo che pensa abbia env.observation_space.shape.
+
+Soluzioni:
+- Ignorare l’avviso: il codice è corretto e gira.
+- Aiutare Pylance con un hint di tipo:
+    ```python
+    import numpy as np
+    from typing import Tuple
+
+    shape: Tuple[int, ...] = env.observation_space.shape
+    state_dim = int(np.prod(shape))
+    ```
+- Aggiungere un commento per ignorare il check:
+    ```python
+    state_dim = int(np.prod(env.observation_space.shape))  # type: ignore
+    ```
+## agent.py
+
+### eval target network
+```python
+self.target_net.eval()
+```
+In PyTorch, una rete neurale (nn.Module) può trovarsi in due modalità principali:
+1. Training mode (model.train()):
+    - Alcuni layer si comportano in modo stocastico o dipendente dal batch.
+    - Esempi:
+        - Dropout → spegne casualmente neuroni a ogni forward per regolarizzare.
+        - BatchNorm → normalizza gli output usando le statistiche del batch corrente.
+2. Evaluation mode (model.eval()):
+    - Questi comportamenti vengono disattivati o resi deterministici:
+        - Dropout → non spegne più neuroni.
+        - BatchNorm → usa le statistiche fissate in training, non quelle del batch.
+    - In questo modo, l’output della rete diventa stabile e ripetibile.
+    
+Nel caso della target network:
+La target network non si allena mai direttamente: serve solo a calcolare i target Q-values nella formula di aggiornamento. Quindi vogliamo che il suo comportamento sia deterministico e costante, indipendentemente dal batch o da effetti casuali. Per questo viene messa in eval(): garantisce che la rete venga usata solo per inferenza, senza dropout o altre variazioni.

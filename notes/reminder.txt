@@ -29,3 +29,4 @@ VEDI TRAIN.PY
 Vedi args.save_path.parent.mkdir(parents=True, exist_ok=True)
 Vedi for _ in range(max_steps): in evaluate_policy e lo stesso in main()
 Come vengono scelte le azioni (select_action in main in train.py)
+Controlla la non presenza di wrappers
