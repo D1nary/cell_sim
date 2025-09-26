@@ -704,7 +704,7 @@ linear_epsilon() implementa questa decrescita lineare di ε.
     - Valori intermedi → interpolazione lineare.
     
 ### main()
-Come mai viene usato `state_dim = int(np.prod(env.observation_space.shape))`?
+- Come mai viene usato `state_dim = int(np.prod(env.observation_space.shape))`?
 self.observation_space è definito con
 ```python
 self.observation_space = spaces.Box(
@@ -714,7 +714,19 @@ self.observation_space = spaces.Box(
     dtype=np.float32,
 )
 ```
+
 quindi è un oggetto box "contenente" un array di dimensione 2". L'attributo `env.observation_space.shape` restituisce una tupla (2,) cioè la dimensione dell'array di box. Per ottenere solo il numero che rappresenta la dimensione è necessario fare il prodotto dei valori allinterno della tupla ottenedo quindi solo 2
+
+- update()
+    - update() = 1 passo di ottimizzazione DQN:
+    - Campiona un batch dal replay buffer.
+    - Calcola Q(s,a) corrente.
+    - Costruisce il target con Double DQN.
+    - Calcola la loss (Huber).
+    - Aggiorna la policy net.
+    - Sincronizza la target net periodicamente.
+
+VEDI SEZIONE agent.py
 
 ## Errori
 Nella seguente riga di codice python, Pylance segna l'errore: No overloads for "prod" match the provided arguments 
@@ -761,3 +773,92 @@ In PyTorch, una rete neurale (nn.Module) può trovarsi in due modalità principa
     
 Nel caso della target network:
 La target network non si allena mai direttamente: serve solo a calcolare i target Q-values nella formula di aggiornamento. Quindi vogliamo che il suo comportamento sia deterministico e costante, indipendentemente dal batch o da effetti casuali. Per questo viene messa in eval(): garantisce che la rete venga usata solo per inferenza, senza dropout o altre variazioni.
+
+### In select_action()
+- `state_tensor = torch.as_tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)`
+Il ReplayBuffer è una memoria che conserva le transizioni che l’agente vive:
+$$ (s_t, a_t, r_t, s_{t+1}, \text{done}) $$
+Ogni volta che l’agente fa uno step nell’ambiente (env.step()), aggiunge una transizione al buffer:
+
+```python
+self.replay_buffer.add(state, action_index, reward, next_state, done)
+```
+
+Quindi il buffer diventa una "banca dati" di esperienze passate.
+Quando facciamo l’update della rete Q, non usiamo solo l’ultima transizione (come in Q-learning tabellare), ma estraiamo un mini-batch di esperienze a caso dal replay buffer:
+```python
+batch = self.replay_buffer.sample(self.config.batch_size, self.device)
+states, actions, rewards, next_states, dones = batch
+```
+
+Esempio se batch_size = 64:
+- states.shape = torch.Size([64, 2]) → 64 stati, ciascuno con 2 feature (healthy, cancer).
+- actions.shape = torch.Size([64]) → 64 indici azione.
+- rewards.shape = torch.Size([64]) → 64 reward scalari.
+- ecc.
+
+**Perché serve il batch?**
+Addestrare la rete con più esempi contemporaneamente è molto più stabile ed efficiente (grazie alla media dei gradienti).
+Il batch rompe la correlazione temporale tra stati consecutivi → se usassi solo l’ultima transizione, rischieresti di imparare solo pattern molto dipendenti dall’ordine degli stati.
+
+La dimensione di input per le reti in PyTorch segue sempre la convenzione:
+```python
+[batch_size, feature_dim]
+```
+
+Nel caso del codice, lo stato osservato è un singolo array, es.:
+
+DA FINIRE
+
+### Update
+
+```python
+loss = agent.update() 
+```
+L’ordine delle azioni che portano ad update è (in main di train.py):
+- Azione scelta con select_action.
+- Ambiente aggiornato con env.step.
+- Transizione salvata nel replay buffer (agent.store_transition).
+- Aggiornamento della rete (agent.update()).
+
+L'estrazione avviene nel seguente modo:
+- Esperienze salvate in ReplayBuffer.add(...) ogni volta che fai env.step().
+- Batch estratto in DQNAgent.update() tramite ReplayBuffer.sample(...).
+- Questo batch viene poi passato attraverso la rete per calcolare i Q-values e aggiornare i pesi.
+
+update() esegue i seguenti compiti
+1. Check sul buffer: 
+controlla il numero minimo di transizioni che servono nel replay buffer prima di iniziare il training con la funzione can_update():
+
+```python
+def can_update(self) -> bool:
+    """Return True when the buffer has enough samples for training."""
+    needed = max(self.config.min_buffer_size, self.config.batch_size)
+    return len(self.replay_buffer) >= needed
+```
+Restituisce True se il buffer contiene almeno needed transizioni, False altrimenti.
+
+2. Estrazione batch
+Incrementa il contatore interno _step_counter (serve per sapere quando aggiornare la target network).
+Campiona un mini-batch dal replay buffer (sample). Ottenendo i tensori:
+- states: [batch_size, state_dim]
+- actions: [batch_size]
+- rewards: [batch_size]
+- next_states: [batch_size, state_dim]
+- dones: [batch_size]
+
+```python
+    self._step_counter += 1
+    batch = self.replay_buffer.sample(self.config.batch_size, self.device)
+    states, actions, rewards, next_states, dones = batch
+```
+
+3. Calcolo dei Q-values della policy net per tutti gli stati del batch
+
+```python
+    current_q = self.policy_net(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+```
+In particolare:
+
+
+
