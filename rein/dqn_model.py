@@ -13,17 +13,21 @@ class QNetwork(nn.Module):
 
     def __init__(
         self,
-        input_dim: int,
-        output_dim: int,
-        hidden_sizes: Iterable[int] = (128, 128),
+        input_dim: int,  # dimensionality of the state
+        output_dim: int,  # number of discrete actions
+        hidden_sizes: Iterable[int] = (128, 128),  # widths of hidden layers
     ) -> None:
         super().__init__()
         layers: list[nn.Module] = []
         last_dim = input_dim
+
+        # Build a stack of linear → ReLU blocks for each requested hidden size.
         for size in hidden_sizes:
             layers.append(nn.Linear(last_dim, int(size)))
             layers.append(nn.ReLU())
             last_dim = int(size)
+            
+        # Last layer maps features to raw Q-values for every action.
         layers.append(nn.Linear(last_dim, output_dim))
         self.net = nn.Sequential(*layers)
 
@@ -33,6 +37,7 @@ class QNetwork(nn.Module):
         """Apply Xavier initialization to the linear layers."""
         for module in self.modules():
             if isinstance(module, nn.Linear):
+                # Xavier init keeps activations stable when propagating through the MLP.
                 nn.init.xavier_uniform_(module.weight)
                 nn.init.zeros_(module.bias)
 

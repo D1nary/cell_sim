@@ -102,26 +102,32 @@ class DQNAgent:
         if not self.can_update():
             return None
 
+        # Track how many optimisation steps we have taken for periodic target syncs.
         self._step_counter += 1
+        # Sample a random mini-batch whose tensors are already placed on the agent device.
         batch = self.replay_buffer.sample(self.config.batch_size, self.device)
         states, actions, rewards, next_states, dones = batch
 
         # Q(s,a) values for the sampled actions under the current policy network.
         current_q = self.policy_net(states).gather(1, actions.unsqueeze(1)).squeeze(1)
         with torch.no_grad():
+
             # Double-DQN style target: argmax with policy net, value with target net.
             next_actions = torch.argmax(self.policy_net(next_states), dim=1, keepdim=True)
             next_q = self.target_net(next_states).gather(1, next_actions).squeeze(1)
             targets = rewards + (1.0 - dones) * self.config.gamma * next_q
 
+        # Huber loss is robust to outliers in bootstrapped targets.
         loss = F.smooth_l1_loss(current_q, targets)
         self.optimizer.zero_grad()
         loss.backward()
+
         # Stabilise training by clipping large gradients when requested.
         if self.config.gradient_clip is not None:
             torch.nn.utils.clip_grad_norm_(self.policy_net.parameters(), self.config.gradient_clip)
         self.optimizer.step()
 
+        # Periodically refresh the target network to keep the bootstrap stable.
         if self._step_counter % self.config.target_update_interval == 0:
             self.sync_target_network()
 
@@ -136,7 +142,7 @@ class DQNAgent:
         return self.actions[int(action_index)]
 
     def save(self, path: str) -> None:
-        """Persist the policy network parameters and metadata."""
+        """Save the policy network parameters and metadata."""
         torch.save(
             {
                 "policy_state_dict": self.policy_net.state_dict(),

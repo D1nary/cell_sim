@@ -859,6 +859,364 @@ Campiona un mini-batch dal replay buffer (sample). Ottenendo i tensori:
     current_q = self.policy_net(states).gather(1, actions.unsqueeze(1)).squeeze(1)
 ```
 In particolare:
+- states ha shape `[batch_size, state_dim]` quindi, per esempio, batch_size=64 e state_dim=2: `q_values.shape = [64, 2]`. states viene preso dal batch estratto dal replay buffer.
+- actions: vine estratto dal batch e quindi dal replay buffer. È un tensore di dimensione batch_size. Contiene l'indice dell'azione (dopo che le azioni sono state discretizzate in indici)
+
+Esempio: se batch_size = 4
+```python
+actions = tensor([0, 5, 2, 1])  # torch.Size([4])
+```
+- actions.unsqueeze(1) 
+Aggiunge una nuova dimensione in posizione 1. Serve perchè torch.gather(input, dim=1, index) si aspetta che index abbia lo stesso numero di righe del batch e una colonna per ciascun indice da estrarre.
+
+Quindi se q_values.shape = [batch_size, num_actions], allora actions.unsqueeze(1).shape = [batch_size, 1] è compatibile.
+
+- .gather(1, actions.unsqueeze(1))
+
+torch.gather(input, dim, index) prende valori da input lungo dim, usando index cioè:
+- input = q_values ([64, 2])
+- dim = 1 (asse delle azioni)
+- index = actions.unsqueeze(1) ([64, 1])
+
+Si ottiene una cosa del genere:
+```pytohn
+q_values =
+[[1.0, 2.0, 3.0, 4.0],
+ [0.5, 1.5, 2.5, 3.5],
+ [9.0, 8.0, 7.0, 6.0]]
+
+actions = [2, 0, 3]   # scelto azione 2, 0, 3
+
+q_values.gather(1, actions.unsqueeze(1)) =
+[[3.0],
+ [0.5],
+ [6.0]]
+```
+- .squeeze(1)
+    - Rimuove la dimensione “inutile” da [64, 1] → [64].
+    - Quindi current_q ha shape [batch_size]: un Q-value per ogni transizione del batch.
+    
+- ESEMPIO COMPLETO
+Consideriamo:
+- dose_bins = 3 → dose ∈ [0.0, 1.0, 2.0]
+- wait_bins = 2 → ore di attesa ∈ [0.0, 24.0]
+
+Quindi le azioni discrete possibili (self.actions) saranno:
+```python
+0 → [0.0,  0.0]
+1 → [0.0, 24.0]
+2 → [1.0,  0.0]
+3 → [1.0, 24.0]
+4 → [2.0,  0.0]
+5 → [2.0, 24.0]
+```
+Abbiamo il seguente esempio di utilizzo di `current_q = self.policy_net(states).gather(1, actions.unsqueeze(1)).squeeze(1)`
+
+```python
+import torch
+
+# 🔹 Batch di stati (cellule_sane, cellule_cancerose)
+states = torch.tensor([
+    [9500, 500],   # stato 1
+    [9000, 1000],  # stato 2
+    [9800, 200],   # stato 3
+    [8700, 1300]   # stato 4
+], dtype=torch.float32)
+print("states.shape:", states.shape)  # torch.Size([4, 2])
+
+# 🔹 Supponiamo che la policy_net restituisca Q-values per 6 azioni discrete:
+#   0 → [0.0,  0.0]
+#   1 → [0.0, 24.0]
+#   2 → [1.0,  0.0]
+#   3 → [1.0, 24.0]
+#   4 → [2.0,  0.0]
+#   5 → [2.0, 24.0]
+q_values = torch.tensor([
+    [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],   # stato 1
+    [6.0, 5.0, 4.0, 3.0, 2.0, 1.0],   # stato 2
+    [0.5, 1.5, 2.5, 3.5, 4.5, 5.5],   # stato 3
+    [9.0, 8.0, 7.0, 6.0, 5.0, 4.0]    # stato 4
+])
+print("q_values.shape:", q_values.shape)  # torch.Size([4, 6])
+
+# 🔹 Indici delle azioni realmente eseguite (nel batch)
+actions = torch.tensor([4, 1, 5, 0])   # es: dose/tempo scelti
+print("actions.shape:", actions.shape)  # torch.Size([4])
+
+# 🔹 Aggiungiamo la seconda dimensione (necessaria per gather)
+actions_unsq = actions.unsqueeze(1)
+print("actions_unsq.shape:", actions_unsq.shape)
+print(actions_unsq)
+# tensor([[4],
+#         [1],
+#         [5],
+#         [0]])
+
+# 🔹 Estraiamo i Q-values delle azioni scelte
+chosen_q = q_values.gather(1, actions_unsq)
+print("chosen_q.shape:", chosen_q.shape)
+print(chosen_q)
+# tensor([[5.0],   # stato 1 → azione 4 = [2.0, 0.0]
+#         [5.0],   # stato 2 → azione 1 = [0.0, 24.0]
+#         [5.5],   # stato 3 → azione 5 = [2.0, 24.0]
+#         [9.0]])  # stato 4 → azione 0 = [0.0, 0.0]
+
+# 🔹 Togliamo la dimensione extra
+current_q = chosen_q.squeeze(1)
+print("current_q.shape:", current_q.shape)
+print(current_q)
+# tensor([5.0, 5.0, 5.5, 9.0])
+```
+
+NOTA: COME MAI q_values HA 6 COLONNE?
+Nell'ambiente un’azione reale è un vettore di due numeri:
+```bash
+[dose, num_ore]
+```
+Ma per usare un DQN (che lavora su spazi di azione discreti), il continuo `[dose, num_ore]` viene discretizzato in un insieme finito di possibili azioni.
+
+La funzione build_discrete_actions() in train.py costruisce una lista di azioni possibili:
+- dose_bins = 3 → valori dose = [0.0, 1.0, 2.0]
+- wait_bins = 2 → valori ore = [0.0, 24.0]
+allora le azioni discrete diventano tutte le combinazioni:
+
+```python
+[0.0, 0.0], [0.0, 24.0],
+[1.0, 0.0], [1.0, 24.0],
+[2.0, 0.0], [2.0, 24.0]
+```
+Totale = 3 × 2 = 6 azioni discrete. 
+
+Cosa rappresentano le colonne di q_values?
+
+La rete policy_net produce un valore Q per ciascuna azione discreta.
+Quindi: n° colonne = n° azioni discrete Ogni colonna corrisponde ad una combinazione [dose, num_ore].
+Esempio:
+- Se hai 6 azioni discrete, q_values avrà shape [batch_size, 6].
+- Se hai 3 azioni discrete, q_values avrà shape [batch_size, 3].
+
+Considerando che i bin dell'esempio precedente sono 
+```python
+q_values =
+[[1.0, 2.0, 3.0, 4.0],
+ [0.5, 1.5, 2.5, 3.5],
+ [9.0, 8.0, 7.0, 6.0]]
+```
+dell'esempio precedente, il numero di righe rappresenta ciascuno stato mentre ogni valore q in ciascuna riga rappresenta il valore q della possibile azione (6 colonne poichè abbiamo 6 possibili azioni).
+
+4. Target Q (Double DQN)
+```python
+    with torch.no_grad():
+        next_actions = torch.argmax(self.policy_net(next_states), dim=1, keepdim=True)
+        next_q = self.target_net(next_states).gather(1, next_actions).squeeze(1)
+        targets = rewards + (1.0 - dones) * self.config.gamma * next_q
+```
+- Usa la policy net per scegliere l’azione migliore (argmax) nei next_states.
+- Usa la target net per valutare il valore Q di quell’azione.
+- Costruisce i target secondo la formula di Bellman
+
+5. Ottimizzazione
+```python
+    loss = F.smooth_l1_loss(current_q, targets)
+    self.optimizer.zero_grad()
+    loss.backward()
+    if self.config.gradient_clip is not None:
+        torch.nn.utils.clip_grad_norm_(self.policy_net.parameters(), self.config.gradient_clip)
+    self.optimizer.step()
+```
+- Calcola la perdita Huber loss (smooth_l1_loss) tra current_q e targets
+- Azzera i gradienti poichè PyTorch, di default, accumula i gradienti a ogni backward(), quindi vanno resettati prima di calcolare quelli nuovi. (self.optimizer.zero_grad())
+- Backpropagation: calcola i gradienti e aggiorna i pesi della policy net (loss.backward()). 
+- Opzionalmente fa clipping dei gradienti per stabilizzare l’allenamento.
+- Aggiorno i pesi della rete (self.optimizer.step())
+
+Cosa si intende per clipping?
+- Durante il training di una rete neurale, i gradienti calcolati con backpropagation possono diventare molto grandi (problema del exploding gradients).
+- Se i gradienti sono enormi → i pesi vengono aggiornati con passi troppo grandi → l’allenamento diventa instabile o diverge.
+- Clipping vuol dire limitare la grandezza dei gradienti prima dell’aggiornamento dei pesi.
+
+Esistono diverse tipologie di clipping tra cui Norm clipping (quello utilizzato) e Value clipping
+
+6. Aggiornamento della target network
+
+```python
+    if self._step_counter % self.config.target_update_interval == 0:
+        self.sync_target_network()
+```
+- Ogni target_update_interval passi, copia i pesi della policy net nella target net (soft reset).
+- Questo stabilizza l’apprendimento, perché la target rimane fissa per un po’ di passi.
+
+7. Ritorno
+```python
+    return float(loss.item())
+```
+Ritorna la perdita numerica come float cioè il numero che misura quanto i valori previsti dalla rete si discostano dai valori target.
+
+### save()
+La funzione salva su file dati relativi alla rete. In particolare:
+- "policy_state_dict" → i parametri (pesi e bias) della policy network (self.policy_net.state_dict()).
+- "target_state_dict" → i parametri della target network.
+- "config" → la configurazione dell’agente (DQNConfig) che contiene iperparametri (learning rate, gamma, batch size, ecc.).
+- "actions" → la lista di azioni discrete (self.actions) usata per mappare gli indici alle azioni reali [dose, wait].
+
+### load()
+1. Caricamento del file
+```python
+checkpoint = torch.load(path, map_location=self.device)
+```
+- Legge il file salvato con save().
+- map_location=self.device assicura che i tensori vengano caricati sul device corretto (CPU o GPU).
+
+2. Ripristino pesi delle reti
+```python
+self.policy_net.load_state_dict(checkpoint["policy_state_dict"])
+self.target_net.load_state_dict(checkpoint["target_state_dict"])
+```
+- Carica i parametri (pesi e bias) sia della policy net che della target net.
+- Così il modello riprende esattamente da dove era stato salvato.
+
+3. Ripristino delle azioni
+```python
+self.actions = [np.asarray(a, dtype=np.float32) for a in checkpoint.get("actions", self.actions)]
+```
+- Se nel file c’è la lista delle azioni (actions), viene ricaricata.
+- Se non c’è (vecchio checkpoint), mantiene self.actions attuale.
+
+4. Ripristino configurazione
+```python
+self.config = checkpoint.get("config", self.config)
+```
+- Se il file contiene la configurazione (DQNConfig), la carica.
+- Se no, mantiene quella esistente.
+
+## model.py
+Il file definisce la rete neurale usata dall’agente DQN.
+
+### init()
+1. Dichiarazione
+```python
+def __init__(
+    self,
+    input_dim: int,
+    output_dim: int,
+    hidden_sizes: Iterable[int] = (128, 128),
+) -> None:
+    super().__init__()
+```
+- input_dim = dimensione dello stato (es. 2: healthy_cells, cancer_cells).
+- output_dim = numero di azioni discrete (len(self.actions) nell’agente).
+- hidden_sizes = dimensioni dei layer nascosti, default (128,128).
+- super().__init__() → inizializza la parte base di nn.Module.
+
+COSA SI INTENDE PER DIMENSIONE DEI LAYER NASCOSTI?
+In una rete neurale feed-forward (come la tua QNetwork), distinguiamo in generale tre tipi di layer:
+- Input layer — riceve lo stato in ingresso (nel tuo caso dimensione = numero di feature ad dello, stato es. 2).
+- Hidden layers (layer nascosti) — situati tra input e output, servono a trasformare l’informazione.
+- Output layer — produce il risultato finale (nel tuo caso Q-values per ciascuna azione).
+
+La dimensione di un hidden layer (o “numero di unità / neuroni nel layer nascosto”) è il numero di neuroni / unità presenti in quel layer.
+
+Se un layer nascosto ha dimensione 128, significa che quel layer riceve un input (da precedente layer) e produce un output che è un vettore di 128 valori (uno per ogni neurone del layer).
+
+In termini più tecnici: il layer è una trasformazione lineare da uno spazio dimensione $d_{in}$ a uno spazio dimensione d_{hidden}, seguita da un’attivazione non lineare.
+
+Se hai più hidden layers, ciascuno ha la sua dimensione. Ad esempio, hidden_sizes = (128, 128) significa che hai due hidden layers, ciascuno con 128 neuroni (o unità).
+
+2. Costruzione della QNetwork
+```python
+layers: list[nn.Module] = []
+last_dim = input_dim
+for size in hidden_sizes:
+    layers.append(nn.Linear(last_dim, int(size)))
+    layers.append(nn.ReLU())
+    last_dim = int(size)
+layers.append(nn.Linear(last_dim, output_dim))
+self.net = nn.Sequential(*layers)
+```
+
+    - Lista dei layer
+    ```pytohn
+    layers: list[nn.Module] = []
+    ```
+    Crea una lista vuota di moduli PyTorch (nn.Module). In questa lista verranno aggiunti i layer della rete (densi e attivazioni).
+
+    - Inizio dal dimensionamento input
+    ```python
+    last_dim = input_dim
+    ```
+    last_dim tiene traccia della dimensione di uscita del layer precedente (serve per collegare correttamente i layer lineari). All’inizio, è uguale all’input (dimensione dello stato, es. 2 → [healthy, cancer]).
+    - Ciclo sui layer nascosti
+    ```python
+    for size in hidden_sizes:
+        layers.append(nn.Linear(last_dim, int(size)))
+        layers.append(nn.ReLU())
+        last_dim = int(size)
+    ```
+    Per ogni layer nascosto creo, con nn.Linear(last_dim, int(size)), un layer che trasforma un input di last_dim (per esempio 2 feature al primo ciclo) features in int(size) neuroni. Definiamo l'attivazione non lineare ReLu per i neuroni e aggiorniamo last_dim
+    - Layer di output
+    ```python
+    layers.append(nn.Linear(last_dim, output_dim))
+    ```
+    Aggiungiamo il layer di output. In questo caso trasforma un input di last_dim features (numero di features dell'ultimo layer nascosto) in un numero di output_dim neuroni corrispondenti al numero di azioni discrete ovvero al numero Q-values vogliamo ottenere
+
+### _init_weights()
+_init_weights serve a inizializzare i pesi dei layer lineari (nn.Linear) in un modo controllato, invece di lasciare la scelta al default di PyTorch.
+
+Un’inizializzazione corretta evita:
+- Gradiente che esplode → valori enormi nei pesi.
+- Gradiente che scompare → valori che si avvicinano a zero e bloccano l’apprendimento.
+
+```python
+def _init_weights(self) -> None:
+    """Apply Xavier initialization to the linear layers."""
+    for module in self.modules():
+        if isinstance(module, nn.Linear):
+            nn.init.xavier_uniform_(module.weight)
+            nn.init.zeros_(module.bias)
+```
+
+- self.modules()
+il metodo .modules() restituisce un iteratore su tutti i sotto-moduli che compongono la tua rete, inclusi:
+    - i layer lineari (nn.Linear)
+    - le funzioni di attivazione (nn.ReLU, nn.Sigmoid, ecc.)
+    - eventuali blocchi sequenziali (nn.Sequential)
+    - altri moduli annidati
+- if isinstance(module, nn.Linear):
+    - Controlla se il modulo è un layer lineare (nn.Linear).
+    - Vogliamo inizializzare solo i layer con pesi e bias, non le attivazioni (ReLU).
+- nn.init.xavier_uniform_(module.weight)
+Applica Xavier uniform initialization (anche chiamata Glorot uniform). Distribuisce i pesi con valori random in un intervallo calcolato in base alla dimensione del layer. In DQN e reti con ReLU, Xavier (uniforme o normale) è una buona scelta perché:
+    - Mantiene i valori dei neuroni bilanciati in media.
+    - Riduce il rischio di gradienti instabili.
+- nn.init.zeros_(module.bias)
+    - Inizializza tutti i bias a 0.
+    - I bias non hanno lo stesso problema dei pesi (non amplificano la varianza), quindi zero è una scelta comune e sicura.
+    
+## replay_buffer.py
+### init()
+```python
+class ReplayBuffer:
+    """Fixed-size buffer that stores transitions for off-policy learning."""
+
+    def __init__(self, capacity: int) -> None:
+        self.capacity = int(capacity)
+        self._buffer: Deque[Transition] = deque(maxlen=self.capacity)
+```
+1. Parametro capacity
+È la dimensione massima del buffer, cioè quante transizioni ((state, action, reward, next_state, done)) può contenere al massimo.
+
+2. self._buffer: Deque[Transition] = deque(maxlen=self.capacity)
+
+    - _buffer è una deque (double-ended queue) della libreria standard Python.
+    - maxlen=self.capacity → significa che la deque mantiene al massimo capacity elementi.
+    - Quando aggiungi un nuovo elemento oltre la capacità, il più vecchio viene automaticamente rimosso.
+    - Tipo degli elementi: Transition (una dataclass che contiene state, action, reward, next_state, done). La classe transition è stata definita nel codice
+    
+## add()
+Append new Transition to the buffer. 
+
+    
+    
 
 
 
