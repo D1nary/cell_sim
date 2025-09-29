@@ -11,7 +11,7 @@ import torch
 import torch.nn.functional as F
 from torch import optim
 
-from .dqn_model import QNetwork
+from ..model import QNetwork
 from .replay_buffer import ReplayBuffer
 
 

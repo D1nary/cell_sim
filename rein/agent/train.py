@@ -12,7 +12,7 @@ import numpy as np
 import torch
 
 from .dqn_agent import DQNAgent, DQNConfig
-from .rl_env import CellSimEnv
+from ..env import CellSimEnv
 
 
 def parse_args() -> argparse.Namespace:

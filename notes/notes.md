@@ -1212,11 +1212,23 @@ class ReplayBuffer:
     - Quando aggiungi un nuovo elemento oltre la capacità, il più vecchio viene automaticamente rimosso.
     - Tipo degli elementi: Transition (una dataclass che contiene state, action, reward, next_state, done). La classe transition è stata definita nel codice
     
-## add()
+### add()
 Append new Transition to the buffer. 
+### sample()
+- Costruzione di states:
+```python
+states = torch.as_tensor(np.stack([t.state for t in batch], axis=0), device=device)
+```
+    - t.state for t in batch: estrae l'attributo state dall'oggetto Transition per ogni elemento del batch
+    - np.stack prende la lista di array e li unisce lungo un nuovo asse
+    - torch.as_tensor(..., device=device): Converte la matrice NumPy in un tensore PyTorch. Viene copiato sul device corretto (cpu o cuda). Non specifica dtype → quindi eredita da NumPy (float32, perché gli stati vengono salvati così in add()).
 
-    
-    
+- Costruzione di actions, reward e next_state, dones: Avviene come per states
+
+## pycache
+Le cartelle __pycache__ sono la cache di Python per i moduli compilati in bytecode. Ogni volta che importi o esegui un file .py, Python lo compila in bytecode ottimizzato (corrispondente alla versione del tuo interprete) e lo scrive in __pycache__, in modo che le importazioni successive vengano caricate più velocemente, senza bisogno di rianalizzare/compilare il codice sorgente ogni volta. Sono interamente generate automaticamente; puoi eliminarle in sicurezza e Python le rigenererà su richiesta.
+
+Python crea una cartella __pycache__ in ogni directory dove importa o compila moduli. Anche strumenti come python3 -m compileall rein generano bytecode per tutti i file e li salvano accanto ai sorgenti. Dal momento che il progetto è stato suddiviso in più sottopacchetti (rein/agent, rein/env, rein/tests, …) e abbiamo eseguito la compilazione di prova, ogni cartella ha ricevuto il proprio __pycache__. Sono file temporanei: puoi ignorarli o cancellarli (Python li rigenera alla successiva esecuzione).
 
 
 

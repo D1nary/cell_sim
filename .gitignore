@@ -1,3 +1,27 @@
 build/
+
+# Virtual environments
 env_hp/
 env_dell/
+
+# Python bytecode and cache directories
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Compiled extensions and build artefacts
+*.so
+*.pyd
+*.dll
+*.dylib
+dist/
+*.egg-info/
+pip-wheel-metadata/
+
+# Editor/OS generated files
+.DS_Store
+*.swp
+*.tmp
+
+# Simulation or training outputs
+# results/

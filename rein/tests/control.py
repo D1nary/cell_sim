@@ -1,7 +1,6 @@
 import time
 import pathlib
 import random
-import copy
 
 import cell_sim
 
@@ -76,12 +75,12 @@ if __name__ == "__main__":
     # Initialize controller
     ctrl = cell_sim.Controller(xsize, ysize, zsize, sources_num,
                                cradius, hradius, hcells, ccells)
-    
 
     # Setup directories
     script_dir = pathlib.Path(__file__).resolve().parent
-    parent_dir = script_dir.parent
-    res_path = parent_dir / "results"
+    # This file lives in rein/tests, so the project root sits two levels above.
+    project_root = script_dir.parents[1]
+    res_path = project_root / "results"
     data_path = res_path / "data"
     data_tab = data_path / "tabs"
     data_tab_growth = data_tab / "growth"
@@ -91,21 +90,8 @@ if __name__ == "__main__":
              str(data_path / "cell_num")]
     create_directories(paths)
 
-    g2 = copy.deepcopy(ctrl.grid)
-
     # TUMOR GROWTH
     tumor_growth(ctrl, data_tab_growth)
-
-    # g2 = copy.deepcopy(ctrl.grid)
-    print("Contatore g2:", g2.cell_counts)
-
-    print("Contatore grid dopo growth",ctrl.grid.cell_counts)
-
-    ctrl.set_grid(g2)
-
-    print("Ripristino grid",ctrl.grid.cell_counts)
-
-    exit(0)
 
     # Clear temporary buffers and reset clock
     ctrl.clear_tempDataTab()
