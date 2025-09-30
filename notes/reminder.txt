@@ -27,4 +27,4 @@ FORSE da sostituire self_grid con grid
 
 VEDI TRAIN.PY
 Controlla la non presenza di wrappers
-Controlla come vengono calcolate le azioni discrete. Quante sono?
+A cosa servono i seed? cosa cambia da un seed all'altro?

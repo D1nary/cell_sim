@@ -61,6 +61,12 @@ def parse_args() -> argparse.Namespace:
         default=Path("results/dqn_agent.pt"),
         help="Path where to save the agent weights",
     )
+    parser.add_argument(
+        "--growth-hours",
+        type=int,
+        default=150,
+        help="Number of growth hours applied to the resetted environment",
+    )
     return parser.parse_args()
 
 
@@ -158,7 +164,12 @@ def main() -> None:
 
     # Main training loop over episodes.
     for episode in range(1, args.episodes + 1):
+
+        # Reset the grid to the initial state
         state, _ = env.reset(seed=args.seed + episode)
+        # Perform a new growth to the environment
+        env.growth(args.growth_hours)
+        
         episode_reward = 0.0
         info = {}
 
