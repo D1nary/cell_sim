@@ -728,31 +728,6 @@ quindi è un oggetto box "contenente" un array di dimensione 2". L'attributo `en
 
 VEDI SEZIONE agent.py
 
-## Errori
-Nella seguente riga di codice python, Pylance segna l'errore: No overloads for "prod" match the provided arguments 
-```python
-state_dim = int(np.prod(env.observation_space.shape))
-```
-L'avviso vuol dire che non riesce a capire che env.observation_space.shape è una sequenza di interi compatibile con np.prod.
-
-In pratica:
-- A runtime il codice funziona perfettamente.
-- Pylance, però, non trova un overload tipizzato di np.prod che accetti il tipo che pensa abbia env.observation_space.shape.
-
-Soluzioni:
-- Ignorare l’avviso: il codice è corretto e gira.
-- Aiutare Pylance con un hint di tipo:
-    ```python
-    import numpy as np
-    from typing import Tuple
-
-    shape: Tuple[int, ...] = env.observation_space.shape
-    state_dim = int(np.prod(shape))
-    ```
-- Aggiungere un commento per ignorare il check:
-    ```python
-    state_dim = int(np.prod(env.observation_space.shape))  # type: ignore
-    ```
 ## agent.py
 
 ### eval target network
@@ -1229,6 +1204,48 @@ states = torch.as_tensor(np.stack([t.state for t in batch], axis=0), device=devi
 Le cartelle __pycache__ sono la cache di Python per i moduli compilati in bytecode. Ogni volta che importi o esegui un file .py, Python lo compila in bytecode ottimizzato (corrispondente alla versione del tuo interprete) e lo scrive in __pycache__, in modo che le importazioni successive vengano caricate più velocemente, senza bisogno di rianalizzare/compilare il codice sorgente ogni volta. Sono interamente generate automaticamente; puoi eliminarle in sicurezza e Python le rigenererà su richiesta.
 
 Python crea una cartella __pycache__ in ogni directory dove importa o compila moduli. Anche strumenti come python3 -m compileall rein generano bytecode per tutti i file e li salvano accanto ai sorgenti. Dal momento che il progetto è stato suddiviso in più sottopacchetti (rein/agent, rein/env, rein/tests, …) e abbiamo eseguito la compilazione di prova, ogni cartella ha ricevuto il proprio __pycache__. Sono file temporanei: puoi ignorarli o cancellarli (Python li rigenera alla successiva esecuzione).
+
+## Esecuzione file
+In genere, cos'è più comune fare:
+Lanciare i programmi dalla root o direttamente dalla directory del file?
+
+Di solito conviene restare nella root del progetto e lanciare lì i tuoi script (spesso via python -m package.module). Così il package layout e gli import funzionano sempre, la documentazione/istruzioni risultano più coerenti e non devi ricordarti percorsi relativi diversi. Capita di eseguire un file direttamente dalla sua directory, ma è meno portabile e può rompere gli import quando ci sono riferimenti al package principale.
+
+## Errori
+### Errore Pylance
+Nella seguente riga di codice python, Pylance segna l'errore: No overloads for "prod" match the provided arguments 
+```python
+state_dim = int(np.prod(env.observation_space.shape))
+```
+L'avviso vuol dire che non riesce a capire che env.observation_space.shape è una sequenza di interi compatibile con np.prod.
+
+In pratica:
+- A runtime il codice funziona perfettamente.
+- Pylance, però, non trova un overload tipizzato di np.prod che accetti il tipo che pensa abbia env.observation_space.shape.
+
+Soluzioni:
+- Ignorare l’avviso: il codice è corretto e gira.
+- Aiutare Pylance con un hint di tipo:
+    ```python
+    import numpy as np
+    from typing import Tuple
+
+    shape: Tuple[int, ...] = env.observation_space.shape
+    state_dim = int(np.prod(shape))
+    ```
+- Aggiungere un commento per ignorare il check:
+    ```python
+    state_dim = int(np.prod(env.observation_space.shape))  # type: ignore
+    ```
+###  No module named 'cell_sim'
+Lanciando python -m rein.tests.control_test dalla root ottengo:
+`ModuleNotFoundError: No module named 'cell_sim'`
+
+L’errore nasce da rein/tests/control_test.py:7, che fa import cell_sim, mentre il modulo compilato vive in rein/cell_sim.cpython-312-…so (siccome è l’estensione Python compilata (binding C/C++) del progetto), quindi non è risolvibile come top-level package se avvii lo script dal progetto.
+
+È stato aggiunto uno stub per l’estensione nativa, così che PyLance possa riconoscere correttamente le esportazioni.
+Il file di riferimento è rein/cell_sim.pyi:1, dove sono dichiarate le firme di Grid, Controller e seed, corrispondenti ai binding definiti con pybind11.
+Con questo stub in posizione, l’import from rein import cell_sim viene risolto senza problemi: PyLance infatti può leggere le definizioni del modulo senza dover ispezionare direttamente il file .so compilato.
 
 
 

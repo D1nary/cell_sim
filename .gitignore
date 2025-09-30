@@ -25,3 +25,6 @@ pip-wheel-metadata/
 
 # Simulation or training outputs
 # results/
+
+# Type stubs for editor support
+rein/cell_sim.pyi

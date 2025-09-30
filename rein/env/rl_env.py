@@ -11,7 +11,7 @@ import copy
 from gymnasium import spaces
 import numpy as np
 
-import cell_sim
+from rein import cell_sim
 
 from .reward import reward_kd, terminal_reward_kd
 
@@ -34,7 +34,7 @@ class CellSimEnv(gym.Env):
         hradius: float = 4.0,
         hcells: int = 1,
         ccells: int = 1,
-        max_dose: float = 2.0,
+        max_dose: float = 5.0,
         max_wait: int = 24,
     ) -> None:
         """Create the simulation controller and define spaces.
@@ -75,6 +75,7 @@ class CellSimEnv(gym.Env):
         # Action is (dose, wait_hours)
         self.max_dose = float(max_dose)
         self.max_wait = int(max_wait)
+
         # Tracks cumulative simulated hours to detect timeout
         self.elapsed_hours = 0
         self.action_space = spaces.Box(
@@ -262,24 +263,23 @@ class CellSimEnv(gym.Env):
         except Exception:
             pass
 
-    def growth(self, num_hour, divisor1, divisor2, data_tab_growth):
+    # def growth(self, num_hour, divisor1, divisor2, data_tab_growth):
+    def growth(self, num_hour):
         """Growth of the cellular environment before irradiation"""
     
-        intervals1 = self.ctrl.get_intervals(num_hour, divisor1)
-        intervals2 = self.ctrl.get_intervals(num_hour, divisor2)
+        # intervals1 = self.ctrl.get_intervals(num_hour, divisor1)
+        # intervals2 = self.ctrl.get_intervals(num_hour, divisor2)
     
         print("\nPERFORM TUMOR GROWTH SIMULATION")
-        file_names = [f"t{t}_gd.txt" for t in intervals1]
+        # file_names = [f"t{t}_gd.txt" for t in intervals1]
         for hour in range(num_hour + 1):
-            if hour in intervals1:
-                self.ctrl.temp_data_tab()
-            if hour in intervals2:
-                self.ctrl.temp_cell_counts()
+            # if hour in intervals1:
+            #     self.ctrl.temp_data_tab()
+            # if hour in intervals2:
+            #     self.ctrl.temp_cell_counts()
             self.ctrl.go()
 
         # Save growth results
-        self.ctrl.save_data_tab(str(data_tab_growth), file_names, intervals1, len(intervals1))
-        self.ctrl.save_cell_counts(str(data_tab_growth.parent.parent / "cell_num"), "cell_counts_gr.txt")
+        # self.ctrl.save_data_tab(str(data_tab_growth), file_names, intervals1, len(intervals1))
+        # self.ctrl.save_cell_counts(str(data_tab_growth.parent.parent / "cell_num"), "cell_counts_gr.txt")
 
-        # Save a copy of the grid
-        self.ctrl.grid_copy = self.ctrl.grid

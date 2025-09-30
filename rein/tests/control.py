@@ -2,7 +2,7 @@ import time
 import pathlib
 import random
 
-import cell_sim
+from rein import cell_sim
 
 # --- Create the directories ---
 def create_directories(paths):
