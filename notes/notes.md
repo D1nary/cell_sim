@@ -1247,5 +1247,56 @@ L’errore nasce da rein/tests/control_test.py:7, che fa import cell_sim, mentre
 Il file di riferimento è rein/cell_sim.pyi:1, dove sono dichiarate le firme di Grid, Controller e seed, corrispondenti ai binding definiti con pybind11.
 Con questo stub in posizione, l’import from rein import cell_sim viene risolto senza problemi: PyLance infatti può leggere le definizioni del modulo senza dover ispezionare direttamente il file .so compilato.
 
+## seed
+Ecco tutti i punti del tuo codice in cui il seed viene usato (o passato) e cosa fa in ognuno:
 
+1. Argomento CLI --seed (training)
+    - Definito tra gli argomenti di train.py, così puoi impostarlo da riga di comando. 
+
+2. Inizializzazione dei generatori random (training)
+    - Funzione seed_everything(seed) in train.py: inizializza Python random, NumPy, PyTorch e (se presente) CUDA per rendere la run deterministica. Chiamata all’inizio di main().
+3. Seeding per-episodio dell’ambiente (training loop)
+    - Ad ogni episodio: state, _ = env.reset(seed=args.seed + episode). In questo modo ogni episodio ha un seed diverso ma riproducibile dato lo stesso --seed. 
+train
+4. Gestione del seed dentro l’ambiente (rl_env.py)
+    - CellSimEnv.reset(..., seed=...):
+        - prova a chiamare super().reset(seed=seed) per allinearsi all’API Gym/Gymnasium (se supportato);
+        - chiama cell_sim.seed(int(seed) & 0xFFFFFFFF) per inizializzare anche l’RNG C++ del simulatore via binding.
+5. Binding C++: funzione cell_sim.seed
+    - In binding.cpp è esposta la funzione seed verso Python; internamente fa std::srand(s) per il RNG C++ (usata dal punto 4).
+
+### super().reset(seed=seed)
+Nel tuo CellSimEnv.reset(...) chiami il reset della classe base Gym/Gymnasium:
+- Inizializza l’RNG dell’ambiente (self.np_random)
+Gymnasium, quando passi seed=..., crea un generatore NumPy dedicato all’ambiente (tipicamente un np.random.Generator con PCG64). Questo finisce in self.np_random e viene usato dall’ecosistema Gym per tutto ciò che è “random” lato env.
+
+- (Spesso) re-seeda gli spazi (action_space, observation_space)
+Nelle versioni moderne di Gymnasium, gli spaces hanno un proprio RNG. Passare seed a reset porta a riallineare anche gli RNG degli spazi, così action_space.sample() diventa riproducibile rispetto al seed.
+(Nelle versioni più vecchie di gym questo comportamento era meno uniforme: da qui il tuo try/except.)
+
+- Stabilisce lo standard Gym per la riproducibilità
+Molti wrapper/algoritmi (vectorized envs, monitor, ecc.) si aspettano che il seeding avvenga proprio così: tramite env.reset(seed=...). Chiamare super().reset(...) ti rende compatibile con quell’aspettativa.
+
+Nota: Il super().reset(seed=seed) non crea l’osservazione iniziale — quello lo fai tu nella tua reset. La chiamata serve (principalmente) a gestire il seeding in modo “canonico”.
+
+### cell_sim.seed(int(seed) & 0xFFFFFFFF)
+
+- Imposta il RNG “globale” del C/C++
+Nel binding è definita una funzione seed(s) che chiama std::srand(s). Quindi inizializza (o re-inizializza) la sequenza di numeri pseudo-casuali usata da std::rand() in tutto il codice C++ della simulazione. Da quel momento, ogni chiamata a rand() restituirà la stessa sequenza dato lo stesso seed. 
+
+- Quando viene chiamata
+La chiami dentro CellSimEnv.reset(..., seed=...) in rl_env.py: ogni reset, se passi un seed, riallinea sia l’RNG Gym (con super().reset(seed=...)) sia il RNG C++ (con cell_sim.seed(...)). Quindi l’episodio parte sempre dallo stesso stato casuale lato C++ se usi lo stesso seed. 
+
+- Cosa cambia “sul campo”
+Qualsiasi parte della libreria C++ che usi std::rand() (es. decisioni stocastiche su crescita/morte, posizionamenti casuali, perturbazioni, ecc.) diventa riproducibile: stesse azioni → stessi eventi casuali → stesse traiettorie, finché l’ordine delle chiamate a rand() resta uguale.
+
+- Perché c’è & 0xFFFFFFFF
+Maschera il seed a 32-bit non segnato (range 0…2³²−1) così il valore è sempre compatibile con l’argomento unsigned int passato a std::srand. Semi negativi o enormi vengono mappati/modulati in modo stabile. La logica della maschera la vedi nella tua reset. 
+
+- Cosa NON fa
+    - Non tocca l’RNG di Python, NumPy o PyTorch (quelli li setti con seed_everything in train.py). 
+    - Non influenza generatori C++ diversi da std::rand() (es. std::mt19937), se mai venissero usati nella libreria.
+
+Nota importante: stato globale
+std::rand() ha stato globale di processo: tutte le istanze/oggetti della simulazione lo condividono. Re-seedarlo durante l’esecuzione “riavvolge” la sequenza per tutto il codice che usa rand().
 
