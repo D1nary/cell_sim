@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import argparse
 import math
 import random
-from pathlib import Path
-from typing import List, Tuple
+from typing import Any, List, Tuple
 
 import numpy as np
 import torch
@@ -14,61 +12,8 @@ import torch
 from .dqn_agent import DQNAgent, DQNConfig
 from ..env import CellSimEnv
 
-
-def parse_args() -> argparse.Namespace:
-    """Parse command line arguments for the training script."""
-    parser = argparse.ArgumentParser(description="Train a DQN agent for CellSimEnv")
-    parser.add_argument("--episodes", type=int, default=500, help="Number of training episodes")
-    parser.add_argument("--max-steps", type=int, default=1_200, help="Maximum number of steps per episode")
-    parser.add_argument("--seed", type=int, default=0, help="Initialization seed")
-    parser.add_argument(
-        "--device",
-        type=str,
-        default="cpu",
-        choices=("cpu", "cuda", "auto"),
-        help="Device to use (CPU by default). Use 'auto' to prefer CUDA when available",
-    )
-    parser.add_argument("--dose-bins", type=int, default=5, help="Number of discretization bins for the dose")
-    parser.add_argument("--wait-bins", type=int, default=6, help="Number of discretization bins for the wait time")
-    parser.add_argument("--gamma", type=float, default=0.99, help="Discount factor gamma")
-    parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate for the optimizer")
-    parser.add_argument("--batch-size", type=int, default=64, help="Mini-batch size")
-    parser.add_argument("--buffer-size", type=int, default=100_000, help="Experience replay capacity")
-    parser.add_argument(
-        "--warmup-steps",
-        type=int,
-        default=5_000,
-        help="Minimum transitions in the buffer before updates",
-    )
-    parser.add_argument("--target-update", type=int, default=1_000, help="Target network update interval")
-    parser.add_argument("--epsilon-start", type=float, default=1.0, help="Initial epsilon value")
-    parser.add_argument("--epsilon-end", type=float, default=0.05, help="Minimum epsilon value")
-    parser.add_argument(
-        "--epsilon-decay-steps",
-        type=int,
-        default=100_000,
-        help="Number of steps for the linear epsilon decay",
-    )
-    parser.add_argument(
-        "--eval-episodes",
-        type=int,
-        default=5,
-        help="Number of greedy evaluation episodes after training",
-    )
-    parser.add_argument(
-        "--save-path",
-        type=Path,
-        default=Path("results/dqn_agent.pt"),
-        help="Path where to save the agent weights",
-    )
-    parser.add_argument(
-        "--growth-hours",
-        type=int,
-        default=150,
-        help="Number of growth hours applied to the resetted environment",
-    )
-    return parser.parse_args()
-
+def get_args() -> None:
+    
 
 def resolve_device(device_flag: str) -> torch.device:
     """Return the torch.device matching the CLI flag, defaulting to CPU."""
@@ -135,11 +80,9 @@ def evaluate_policy(agent: DQNAgent, env: CellSimEnv, episodes: int, max_steps: 
     return mean_reward, success_rate
 
 
-def main() -> None:
+def run_training(args: Any, device: torch.device) -> None:
     """Run the full DQN training loop and optional evaluation."""
-    # Gather CLI configuration and lock reproducible behaviour.
-    args = parse_args()
-    device = resolve_device(args.device)
+    # Lock reproducible behaviour using the externally provided seed.
     seed_everything(args.seed)
 
     # Build the environment and discretised action catalogue used by the DQN.
@@ -147,7 +90,7 @@ def main() -> None:
     discrete_actions = build_discrete_actions(env.action_space, args.dose_bins, args.wait_bins)
     state_dim = int(np.prod(env.observation_space.shape)) # type: ignore
 
-    # Instantiate the agent with hyperparameters from the CLI.
+    # Instantiate the agent using the provided hyperparameters.
     config = DQNConfig(
         gamma=args.gamma,
         learning_rate=args.lr,
@@ -223,7 +166,3 @@ def main() -> None:
         )
 
     env.close()
-
-
-if __name__ == "__main__":
-    main()
