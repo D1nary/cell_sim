@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import random
-from dataclasses import dataclass
 from typing import List, Sequence, Tuple
 
 import numpy as np
@@ -15,18 +14,12 @@ from ..model import QNetwork
 from .replay_buffer import ReplayBuffer
 
 
-@dataclass
-class DQNConfig:
-    """Hyper-parameters used by the DQN agent."""
+def get_param() -> "AIConfig":
+    """Provide the current AIConfig parameters defined in the root main module."""
+    from main import build_config, parse_args
 
-    gamma: float = 0.99
-    learning_rate: float = 1e-3
-    batch_size: int = 64
-    buffer_size: int = 50_000
-    min_buffer_size: int = 1_000
-    target_update_interval: int = 1_000
-    hidden_sizes: Tuple[int, int] = (256, 256)
-    gradient_clip: float | None = 10.0
+    args = parse_args()
+    return build_config(args)
 
 
 class DQNAgent:
@@ -37,7 +30,7 @@ class DQNAgent:
         state_dim: int,
         discrete_actions: Sequence[np.ndarray],
         device: torch.device,
-        config: DQNConfig | None = None,
+        config: "AIConfig" | None = None,
     ) -> None:
         
         if len(discrete_actions) == 0:
@@ -48,7 +41,7 @@ class DQNAgent:
         # Materialise the discrete proxy for the continuous action space once.
         self.actions: List[np.ndarray] = [np.asarray(a, dtype=np.float32) for a in discrete_actions]
         self.device = device
-        self.config = config or DQNConfig()
+        self.config = config or get_param()
 
         # Policy and target networks share architecture but their parameters diverge between updates.
         # Policy network creation

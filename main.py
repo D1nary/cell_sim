@@ -9,9 +9,8 @@ from pathlib import Path
 from typing import Tuple
 
 import numpy as np
-import torch
 
-from rein.agent.dqn_agent import DQNAgent, DQNConfig
+from rein.agent.dqn_agent import DQNAgent
 from rein.agent.train import (
     build_discrete_actions,
     evaluate_policy,
@@ -23,32 +22,28 @@ from rein.env.rl_env import CellSimEnv
 
 
 @dataclass
-class AgentConfig:
-    """Hyper-parameters controlling the agent behaviour."""
+class AIConfig:
+    """Consolidated DQN training hyper-parameters."""
 
     gamma: float = 0.99
     learning_rate: float = 1e-3
+    batch_size: int = 64
+    buffer_size: int = 50_000
+    min_buffer_size: int = 1_000
     target_update_interval: int = 1_000
+    hidden_sizes: Tuple[int, ...] = (256, 256)
+    gradient_clip: float | None = 10.0
+    seed: int = 1
+    dose_bins: int = 5
+    wait_bins: int = 6
+    episodes: int = 500
+    growth_hours: int = 150
+    max_steps: int = 1_200
     epsilon_start: float = 1.0
     epsilon_end: float = 0.05
     epsilon_decay_steps: int = 100_000
-    gradient_clip: float | None = 10.0
-
-
-@dataclass
-class ReplayBufferConfig:
-    """Replay buffer size and sampling parameters."""
-
-    capacity: int = 100_000
-    min_size: int = 5_000
-    batch_size: int = 64
-
-
-@dataclass
-class ModelConfig:
-    """Neural network architecture parameters."""
-
-    hidden_sizes: Tuple[int, ...] = (256, 256)
+    save_path: Path = Path("results/dqn_agent.pt")
+    eval_episodes: int = 5
 
 
 def prepare_simulation_dirs(_output_dir: Path) -> None:
@@ -75,15 +70,13 @@ def parse_int_sequence(value: str) -> Tuple[int, ...]:
 
 def parse_args() -> argparse.Namespace:
     """Configure and parse command line arguments for the entry-point."""
-    default_agent = AgentConfig()
-    default_replay = ReplayBufferConfig()
-    default_model = ModelConfig()
+    default_config = AIConfig()
 
     parser = argparse.ArgumentParser(description="Train and evaluate a DQN agent on CellSim")
 
-    parser.add_argument("--episodes", type=int, default=500, help="Number of training episodes")
-    parser.add_argument("--max-steps", type=int, default=1_200, help="Maximum number of steps per episode")
-    parser.add_argument("--seed", type=int, default=0, help="Initialization seed")
+    parser.add_argument("--episodes", type=int, default=default_config.episodes, help="Number of training episodes")
+    parser.add_argument("--max-steps", type=int, default=default_config.max_steps, help="Maximum number of steps per episode")
+    parser.add_argument("--seed", type=int, default=default_config.seed, help="Initialization seed")
     parser.add_argument(
         "--device",
         type=str,
@@ -91,58 +84,73 @@ def parse_args() -> argparse.Namespace:
         choices=("cpu", "cuda", "auto"),
         help="Device to use (CPU by default). Use 'auto' to prefer CUDA when available",
     )
-    parser.add_argument("--dose-bins", type=int, default=5, help="Number of discretization bins for the dose")
-    parser.add_argument("--wait-bins", type=int, default=6, help="Number of discretization bins for the wait time")
-    parser.add_argument("--eval-episodes", type=int, default=5, help="Number of greedy evaluation episodes")
+    parser.add_argument(
+        "--dose-bins",
+        type=int,
+        default=default_config.dose_bins,
+        help="Number of discretization bins for the dose",
+    )
+    parser.add_argument(
+        "--wait-bins",
+        type=int,
+        default=default_config.wait_bins,
+        help="Number of discretization bins for the wait time",
+    )
+    parser.add_argument(
+        "--eval-episodes",
+        type=int,
+        default=default_config.eval_episodes,
+        help="Number of greedy evaluation episodes",
+    )
     parser.add_argument(
         "--save-path",
         type=Path,
-        default=Path("results/dqn_agent.pt"),
+        default=default_config.save_path,
         help="Destination path for the trained agent weights",
     )
     parser.add_argument(
         "--growth-hours",
         type=int,
-        default=150,
+        default=default_config.growth_hours,
         help="Number of growth hours applied to the environment before each episode",
     )
 
     # Agent overrides
-    parser.add_argument("--agent-gamma", type=float, default=default_agent.gamma, help="Discount factor gamma")
+    parser.add_argument("--agent-gamma", type=float, default=default_config.gamma, help="Discount factor gamma")
     parser.add_argument(
         "--agent-learning-rate",
         type=float,
-        default=default_agent.learning_rate,
+        default=default_config.learning_rate,
         help="Optimizer learning rate",
     )
     parser.add_argument(
         "--agent-target-update",
         type=int,
-        default=default_agent.target_update_interval,
+        default=default_config.target_update_interval,
         help="Target network update interval (steps)",
     )
     parser.add_argument(
         "--agent-epsilon-start",
         type=float,
-        default=default_agent.epsilon_start,
+        default=default_config.epsilon_start,
         help="Initial epsilon value",
     )
     parser.add_argument(
         "--agent-epsilon-end",
         type=float,
-        default=default_agent.epsilon_end,
+        default=default_config.epsilon_end,
         help="Final epsilon value",
     )
     parser.add_argument(
         "--agent-epsilon-decay-steps",
         type=int,
-        default=default_agent.epsilon_decay_steps,
+        default=default_config.epsilon_decay_steps,
         help="Number of steps over which epsilon decays",
     )
     parser.add_argument(
         "--agent-gradient-clip",
         type=parse_optional_float,
-        default=default_agent.gradient_clip,
+        default=default_config.gradient_clip,
         help="Gradient clipping value; use 'none' to disable",
     )
 
@@ -150,19 +158,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--replay-capacity",
         type=int,
-        default=default_replay.capacity,
+        default=default_config.buffer_size,
         help="Maximum number of transitions stored",
     )
     parser.add_argument(
         "--replay-min-size",
         type=int,
-        default=default_replay.min_size,
+        default=default_config.min_buffer_size,
         help="Minimum transitions before learning starts",
     )
     parser.add_argument(
         "--replay-batch-size",
         type=int,
-        default=default_replay.batch_size,
+        default=default_config.batch_size,
         help="Mini-batch size for updates",
     )
 
@@ -170,83 +178,68 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--model-hidden-sizes",
         type=parse_int_sequence,
-        default=default_model.hidden_sizes,
+        default=default_config.hidden_sizes,
         help="Comma or space separated hidden layer sizes (default: 256,256)",
     )
 
     return parser.parse_args()
 
 
-def build_configs(args: argparse.Namespace) -> tuple[AgentConfig, ReplayBufferConfig, ModelConfig]:
-    """Materialise configuration dataclasses from CLI arguments."""
-    agent_config = AgentConfig(
+def build_config(args: argparse.Namespace) -> AIConfig:
+    """Materialise the training configuration from CLI arguments."""
+    hidden_sizes = tuple(args.model_hidden_sizes)
+    return AIConfig(
         gamma=args.agent_gamma,
         learning_rate=args.agent_learning_rate,
+        batch_size=args.replay_batch_size,
+        buffer_size=args.replay_capacity,
+        min_buffer_size=args.replay_min_size,
         target_update_interval=args.agent_target_update,
+        hidden_sizes=hidden_sizes,
+        gradient_clip=args.agent_gradient_clip,
+        seed=args.seed,
+        dose_bins=args.dose_bins,
+        wait_bins=args.wait_bins,
+        episodes=args.episodes,
+        growth_hours=args.growth_hours,
+        max_steps=args.max_steps,
         epsilon_start=args.agent_epsilon_start,
         epsilon_end=args.agent_epsilon_end,
         epsilon_decay_steps=args.agent_epsilon_decay_steps,
-        gradient_clip=args.agent_gradient_clip,
+        save_path=args.save_path,
+        eval_episodes=args.eval_episodes,
     )
 
-    replay_config = ReplayBufferConfig(
-        capacity=args.replay_capacity,
-        min_size=args.replay_min_size,
-        batch_size=args.replay_batch_size,
-    )
 
-    default_model = ModelConfig()
-    model_hidden = args.model_hidden_sizes or default_model.hidden_sizes
-    model_config = ModelConfig(hidden_sizes=tuple(model_hidden))
-
-    return agent_config, replay_config, model_config
-
-
-def run_training(
-    agent_config: AgentConfig,
-    replay_config: ReplayBufferConfig,
-    model_config: ModelConfig,
-    args: argparse.Namespace,
-) -> tuple[DQNAgent, CellSimEnv]:
+def run_training(config: AIConfig, args: argparse.Namespace) -> tuple[DQNAgent, CellSimEnv]:
     """Execute the DQN training loop and persist the resulting policy."""
     device = resolve_device(args.device)
-    seed_everything(args.seed)
+    seed_everything(config.seed)
 
     env = CellSimEnv()
-    discrete_actions = build_discrete_actions(env.action_space, args.dose_bins, args.wait_bins)
+    discrete_actions = build_discrete_actions(env.action_space, config.dose_bins, config.wait_bins)
     state_dim = int(np.prod(env.observation_space.shape))
 
-    dqn_config = DQNConfig(
-        gamma=agent_config.gamma,
-        learning_rate=agent_config.learning_rate,
-        batch_size=replay_config.batch_size,
-        buffer_size=replay_config.capacity,
-        min_buffer_size=replay_config.min_size,
-        target_update_interval=agent_config.target_update_interval,
-        hidden_sizes=model_config.hidden_sizes,
-        gradient_clip=agent_config.gradient_clip,
-    )
-
-    agent = DQNAgent(state_dim, discrete_actions, device, dqn_config)
+    agent = DQNAgent(state_dim, discrete_actions, device, config)
 
     total_steps = 0
     episode_rewards: list[float] = []
     losses: list[float] = []
 
-    for episode in range(1, args.episodes + 1):
-        state, _ = env.reset(seed=args.seed + episode)
-        env.growth(args.growth_hours)
+    for episode in range(1, config.episodes + 1):
+        state, _ = env.reset(seed=config.seed + episode)
+        env.growth(config.growth_hours)
 
         episode_reward = 0.0
         info: dict[str, object] = {}
-        current_epsilon = agent_config.epsilon_start
+        current_epsilon = config.epsilon_start
 
-        for _ in range(args.max_steps):
+        for _ in range(config.max_steps):
             current_epsilon = linear_epsilon(
                 total_steps,
-                agent_config.epsilon_start,
-                agent_config.epsilon_end,
-                agent_config.epsilon_decay_steps,
+                config.epsilon_start,
+                config.epsilon_end,
+                config.epsilon_decay_steps,
             )
             action_idx, action = agent.select_action(state, current_epsilon)
             next_state, reward, terminated, truncated, info = env.step(action)
@@ -273,9 +266,9 @@ def run_training(
             f"avg10 reward: {avg_reward:.3f} | avg10 loss: {avg_loss:.5f} | eps: {current_epsilon:.3f} | {outcome}"
         )
 
-    args.save_path.parent.mkdir(parents=True, exist_ok=True)
-    agent.save(str(args.save_path))
-    print(f"Model saved to {args.save_path}")
+    config.save_path.parent.mkdir(parents=True, exist_ok=True)
+    agent.save(str(config.save_path))
+    print(f"Model saved to {config.save_path}")
 
     return agent, env
 
@@ -291,11 +284,11 @@ def run_evaluation(agent: DQNAgent, env: CellSimEnv, episodes: int, max_steps: i
 
 def main() -> None:
     args = parse_args()
-    prepare_simulation_dirs(args.save_path.parent)
-    agent_config, replay_config, model_config = build_configs(args)
-    agent, env = run_training(agent_config, replay_config, model_config, args)
+    config = build_config(args)
+    prepare_simulation_dirs(config.save_path.parent)
+    agent, env = run_training(config, args)
     try:
-        run_evaluation(agent, env, args.eval_episodes, args.max_steps)
+        run_evaluation(agent, env, config.eval_episodes, config.max_steps)
     finally:
         env.close()
 

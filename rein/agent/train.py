@@ -4,16 +4,22 @@ from __future__ import annotations
 
 import math
 import random
-from typing import Any, List, Tuple
+from typing import List, Tuple
 
 import numpy as np
 import torch
 
-from .dqn_agent import DQNAgent, DQNConfig
+from .dqn_agent import DQNAgent
 from ..env import CellSimEnv
 
-def get_args() -> None:
-    
+
+def get_param() -> AIConfig:
+    """Provide the current AIConfig parameters defined in the root main module."""
+    from main import build_config, parse_args
+
+    args = parse_args()
+    return build_config(args)
+
 
 def resolve_device(device_flag: str) -> torch.device:
     """Return the torch.device matching the CLI flag, defaulting to CPU."""
@@ -21,6 +27,7 @@ def resolve_device(device_flag: str) -> torch.device:
         if torch.cuda.is_available():
             return torch.device("cuda")
         return torch.device("cpu")
+
     if device_flag == "cuda" and torch.cuda.is_available():
         return torch.device("cuda")
     return torch.device("cpu")
@@ -80,25 +87,19 @@ def evaluate_policy(agent: DQNAgent, env: CellSimEnv, episodes: int, max_steps: 
     return mean_reward, success_rate
 
 
-def run_training(args: Any, device: torch.device) -> None:
+def run_training(device: torch.device) -> None:
     """Run the full DQN training loop and optional evaluation."""
+    config = get_param()
+
     # Lock reproducible behaviour using the externally provided seed.
-    seed_everything(args.seed)
+    seed_everything(config.seed)
 
     # Build the environment and discretised action catalogue used by the DQN.
     env = CellSimEnv()
-    discrete_actions = build_discrete_actions(env.action_space, args.dose_bins, args.wait_bins)
-    state_dim = int(np.prod(env.observation_space.shape)) # type: ignore
+    discrete_actions = build_discrete_actions(env.action_space, config.dose_bins, config.wait_bins)
+    state_dim = int(np.prod(env.observation_space.shape))  # type: ignore
 
     # Instantiate the agent using the provided hyperparameters.
-    config = DQNConfig(
-        gamma=args.gamma,
-        learning_rate=args.lr,
-        batch_size=args.batch_size,
-        buffer_size=args.buffer_size,
-        min_buffer_size=args.warmup_steps,
-        target_update_interval=args.target_update,
-    )
     agent = DQNAgent(state_dim, discrete_actions, device, config)
 
     total_steps = 0
@@ -106,22 +107,27 @@ def run_training(args: Any, device: torch.device) -> None:
     losses: List[float] = []
 
     # Main training loop over episodes.
-    for episode in range(1, args.episodes + 1):
+    for episode in range(1, config.episodes + 1):
 
         # Reset the grid to the initial state
-        state, _ = env.reset(seed=args.seed + episode)
+        state, _ = env.reset(seed=config.seed + episode)
         # Perform a new growth to the environment
-        env.growth(args.growth_hours)
-        
+        env.growth(config.growth_hours)
+
         episode_reward = 0.0
         info = {}
 
-        current_epsilon = args.epsilon_start  # Default value for Pylance error
+        current_epsilon = config.epsilon_start  # Default value for Pylance error
 
-        for _ in range(args.max_steps):
+        for _ in range(config.max_steps):
 
             # Compute the current epsilon for the epsilon-greedy policy and select an action.
-            current_epsilon = linear_epsilon(total_steps, args.epsilon_start, args.epsilon_end, args.epsilon_decay_steps)
+            current_epsilon = linear_epsilon(
+                total_steps,
+                config.epsilon_start,
+                config.epsilon_end,
+                config.epsilon_decay_steps,
+            )
             action_idx, action = agent.select_action(state, current_epsilon)
             next_state, reward, terminated, truncated, info = env.step(action)
             done = terminated or truncated
@@ -146,21 +152,20 @@ def run_training(args: Any, device: torch.device) -> None:
         info_str = "success" if info.get("successful", False) else "timeout" if info.get("timeout", False) else "failure"
         avg_reward = np.mean(episode_rewards[-10:])
         avg_loss = np.mean(losses[-10:]) if losses else math.nan
-        
+
         print(
             f"Episode {episode:04d} | steps: {total_steps:06d} | reward: {episode_reward:.3f} | "
             f"avg10 reward: {avg_reward:.3f} | avg10 loss: {avg_loss:.5f} | eps: {current_epsilon:.3f} | {info_str}"
         )
 
-
     # Saving data
     # Root is considered the path of the main script’s directory
-    args.save_path.parent.mkdir(parents=True, exist_ok=True)
-    agent.save(str(args.save_path))
-    print(f"Model saved to {args.save_path}")
+    config.save_path.parent.mkdir(parents=True, exist_ok=True)
+    agent.save(str(config.save_path))
+    print(f"Model saved to {config.save_path}")
 
-    if args.eval_episodes > 0:
-        mean_reward, success_rate = evaluate_policy(agent, env, args.eval_episodes, args.max_steps)
+    if config.eval_episodes > 0:
+        mean_reward, success_rate = evaluate_policy(agent, env, config.eval_episodes, config.max_steps)
         print(
             f"Final evaluation -> mean reward: {mean_reward:.3f}, success rate: {success_rate:.2%}"
         )
