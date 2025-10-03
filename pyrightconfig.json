@@ -1,9 +1,0 @@
-{
-  // Adds './rein' to Pyright/Pylance search paths so the editor can 
-  // resolve the native extension module 'cell_sim' when using 
-  // absolute 'import cell_sim'. This affects static analysis 
-  // only and does not modify runtime sys.path.
-  "extraPaths": [
-    "./rein"
-  ]
-}

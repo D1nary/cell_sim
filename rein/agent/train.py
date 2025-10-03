@@ -12,7 +12,6 @@ import torch
 from .dqn_agent import DQNAgent
 from ..env import CellSimEnv
 
-
 def get_param() -> AIConfig:
     """Provide the current AIConfig parameters defined in the root main module."""
     from main import build_config, parse_args
