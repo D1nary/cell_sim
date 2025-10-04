@@ -16,6 +16,7 @@ from rein.agent.train import (
     evaluate_policy,
     linear_epsilon,
     resolve_device,
+    run_training,
     seed_everything,
 )
 from rein.env.rl_env import CellSimEnv
@@ -38,6 +39,7 @@ class AIConfig:
     target_update_interval: int = 1_000
     hidden_sizes: Tuple[int, ...] = (256, 256)
     gradient_clip: float | None = 10.0
+    device: str = "cuda"
     seed: int = 1
     dose_bins: int = 5
     wait_bins: int = 6
@@ -85,7 +87,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--device",
         type=str,
-        default="cpu",
+        default=default_config.device,
         choices=("cpu", "cuda", "auto"),
         help="Device to use (CPU by default). Use 'auto' to prefer CUDA when available",
     )
@@ -202,6 +204,7 @@ def build_config(args: argparse.Namespace) -> AIConfig:
         target_update_interval=args.agent_target_update,
         hidden_sizes=hidden_sizes,
         gradient_clip=args.agent_gradient_clip,
+        device=args.device,
         seed=args.seed,
         dose_bins=args.dose_bins,
         wait_bins=args.wait_bins,
@@ -221,6 +224,7 @@ def main() -> None:
 
     args = parse_args()
     config = build_config(args)
+    device = resolve_device(config.device)
 
     # Setup directory
     script_dir = pathlib.Path(__file__).resolve().parent
@@ -237,6 +241,9 @@ def main() -> None:
 
     # Directory cration
     create_directories(paths)
+
+
+    run_training(device)
 
 
     # try:
