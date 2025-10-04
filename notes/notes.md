@@ -1300,3 +1300,13 @@ Maschera il seed a 32-bit non segnato (range 0…2³²−1) così il valore è s
 Nota importante: stato globale
 std::rand() ha stato globale di processo: tutte le istanze/oggetti della simulazione lo condividono. Re-seedarlo durante l’esecuzione “riavvolge” la sequenza per tutto il codice che usa rand().
 
+## Cosa sono PYTHONPATH e sys.path?
+
+- sys.path è una lista di directory che Python esplora nell’ordine per cercare i moduli o pacchetti che vuoi importare.
+- PYTHONPATH è una variabile d’ambiente del sistema operativo (come PATH o HOME) che serve per aggiungere directory personalizzate a sys.path.
+
+In altre parole:
+- sys.path è la lista effettiva usata da Python a runtime;
+- PYTHONPATH è un modo per modificarla prima che Python parta.
+
+Nel nostri caso togliere i file __init__.py renderebbe gli import più verbosi e ti farebbe perdere le scorciatoie/export definiti ora; conviene tenerli finché vuoi mantenere questa interfaccia unica per il package.

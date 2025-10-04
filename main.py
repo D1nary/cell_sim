@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import argparse
-import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Tuple
+import pathlib
 
 import numpy as np
 
@@ -19,6 +19,11 @@ from rein.agent.train import (
     seed_everything,
 )
 from rein.env.rl_env import CellSimEnv
+
+# --- Create the directories ---
+def create_directories(paths):
+    for p in paths:
+        pathlib.Path(p).mkdir(parents=True, exist_ok=True)
 
 
 @dataclass
@@ -211,15 +216,33 @@ def build_config(args: argparse.Namespace) -> AIConfig:
     )
 
 
+
 def main() -> None:
+
     args = parse_args()
     config = build_config(args)
-    prepare_simulation_dirs(config.save_path.parent)
-    agent, env = run_training(config, args)
-    try:
-        run_evaluation(agent, env, config.eval_episodes, config.max_steps)
-    finally:
-        env.close()
+
+    # Setup directory
+    script_dir = pathlib.Path(__file__).resolve().parent
+    # project_root = script_dir.parent.parent
+    res_path = script_dir / "results"
+    data_path = res_path / "data"
+    data_tab = data_path / "tabs"
+    data_tab_growth = data_tab / "growth"
+    data_tab_tr = data_tab / "therapy"
+    res_agent = config.save_path
+    paths = [str(res_path), str(data_path), str(data_tab),
+             str(data_tab_growth), str(data_tab_tr),
+             str(data_path / "cell_num"), str(res_agent)]
+
+    # Directory cration
+    create_directories(paths)
+
+
+    # try:
+    #     run_evaluation(agent, env, config.eval_episodes, config.max_steps)
+    # finally:
+    #     env.close()
 
 
 if __name__ == "__main__":
