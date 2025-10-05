@@ -51,6 +51,7 @@ class AIConfig:
     epsilon_decay_steps: int = 100_000
     save_path: Path = Path("results/dqn_agent.pt")
     eval_episodes: int = 5
+    save_episodes: int = 50
 
 
 def prepare_simulation_dirs(_output_dir: Path) -> None:
@@ -114,6 +115,12 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=default_config.save_path,
         help="Destination path for the trained agent weights",
+    )
+    parser.add_argument(
+        "--save-episodes",
+        type=int,
+        default=default_config.save_episodes,
+        help="Checkpoint interval in episodes",
     )
     parser.add_argument(
         "--growth-hours",
@@ -216,6 +223,7 @@ def build_config(args: argparse.Namespace) -> AIConfig:
         epsilon_decay_steps=args.agent_epsilon_decay_steps,
         save_path=args.save_path,
         eval_episodes=args.eval_episodes,
+        save_episodes=args.save_episodes,
     )
 
 
@@ -242,11 +250,11 @@ def main() -> None:
     # Directory cration
     create_directories(paths)
 
-
+    # Training
     run_training(device)
 
 
-    # try:
+    # try:j
     #     run_evaluation(agent, env, config.eval_episodes, config.max_steps)
     # finally:
     #     env.close()

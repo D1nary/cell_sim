@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import csv
 import math
 import random
+from pathlib import Path
 from typing import List, Tuple
 
 import numpy as np
@@ -86,12 +88,31 @@ def evaluate_policy(agent: DQNAgent, env: CellSimEnv, episodes: int, max_steps: 
     return mean_reward, success_rate
 
 
+def save_episode_metrics(save_path: Path, metrics: List[dict]) -> Path:
+    """Persist per-episode statistics to a CSV next to the model checkpoint."""
+    metrics_path = save_path.with_name(f"{save_path.stem}_metrics.csv")
+    with metrics_path.open("w", newline="") as fp:
+        writer = csv.DictWriter(
+            fp,
+            fieldnames=["episode", "reward", "epsilon_start", "epsilon_end", "mean_loss"],
+        )
+        writer.writeheader()
+        writer.writerows(metrics)
+    return metrics_path
+
+
 def run_training(device: torch.device) -> None:
     """Run the full DQN training loop and optional evaluation."""
     config = get_param()
 
     # Lock reproducible behaviour using the externally provided seed.
     seed_everything(config.seed)
+
+    print(f"Using device: {device}")
+    if device.type == "cuda":
+        device_index = device.index if device.index is not None else torch.cuda.current_device()
+        cuda_name = torch.cuda.get_device_name(device_index)
+        print(f"CUDA device: {cuda_name}")
 
     # Build the environment and discretised action catalogue used by the DQN.
     env = CellSimEnv()
@@ -100,10 +121,13 @@ def run_training(device: torch.device) -> None:
 
     # Instantiate the agent using the provided hyperparameters.
     agent = DQNAgent(state_dim, discrete_actions, device, config)
+    config.save_path.parent.mkdir(parents=True, exist_ok=True)
 
     total_steps = 0
     episode_rewards: List[float] = []
     losses: List[float] = []
+    episode_metrics: List[dict] = []
+    metrics_path: Path | None = None
 
     # Main training loop over episodes.
     for episode in range(1, config.episodes + 1):
@@ -117,6 +141,8 @@ def run_training(device: torch.device) -> None:
         info = {}
 
         current_epsilon = config.epsilon_start  # Default value for Pylance error
+        episode_initial_epsilon = None
+        episode_losses: List[float] = []
 
         for _ in range(config.max_steps):
 
@@ -127,6 +153,8 @@ def run_training(device: torch.device) -> None:
                 config.epsilon_end,
                 config.epsilon_decay_steps,
             )
+            if episode_initial_epsilon is None:
+                episode_initial_epsilon = current_epsilon
             action_idx, action = agent.select_action(state, current_epsilon)
             next_state, reward, terminated, truncated, info = env.step(action)
             done = terminated or truncated
@@ -139,6 +167,7 @@ def run_training(device: torch.device) -> None:
 
             if loss is not None:
                 losses.append(loss)
+                episode_losses.append(loss)
 
             state = next_state
             episode_reward += reward
@@ -146,6 +175,21 @@ def run_training(device: torch.device) -> None:
 
             if done:
                 break
+
+        if episode_initial_epsilon is None:
+            episode_initial_epsilon = current_epsilon
+        episode_final_epsilon = current_epsilon
+        avg_episode_loss = float(np.mean(episode_losses)) if episode_losses else math.nan
+
+        episode_metrics.append(
+            {
+                "episode": episode,
+                "reward": episode_reward,
+                "epsilon_start": episode_initial_epsilon,
+                "epsilon_end": episode_final_epsilon,
+                "mean_loss": avg_episode_loss,
+            }
+        )
 
         episode_rewards.append(episode_reward)
         info_str = "success" if info.get("successful", False) else "timeout" if info.get("timeout", False) else "failure"
@@ -157,11 +201,20 @@ def run_training(device: torch.device) -> None:
             f"avg10 reward: {avg_reward:.3f} | avg10 loss: {avg_loss:.5f} | eps: {current_epsilon:.3f} | {info_str}"
         )
 
+        if config.save_episodes > 0 and (episode % config.save_episodes == 0 or episode == config.episodes):
+            agent.save(str(config.save_path))
+            metrics_path = save_episode_metrics(config.save_path, episode_metrics)
+            print(
+                f"Checkpoint saved at episode {episode} -> model: {config.save_path}, metrics: {metrics_path}"
+            )
+
     # Saving data
     # Root is considered the path of the main script’s directory
-    config.save_path.parent.mkdir(parents=True, exist_ok=True)
-    agent.save(str(config.save_path))
-    print(f"Model saved to {config.save_path}")
+    if metrics_path is None:
+        agent.save(str(config.save_path))
+        metrics_path = save_episode_metrics(config.save_path, episode_metrics)
+        print(f"Model saved to {config.save_path}")
+        print(f"Episode metrics saved to {metrics_path}")
 
     if config.eval_episodes > 0:
         mean_reward, success_rate = evaluate_policy(agent, env, config.eval_episodes, config.max_steps)
