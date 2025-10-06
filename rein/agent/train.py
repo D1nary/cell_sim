@@ -11,6 +11,12 @@ import numpy as np
 import torch
 
 from .dqn_agent import DQNAgent
+from .plot_metrics import (
+    plot_epsilon,
+    plot_episode_rewards,
+    plot_q_values,
+    plot_td_loss,
+)
 from .save import (
     checkpoint_path_for_episode,
     final_checkpoint_path,

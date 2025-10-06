@@ -1,4 +1,5 @@
 build/
+__pycache__
 
 # Virtual environments
 env_hp/

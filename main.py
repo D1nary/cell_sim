@@ -31,27 +31,27 @@ def create_directories(paths):
 class AIConfig:
     """Consolidated DQN training hyper-parameters."""
 
-    gamma: float = 0.99  # Discount factor
+    gamma: float = 0.995  # Discount factor
     learning_rate: float = 1e-3  # Optimizer step size
     batch_size: int = 64  # Samples per training update
     buffer_size: int = 50_000  # Replay memory capacity
     min_buffer_size: int = 1_000  # Warm-up transitions before learning
     target_update_interval: int = 1_000  # Steps between target syncs
-    hidden_sizes: Tuple[int, ...] = (256, 256)  # Q-network layer widths
+    hidden_sizes: Tuple[int, ...] = (128, 128)  # Q-network layer widths
     gradient_clip: float | None = 10.0  # Max gradient norm (None disables)
     device: str = "cuda"  # Preferred compute device
     seed: int = 1  # Random seed
     dose_bins: int = 5  # Discrete dose action bins
     wait_bins: int = 6  # Discrete wait action bins
-    episodes: int = 20  # Training episodes count
+    episodes: int = 2  # Training episodes count
     growth_hours: int = 150  # Pre-episode growth duration
     max_steps: int = 1_200  # Max steps per episode
     epsilon_start: float = 1.0  # Initial exploration rate
     epsilon_end: float = 0.05  # Final exploration rate
     epsilon_decay_steps: int = 100_000  # Steps to decay epsilon
     save_agent_path: Path = Path("results/dqn_agent")  # Checkpoint directory
-    eval_episodes: int = 2  # Greedy evaluation episodes
-    save_episodes: int = 5  # Episode interval for checkpoints
+    eval_episodes: int = 1  # Greedy evaluation episodes
+    save_episodes: int = 1  # Episode interval for checkpoints
 
 
 def prepare_simulation_dirs(_output_dir: Path) -> None:
