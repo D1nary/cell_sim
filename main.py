@@ -31,27 +31,27 @@ def create_directories(paths):
 class AIConfig:
     """Consolidated DQN training hyper-parameters."""
 
-    gamma: float = 0.99
-    learning_rate: float = 1e-3
-    batch_size: int = 64
-    buffer_size: int = 50_000
-    min_buffer_size: int = 1_000
-    target_update_interval: int = 1_000
-    hidden_sizes: Tuple[int, ...] = (256, 256)
-    gradient_clip: float | None = 10.0
-    device: str = "cuda"
-    seed: int = 1
-    dose_bins: int = 5
-    wait_bins: int = 6
-    episodes: int = 500
-    growth_hours: int = 150
-    max_steps: int = 1_200
-    epsilon_start: float = 1.0
-    epsilon_end: float = 0.05
-    epsilon_decay_steps: int = 100_000
-    save_path: Path = Path("results/dqn_agent.pt")
-    eval_episodes: int = 5
-    save_episodes: int = 50
+    gamma: float = 0.99  # Discount factor
+    learning_rate: float = 1e-3  # Optimizer step size
+    batch_size: int = 64  # Samples per training update
+    buffer_size: int = 50_000  # Replay memory capacity
+    min_buffer_size: int = 1_000  # Warm-up transitions before learning
+    target_update_interval: int = 1_000  # Steps between target syncs
+    hidden_sizes: Tuple[int, ...] = (256, 256)  # Q-network layer widths
+    gradient_clip: float | None = 10.0  # Max gradient norm (None disables)
+    device: str = "cuda"  # Preferred compute device
+    seed: int = 1  # Random seed
+    dose_bins: int = 5  # Discrete dose action bins
+    wait_bins: int = 6  # Discrete wait action bins
+    episodes: int = 20  # Training episodes count
+    growth_hours: int = 150  # Pre-episode growth duration
+    max_steps: int = 1_200  # Max steps per episode
+    epsilon_start: float = 1.0  # Initial exploration rate
+    epsilon_end: float = 0.05  # Final exploration rate
+    epsilon_decay_steps: int = 100_000  # Steps to decay epsilon
+    save_agent_path: Path = Path("results/dqn_agent")  # Checkpoint directory
+    eval_episodes: int = 2  # Greedy evaluation episodes
+    save_episodes: int = 5  # Episode interval for checkpoints
 
 
 def prepare_simulation_dirs(_output_dir: Path) -> None:
@@ -111,9 +111,9 @@ def parse_args() -> argparse.Namespace:
         help="Number of greedy evaluation episodes",
     )
     parser.add_argument(
-        "--save-path",
+        "--save-agent-path",
         type=Path,
-        default=default_config.save_path,
+        default=default_config.save_agent_path,
         help="Destination path for the trained agent weights",
     )
     parser.add_argument(
@@ -221,7 +221,7 @@ def build_config(args: argparse.Namespace) -> AIConfig:
         epsilon_start=args.agent_epsilon_start,
         epsilon_end=args.agent_epsilon_end,
         epsilon_decay_steps=args.agent_epsilon_decay_steps,
-        save_path=args.save_path,
+        save_agent_path=args.save_agent_path,
         eval_episodes=args.eval_episodes,
         save_episodes=args.save_episodes,
     )
@@ -242,13 +242,25 @@ def main() -> None:
     data_tab = data_path / "tabs"
     data_tab_growth = data_tab / "growth"
     data_tab_tr = data_tab / "therapy"
-    res_agent = config.save_path
-    paths = [str(res_path), str(data_path), str(data_tab),
-             str(data_tab_growth), str(data_tab_tr),
-             str(data_path / "cell_num"), str(res_agent)]
+    res_agent_parent = config.save_agent_path
+    res_agent = res_agent_parent / "agent"
+    res_buffer = res_agent_parent / "buffer"
+    paths = [
+        res_path,
+        data_path,
+        data_tab,
+        data_tab_growth,
+        data_tab_tr,
+        data_path / "cell_num",
+        res_agent_parent,
+        res_agent,
+        res_buffer,
+    ]
+
 
     # Directory cration
     create_directories(paths)
+
 
     # Training
     run_training(device)

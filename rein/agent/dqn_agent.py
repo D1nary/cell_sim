@@ -140,7 +140,6 @@ class DQNAgent:
             {
                 "policy_state_dict": self.policy_net.state_dict(),
                 "target_state_dict": self.target_net.state_dict(),
-                "config": self.config,
                 "actions": self.actions,
             },
             path,

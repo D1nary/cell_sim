@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import csv
 import math
 import random
 from pathlib import Path
@@ -12,6 +11,13 @@ import numpy as np
 import torch
 
 from .dqn_agent import DQNAgent
+from .save import (
+    checkpoint_path_for_episode,
+    final_checkpoint_path,
+    save_episode_metrics,
+    save_replay_buffer_checkpoint,
+    save_training_config,
+)
 from ..env import CellSimEnv
 
 def get_param() -> AIConfig:
@@ -88,17 +94,32 @@ def evaluate_policy(agent: DQNAgent, env: CellSimEnv, episodes: int, max_steps: 
     return mean_reward, success_rate
 
 
-def save_episode_metrics(save_path: Path, metrics: List[dict]) -> Path:
-    """Persist per-episode statistics to a CSV next to the model checkpoint."""
-    metrics_path = save_path.with_name(f"{save_path.stem}_metrics.csv")
-    with metrics_path.open("w", newline="") as fp:
-        writer = csv.DictWriter(
-            fp,
-            fieldnames=["episode", "reward", "epsilon_start", "epsilon_end", "mean_loss"],
-        )
-        writer.writeheader()
-        writer.writerows(metrics)
-    return metrics_path
+def generate_training_plots(metrics_path: Path) -> None:
+    """Render training summary plots next to the metrics CSV."""
+
+    plot_dir = metrics_path.parent
+    reward_plot = plot_dir / "reward.png"
+    loss_plot = plot_dir / "loss.png"
+    epsilon_plot = plot_dir / "epsilon.png"
+    q_values_plot = plot_dir / "q_values.png"
+
+    plot_episode_rewards(metrics_path, save_to=reward_plot)
+    plot_td_loss(metrics_path, save_to=loss_plot)
+    plot_epsilon(metrics_path, save_to=epsilon_plot)
+
+    q_plot_saved = False
+    try:
+        plot_q_values(metrics_path, save_to=q_values_plot)
+        q_plot_saved = True
+    except ValueError:
+        q_plot_saved = False
+
+    print("Training plots saved:")
+    print(f" - reward: {reward_plot}")
+    print(f" - loss: {loss_plot}")
+    print(f" - epsilon: {epsilon_plot}")
+    if q_plot_saved and q_values_plot.exists():
+        print(f" - q-values: {q_values_plot}")
 
 
 def run_training(device: torch.device) -> None:
@@ -121,7 +142,13 @@ def run_training(device: torch.device) -> None:
 
     # Instantiate the agent using the provided hyperparameters.
     agent = DQNAgent(state_dim, discrete_actions, device, config)
-    config.save_path.parent.mkdir(parents=True, exist_ok=True)
+    checkpoint_base_path = config.save_agent_path / "agent" / "dqn_agent.pt"
+    buffer_base_path = config.save_agent_path / "buffer" / "replay_buffer.pt"
+    agent_final_path = final_checkpoint_path(checkpoint_base_path, "agent_final")
+    buffer_final_path = final_checkpoint_path(buffer_base_path, "replay_buffer_final")
+    save_training_config(config, config.save_agent_path)
+    checkpoint_base_path.parent.mkdir(parents=True, exist_ok=True)
+    buffer_base_path.parent.mkdir(parents=True, exist_ok=True)
 
     total_steps = 0
     episode_rewards: List[float] = []
@@ -202,18 +229,40 @@ def run_training(device: torch.device) -> None:
         )
 
         if config.save_episodes > 0 and (episode % config.save_episodes == 0 or episode == config.episodes):
-            agent.save(str(config.save_path))
-            metrics_path = save_episode_metrics(config.save_path, episode_metrics)
+            is_final_episode = episode == config.episodes
+            checkpoint_path = (
+                agent_final_path if is_final_episode else checkpoint_path_for_episode(checkpoint_base_path, episode)
+            )
+            checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+            agent.save(str(checkpoint_path))
+            buffer_path = save_replay_buffer_checkpoint(
+                buffer_base_path,
+                agent.replay_buffer,
+                episode,
+                final_path=buffer_final_path if is_final_episode else None,
+            )
+            metrics_path = save_episode_metrics(checkpoint_path, episode_metrics)
             print(
-                f"Checkpoint saved at episode {episode} -> model: {config.save_path}, metrics: {metrics_path}"
+                "Checkpoint saved at episode "
+                f"{episode} -> model: {checkpoint_path}, buffer: {buffer_path}, metrics: {metrics_path}"
             )
 
     # Saving data
     # Root is considered the path of the main script’s directory
     if metrics_path is None:
-        agent.save(str(config.save_path))
-        metrics_path = save_episode_metrics(config.save_path, episode_metrics)
-        print(f"Model saved to {config.save_path}")
+        final_episode = config.episodes if config.episodes > 0 else 0
+        checkpoint_path = agent_final_path
+        checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+        agent.save(str(checkpoint_path))
+        buffer_path = save_replay_buffer_checkpoint(
+            buffer_base_path,
+            agent.replay_buffer,
+            final_episode,
+            final_path=buffer_final_path,
+        )
+        metrics_path = save_episode_metrics(checkpoint_path, episode_metrics)
+        print(f"Model saved to {checkpoint_path}")
+        print(f"Replay buffer saved to {buffer_path}")
         print(f"Episode metrics saved to {metrics_path}")
 
     if config.eval_episodes > 0:
@@ -221,5 +270,11 @@ def run_training(device: torch.device) -> None:
         print(
             f"Final evaluation -> mean reward: {mean_reward:.3f}, success rate: {success_rate:.2%}"
         )
+
+    if metrics_path is not None:
+        try:
+            generate_training_plots(metrics_path)
+        except Exception as plot_error:  # pragma: no cover - best-effort plotting
+            print(f"Failed to generate training plots: {plot_error}")
 
     env.close()

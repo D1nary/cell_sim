@@ -1,0 +1,26 @@
+{
+  "gamma": 0.99,
+  "learning_rate": 0.001,
+  "batch_size": 64,
+  "buffer_size": 50000,
+  "min_buffer_size": 1000,
+  "target_update_interval": 1000,
+  "hidden_sizes": [
+    256,
+    256
+  ],
+  "gradient_clip": 10.0,
+  "device": "cuda",
+  "seed": 1,
+  "dose_bins": 5,
+  "wait_bins": 6,
+  "episodes": 500,
+  "growth_hours": 150,
+  "max_steps": 1200,
+  "epsilon_start": 1.0,
+  "epsilon_end": 0.05,
+  "epsilon_decay_steps": 100000,
+  "save_agent_path": "results/dqn_agent",
+  "eval_episodes": 5,
+  "save_episodes": 50
+}
