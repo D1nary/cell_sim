@@ -3,23 +3,21 @@
 from __future__ import annotations
 
 import random
-from typing import List, Sequence, Tuple
+from typing import List, Sequence
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import optim
 
-from ..model import QNetwork
+from ...configs import AIConfig
+from ...model import QNetwork
 from .replay_buffer import ReplayBuffer
 
 
-def get_param() -> "AIConfig":
-    """Provide the current AIConfig parameters defined in the root main module."""
-    from main import build_config, parse_args
-
-    args = parse_args()
-    return build_config(args)
+def get_param() -> AIConfig:
+    """Provide default AIConfig parameters without importing the CLI entry-point."""
+    return AIConfig()
 
 
 class DQNAgent:
@@ -147,7 +145,8 @@ class DQNAgent:
 
     def load(self, path: str) -> None:
         """Load model parameters from disk."""
-        checkpoint = torch.load(path, map_location=self.device)
+        # weights_only=False keeps full pickle deserialization, so trust the checkpoint source.
+        checkpoint = torch.load(path, map_location=self.device, weights_only=False)
         self.policy_net.load_state_dict(checkpoint["policy_state_dict"])
         self.target_net.load_state_dict(checkpoint["target_state_dict"])
         # Restore action discretization only when present in the checkpoint

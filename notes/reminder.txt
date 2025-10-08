@@ -26,4 +26,4 @@ FORSE da sostituire self_grid con grid
 
 
 VEDI TRAIN.PY
-Controlla la non presenza di wrappers
+controlla il ripristino RNG anche del random generator c++

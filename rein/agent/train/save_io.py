@@ -7,15 +7,15 @@ import json
 import random
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, TYPE_CHECKING
+from typing import Any, Dict, Iterable, List, Optional, Tuple, TYPE_CHECKING
 
 import numpy as np
 import torch
 
-from .replay_buffer import ReplayBuffer
+from ..core.replay_buffer import ReplayBuffer
 
 if TYPE_CHECKING:  # pragma: no cover - only for type checking
-    from main import AIConfig
+    from ...configs import AIConfig
 
 
 __all__ = [
@@ -23,9 +23,13 @@ __all__ = [
     "final_checkpoint_path",
     "collect_rng_state",
     "save_replay_buffer_checkpoint",
+    "load_replay_buffer_checkpoint",
     "serialise_config",
     "save_training_config",
     "save_episode_metrics",
+    "save_training_state",
+    "load_training_state",
+    "restore_rng_state",
 ]
 
 
@@ -103,6 +107,23 @@ def save_replay_buffer_checkpoint(
     return checkpoint_path
 
 
+def load_replay_buffer_checkpoint(path: Path, capacity: int) -> Tuple[ReplayBuffer, Optional[Dict[str, Any]]]:
+    """Reconstruct a replay buffer and RNG state from a saved checkpoint."""
+    # weights_only=False keeps full pickle deserialization, so trust the checkpoint source.
+    payload = torch.load(path, map_location="cpu", weights_only=False)
+    transitions = payload.get("transitions", [])
+    buffer = ReplayBuffer(capacity)
+    for transition in transitions:
+        buffer.add(
+            transition["state"],
+            transition["action"],
+            transition["reward"],
+            transition["next_state"],
+            transition["done"],
+        )
+    return buffer, payload.get("rng_state")
+
+
 def serialise_config(config: "AIConfig") -> Dict[str, Any]:
     """Convert the AIConfig dataclass into a JSON-friendly dictionary."""
 
@@ -139,3 +160,41 @@ def save_episode_metrics(save_path: Path, metrics: List[dict]) -> Path:
         writer.writerows(metrics)
     return metrics_path
 
+
+def save_training_state(base_dir: Path, state: Dict[str, Any]) -> Path:
+    """Persist the training state required to resume later."""
+    base_dir.mkdir(parents=True, exist_ok=True)
+    state_path = base_dir / "training_state.pt"
+    torch.save(state, state_path)
+    return state_path
+
+
+def load_training_state(base_dir: Path) -> Dict[str, Any]:
+    """Load the persisted training state."""
+    state_path = base_dir / "training_state.pt"
+    if not state_path.exists():
+        raise FileNotFoundError(f"No training state found at {state_path}")
+    # weights_only=False keeps full pickle deserialization, so trust the checkpoint source.
+    return torch.load(state_path, map_location="cpu", weights_only=False)
+
+
+def restore_rng_state(rng_state: Optional[Dict[str, Any]]) -> None:
+    """Restore RNG states captured during checkpointing."""
+    if not rng_state:
+        return
+
+    python_state = rng_state.get("python")
+    if python_state is not None:
+        random.setstate(python_state)
+
+    numpy_state = rng_state.get("numpy")
+    if numpy_state is not None:
+        np.random.set_state(numpy_state)
+
+    torch_state = rng_state.get("torch")
+    if torch_state is not None:
+        torch.set_rng_state(torch_state)
+
+    cuda_state = rng_state.get("torch_cuda")
+    if cuda_state is not None and torch.cuda.is_available():
+        torch.cuda.set_rng_state_all(cuda_state)

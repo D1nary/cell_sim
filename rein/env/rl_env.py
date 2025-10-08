@@ -36,6 +36,8 @@ class CellSimEnv(gym.Env):
         ccells: int = 1,
         max_dose: float = 5.0,
         max_wait: int = 24,
+        min_dose: float = 0.0,
+        min_wait: int = 0,
     ) -> None:
         """Create the simulation controller and define spaces.
 
@@ -51,8 +53,12 @@ class CellSimEnv(gym.Env):
             Initial number of healthy and cancer cells per voxel.
         max_dose : float
             Maximum radiation dose deliverable in a single step.
+        min_dose : float
+            Minimum radiation dose deliverable in a single step.
         max_wait : int
             Maximum number of hours to advance the simulation after dosing.
+        min_wait : int
+            Minimum number of hours to advance the simulation after dosing.
         """
 
         # super().__init__()
@@ -73,13 +79,19 @@ class CellSimEnv(gym.Env):
         )
 
         # Action is (dose, wait_hours)
+        if min_dose > max_dose:
+            raise ValueError("min_dose cannot be greater than max_dose")
+        if min_wait > max_wait:
+            raise ValueError("min_wait cannot be greater than max_wait")
+        self.min_dose = float(min_dose)
         self.max_dose = float(max_dose)
+        self.min_wait = int(min_wait)
         self.max_wait = int(max_wait)
 
         # Tracks cumulative simulated hours to detect timeout
         self.elapsed_hours = 0
         self.action_space = spaces.Box(
-            low=np.array([0.0, 0.0], dtype=np.float32),
+            low=np.array([self.min_dose, float(self.min_wait)], dtype=np.float32),
             high=np.array([self.max_dose, float(self.max_wait)], dtype=np.float32),
             dtype=np.float32,
         )
@@ -158,8 +170,8 @@ class CellSimEnv(gym.Env):
         """Apply an action and advance the simulation."""
         # Action is (dose, wait_hours)
         a = np.asarray(action, dtype=np.float32)
-        dose = float(np.clip(a[0], 0.0, self.max_dose))
-        hours = int(np.clip(a[1], 0.0, float(self.max_wait)))
+        dose = float(np.clip(a[0], self.min_dose, self.max_dose))
+        hours = int(np.clip(a[1], float(self.min_wait), float(self.max_wait)))
 
         # Compute healthy and cancer cells count before the radiation
         counts = self.ctrl.get_cell_counts()
@@ -282,4 +294,3 @@ class CellSimEnv(gym.Env):
         # Save growth results
         # self.ctrl.save_data_tab(str(data_tab_growth), file_names, intervals1, len(intervals1))
         # self.ctrl.save_cell_counts(str(data_tab_growth.parent.parent / "cell_num"), "cell_counts_gr.txt")
-

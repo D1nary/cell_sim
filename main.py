@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Tuple
 import pathlib
 
 import numpy as np
 
-from rein.agent.dqn_agent import DQNAgent
+from rein.agent.core import DQNAgent
 from rein.agent.train import (
     build_discrete_actions,
     evaluate_policy,
@@ -20,38 +19,12 @@ from rein.agent.train import (
     seed_everything,
 )
 from rein.env.rl_env import CellSimEnv
+from rein.configs import AIConfig
 
 # --- Create the directories ---
 def create_directories(paths):
     for p in paths:
         pathlib.Path(p).mkdir(parents=True, exist_ok=True)
-
-
-@dataclass
-class AIConfig:
-    """Consolidated DQN training hyper-parameters."""
-
-    gamma: float = 0.995  # Discount factor
-    learning_rate: float = 1e-3  # Optimizer step size
-    batch_size: int = 64  # Samples per training update
-    buffer_size: int = 50_000  # Replay memory capacity
-    min_buffer_size: int = 1_000  # Warm-up transitions before learning
-    target_update_interval: int = 1_000  # Steps between target syncs
-    hidden_sizes: Tuple[int, ...] = (128, 128)  # Q-network layer widths
-    gradient_clip: float | None = 10.0  # Max gradient norm (None disables)
-    device: str = "cuda"  # Preferred compute device
-    seed: int = 1  # Random seed
-    dose_bins: int = 5  # Discrete dose action bins
-    wait_bins: int = 6  # Discrete wait action bins
-    episodes: int = 2  # Training episodes count
-    growth_hours: int = 150  # Pre-episode growth duration
-    max_steps: int = 1_200  # Max steps per episode
-    epsilon_start: float = 1.0  # Initial exploration rate
-    epsilon_end: float = 0.05  # Final exploration rate
-    epsilon_decay_steps: int = 100_000  # Steps to decay epsilon
-    save_agent_path: Path = Path("results/dqn_agent")  # Checkpoint directory
-    eval_episodes: int = 1  # Greedy evaluation episodes
-    save_episodes: int = 1  # Episode interval for checkpoints
 
 
 def prepare_simulation_dirs(_output_dir: Path) -> None:
@@ -99,10 +72,34 @@ def parse_args() -> argparse.Namespace:
         help="Number of discretization bins for the dose",
     )
     parser.add_argument(
+        "--min-dose",
+        type=float,
+        default=default_config.min_dose,
+        help="Minimum radiation dose allowed per action",
+    )
+    parser.add_argument(
+        "--max-dose",
+        type=float,
+        default=default_config.max_dose,
+        help="Maximum radiation dose allowed per action",
+    )
+    parser.add_argument(
         "--wait-bins",
         type=int,
         default=default_config.wait_bins,
         help="Number of discretization bins for the wait time",
+    )
+    parser.add_argument(
+        "--min-wait",
+        type=int,
+        default=default_config.min_wait,
+        help="Minimum wait time (in hours) allowed per action",
+    )
+    parser.add_argument(
+        "--max-wait",
+        type=int,
+        default=default_config.max_wait,
+        help="Maximum wait time (in hours) allowed per action",
     )
     parser.add_argument(
         "--eval-episodes",
@@ -127,6 +124,17 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=default_config.growth_hours,
         help="Number of growth hours applied to the environment before each episode",
+    )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume training from the most recent checkpoint",
+    )
+    parser.add_argument(
+        "--resume-from",
+        type=Path,
+        default=default_config.resume_from,
+        help="Override the checkpoint directory used when resuming",
     )
 
     # Agent overrides
@@ -215,6 +223,10 @@ def build_config(args: argparse.Namespace) -> AIConfig:
         seed=args.seed,
         dose_bins=args.dose_bins,
         wait_bins=args.wait_bins,
+        min_dose=args.min_dose,
+        max_dose=args.max_dose,
+        min_wait=args.min_wait,
+        max_wait=args.max_wait,
         episodes=args.episodes,
         growth_hours=args.growth_hours,
         max_steps=args.max_steps,
@@ -224,6 +236,8 @@ def build_config(args: argparse.Namespace) -> AIConfig:
         save_agent_path=args.save_agent_path,
         eval_episodes=args.eval_episodes,
         save_episodes=args.save_episodes,
+        resume=args.resume,
+        resume_from=args.resume_from,
     )
 
 
@@ -263,7 +277,7 @@ def main() -> None:
 
 
     # Training
-    run_training(device)
+    run_training(config, device)
 
 
     # try:j

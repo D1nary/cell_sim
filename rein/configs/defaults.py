@@ -1,0 +1,51 @@
+"""Default reinforcement learning configuration values."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Tuple
+
+
+@dataclass
+class AIConfig:
+    """Consolidated DQN training hyper-parameters."""
+
+    gamma: float = 0.995  # Discount factor
+    learning_rate: float = 1e-3  # Optimizer step size
+    batch_size: int = 64  # Samples per training update
+    buffer_size: int = 250_000  # Replay memory capacity
+    min_buffer_size: int = 10_000  # Warm-up transitions before learning
+    target_update_interval: int = 2_000  # Steps between target syncs
+    hidden_sizes: Tuple[int, ...] = (64, 64)  # Q-network layer widths
+    gradient_clip: float | None = 10.0  # Max gradient norm (None disables)
+
+    device: str = "cuda"  # Preferred compute device
+
+    seed: int = 1  # Random seed
+
+    dose_bins: int = 9  # Discrete dose action bins
+    wait_bins: int = 1  # Discrete wait action bins
+    min_dose: float = 1.0  # Minimum radiation dose
+    max_dose: float = 5.0  # Maximum radiation dose
+    min_wait: int = 24  # Minimum wait time (hours)
+    max_wait: int = 24  # Maximum wait time (hours)
+
+    # episodes: int = 10_000  # Training episodes count
+    episodes: int = 10_000  # Training episodes count
+
+    growth_hours: int = 150  # Pre-episode growth duration
+    max_steps: int = 1_200  # Max steps per episode
+
+    epsilon_start: float = 1.0  # Initial exploration rate
+    epsilon_end: float = 0.05  # Final exploration rate
+    epsilon_decay_steps: int = 100_000  # Steps to decay epsilon
+    save_agent_path: Path = Path("results/dqn_agent")  # Checkpoint directory
+    eval_episodes: int = 10  # Greedy evaluation episodes
+    save_episodes: int = 100  # Episode interval for checkpoints
+
+    resume: bool = False  # Whether to resume training from disk
+    resume_from: Path | None = None  # Optional directory for the resume checkpoint
+
+
+DEFAULT_CONFIG = AIConfig()

@@ -1,21 +1,64 @@
-"""Agent package grouping learning components."""
+"""Agent package grouping core components, training helpers, and metrics."""
 
-from .dqn_agent import DQNAgent
-from .replay_buffer import ReplayBuffer
-from .save import (
+from .core import DQNAgent, ReplayBuffer
+from .metrics import (
+    EpisodeMetrics,
+    plot_epsilon,
+    plot_episode_rewards,
+    plot_q_values,
+    plot_td_loss,
+    read_episode_metrics,
+)
+from .train import (
+    TrainingProgress,
+    build_discrete_actions,
     checkpoint_path_for_episode,
+    evaluate_policy,
     final_checkpoint_path,
+    generate_training_plots,
+    linear_epsilon,
+    load_replay_buffer_checkpoint,
+    load_training_progress,
+    load_training_state,
+    persist_training_progress,
+    resolve_device,
+    restore_rng_state,
+    run_training,
     save_episode_metrics,
+    save_paused_progress,
     save_replay_buffer_checkpoint,
     save_training_config,
+    save_training_state,
+    seed_everything,
 )
 
 __all__ = [
     "DQNAgent",
     "ReplayBuffer",
+    "EpisodeMetrics",
+    "plot_epsilon",
+    "plot_episode_rewards",
+    "plot_q_values",
+    "plot_td_loss",
+    "read_episode_metrics",
+    "TrainingProgress",
+    "build_discrete_actions",
     "checkpoint_path_for_episode",
+    "evaluate_policy",
     "final_checkpoint_path",
+    "generate_training_plots",
+    "linear_epsilon",
+    "load_replay_buffer_checkpoint",
+    "load_training_progress",
+    "load_training_state",
+    "persist_training_progress",
+    "resolve_device",
+    "restore_rng_state",
+    "run_training",
     "save_episode_metrics",
+    "save_paused_progress",
     "save_replay_buffer_checkpoint",
     "save_training_config",
+    "save_training_state",
+    "seed_everything",
 ]
