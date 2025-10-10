@@ -6,7 +6,7 @@
 #define private public
 #define protected public
 // Binding for Controller in C++ simulation (and Grid through it)
-#include "../CellSimLib/include/CellLib/controller.h"
+#include "../../CellSimLib/include/CellLib/controller.h"
 #undef private
 #undef protected
 

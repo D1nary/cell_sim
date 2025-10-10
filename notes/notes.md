@@ -10,7 +10,7 @@
         - Compilazione di libreria, demo e file di binding: `make`
         - Compilazione solo della libreria `CellSimLibz`: `make cell_sim`
         - Compilazione del demo (`main.cpp`): `make CellSimDemo`
-        - Compilazione del binding (`binding.cpp`): `make cell_sim_py`
+        - Compilazione del binding (`cpp_bridge/binding.cpp`): `make cell_sim_py`
         
     
         I file risultanti verranno collocati in lib/ (libreria) e bin/ (eseguibile demo).
@@ -405,7 +405,7 @@ if hasattr(self.ctrl, "clear_tempDataTab"):
 
 self.ctrl.clear_tempDataTab(): se presente, svuota il buffer temporaneo dei dati voxel accumulati (usato per salvare tabulati durante la simulazione). In reset() garantisce che i dati temporanei non “contaminino” il nuovo episodio.
 
-Contesto: questi metodi vengono esposti nei binding C++ → Python del controller, vedi rein/binding.cpp.
+Contesto: questi metodi vengono esposti nei binding C++ → Python del controller, vedi rein/cpp_bridge/binding.cpp.
 
 ## Scopo funzione close() rl_env.py
 

@@ -134,6 +134,7 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
     # Lock reproducible behaviour using the externally provided seed.
     seed_everything(config.seed)
 
+    # Print using device
     print(f"Using device: {device}")
     if device.type == "cuda":
         device_index = device.index if device.index is not None else torch.cuda.current_device()
@@ -146,9 +147,12 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
         min_dose=config.min_dose,
         min_wait=config.min_wait,
     )
+
+    # Build the discrete action catalogue required by the DQN head.
     discrete_actions = build_discrete_actions(env.action_space, config.dose_bins, config.wait_bins)
     state_dim = int(np.prod(env.observation_space.shape))  # type: ignore
 
+    # Assemble agent and checkpoint bookkeeping paths.
     agent = DQNAgent(state_dim, discrete_actions, device, config)
     checkpoint_base_path = config.save_agent_path / "agent" / "dqn_agent.pt"
     buffer_base_path = config.save_agent_path / "buffer" / "replay_buffer.pt"
@@ -157,10 +161,12 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
     paused_agent_path = final_checkpoint_path(checkpoint_base_path, "agent_paused")
     paused_buffer_path = final_checkpoint_path(buffer_base_path, "replay_buffer_paused")
 
+    # Store hyperparameters next to artifacts to keep the run reproducible.
     save_training_config(config, config.save_agent_path)
     checkpoint_base_path.parent.mkdir(parents=True, exist_ok=True)
     buffer_base_path.parent.mkdir(parents=True, exist_ok=True)
 
+    # Restore persisted progress (if there are) so runs can resume seamlessly.
     progress = load_training_progress(config, agent)
     total_steps = progress.total_steps
     episode_rewards = progress.episode_rewards if progress.episode_rewards is not None else []
@@ -176,6 +182,7 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
         for episode in range(start_episode, config.episodes + 1):
             current_episode = episode
 
+            # Reset environment with deterministic seed and apply initial growth phase.
             state, _ = env.reset(seed=config.seed + episode)
             env.growth(config.growth_hours)
 
@@ -187,6 +194,7 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
             episode_losses: List[float] = []
 
             for _ in range(config.max_steps):
+                # Decay exploration rate and sample an action from the agent policy.
                 current_epsilon = linear_epsilon(
                     total_steps,
                     config.epsilon_start,
@@ -199,6 +207,7 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
                 next_state, reward, terminated, truncated, info = env.step(action)
                 done = terminated or truncated
 
+                # Push transition to replay buffer and trigger a learning step.
                 agent.store_transition(state, action_idx, reward, next_state, done)
 
                 loss = agent.update()
@@ -229,6 +238,7 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
                 }
             )
 
+            # Aggiungi
             episode_rewards.append(episode_reward)
             info_str = "success" if info.get("successful", False) else "timeout" if info.get("timeout", False) else "failure"
             avg_reward = np.mean(episode_rewards[-10:])
@@ -240,6 +250,7 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
             )
 
             if config.save_episodes > 0 and (episode % config.save_episodes == 0 or episode == config.episodes):
+                # Periodically persist model, replay buffer, and metrics to disk.
                 is_final_episode = episode == config.episodes
                 checkpoint_path = (
                     agent_final_path if is_final_episode else checkpoint_path_for_episode(checkpoint_base_path, episode)
@@ -274,6 +285,7 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
 
         if metrics_path is None:
             final_episode = config.episodes if config.episodes > 0 else 0
+            # Guarantee at least one final checkpoint even if periodic saves were disabled.
             checkpoint_path = agent_final_path
             checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
             agent.save(str(checkpoint_path))
@@ -303,6 +315,7 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
             print(f"Episode metrics saved to {metrics_path}")
 
         if config.eval_episodes > 0:
+            # Optionally evaluate the greedy policy after training completes.
             mean_reward, success_rate = evaluate_policy(agent, env, config.eval_episodes, config.max_steps)
             print(
                 f"Final evaluation -> mean reward: {mean_reward:.3f}, success rate: {success_rate:.2%}"
@@ -310,11 +323,13 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
 
         if metrics_path is not None:
             try:
+                # Generate visual summaries to help inspect training dynamics.
                 generate_training_plots(metrics_path)
             except Exception as plot_error:  # pragma: no cover - best-effort plotting
                 print(f"Failed to generate training plots: {plot_error}")
 
         if last_checkpoint_path is not None and last_buffer_path is not None:
+            # Mark the run as completed so future invocations avoid resuming incorrectly.
             persist_training_progress(
                 config,
                 config.episodes + 1,
@@ -331,6 +346,7 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
     except KeyboardInterrupt:
         print("\nTraining interrupted by user. Saving pause checkpoint...")
         checkpoint_path, buffer_path = save_paused_progress(
+            # Persist a pause checkpoint so the user can resume later.
             config,
             agent,
             buffer_base_path,
@@ -347,4 +363,5 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
         last_buffer_path = buffer_path
         print(f"Training paused at episode {current_episode}. Checkpoints saved to {checkpoint_path}")
     finally:
+        # Clean up the environment explicitly to release resources.
         env.close()

@@ -9,9 +9,9 @@ cmake_minimum_required(VERSION 3.10)
 find_package(pybind11 REQUIRED)
 find_package(Python3 COMPONENTS Development REQUIRED)
 
-# Build the Python extension module from binding.cpp
+# Build the Python extension module from the cpp_bridge sources
 # Use a different target name and set OUTPUT_NAME to "cell_sim"
-pybind11_add_module(cell_sim_py binding.cpp)
+pybind11_add_module(cell_sim_py cpp_bridge/binding.cpp)
 set_target_properties(cell_sim_py PROPERTIES OUTPUT_NAME cell_sim)
 
 # Include headers from the core C++ library

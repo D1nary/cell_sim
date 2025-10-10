@@ -4,6 +4,9 @@ build/
 env_hp/
 env_dell/
 
+# Results
+results/
+
 # Python bytecode and cache directories
 __pycache__/
 *.py[cod]
