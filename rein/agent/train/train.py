@@ -79,6 +79,109 @@ def linear_epsilon(step: int, start: float, end: float, decay_steps: int) -> flo
     return start + fraction * (end - start)
 
 
+class RewardAwareEpsilonController:
+    """Dynamically modulate ε-greedy exploration based on reward trends."""
+
+    def __init__(
+        self,
+        epsilon_start: float,
+        epsilon_end: float,
+        base_decay_steps: int,
+        patience: int = 15,
+        min_delta: float = 1.0,
+    ) -> None:
+        self.epsilon_start = float(epsilon_start)
+        self.epsilon_end = float(epsilon_end)
+        self.base_decay_steps = max(1, int(base_decay_steps))
+        self.patience = max(1, int(patience))
+        self.min_delta = float(min_delta)
+
+        self.best_score = -math.inf
+        self.episodes_since_improvement = 0
+
+        self.epsilon_multiplier = 1.0
+        self.decay_multiplier = 1.0
+
+        self.epsilon_multiplier_bounds = (1.0, 2.0)
+        self.decay_multiplier_bounds = (0.5, 2.5)
+
+        self.epsilon_plateau_factor = 1.25
+        self.epsilon_improve_factor = 0.95
+
+        self.decay_plateau_factor = 1.15
+        self.decay_improve_factor = 0.9
+
+        self.epsilon_max_bump = self.epsilon_start * 1.2
+
+    @property
+    def effective_decay_steps(self) -> int:
+        """Return the current decay horizon incorporating reward-aware scaling."""
+        scaled = int(self.base_decay_steps * self.decay_multiplier)
+        return max(1, scaled)
+
+    def value(self, step: int) -> float:
+        """Compute the exploration rate for the given global step."""
+        base = linear_epsilon(step, self.epsilon_start, self.epsilon_end, self.effective_decay_steps)
+        scaled = self.epsilon_multiplier * base
+        return float(np.clip(scaled, self.epsilon_end, self.epsilon_max_bump))
+
+    def update(self, score: float) -> Optional[Dict[str, float]]:
+        """Update internal multipliers from the latest reward statistic."""
+        if not math.isfinite(score):
+            return None
+
+        if self.best_score == -math.inf:
+            self.best_score = score
+            self.episodes_since_improvement = 0
+            return None
+
+        adjusted = None
+        if score > self.best_score + self.min_delta:
+            self.best_score = score
+            self.episodes_since_improvement = 0
+            old_multiplier = self.epsilon_multiplier
+            self.epsilon_multiplier = max(
+                self.epsilon_multiplier * self.epsilon_improve_factor,
+                self.epsilon_multiplier_bounds[0],
+            )
+            old_decay = self.decay_multiplier
+            self.decay_multiplier = max(
+                self.decay_multiplier * self.decay_improve_factor,
+                self.decay_multiplier_bounds[0],
+            )
+            adjusted = {
+                "reason": "improved",
+                "epsilon_multiplier": self.epsilon_multiplier,
+                "decay_multiplier": self.decay_multiplier,
+                "prev_epsilon_multiplier": old_multiplier,
+                "prev_decay_multiplier": old_decay,
+            }
+        else:
+            self.episodes_since_improvement += 1
+            if self.episodes_since_improvement >= self.patience:
+                self.episodes_since_improvement = 0
+                old_multiplier = self.epsilon_multiplier
+                self.epsilon_multiplier = min(
+                    self.epsilon_multiplier * self.epsilon_plateau_factor,
+                    self.epsilon_multiplier_bounds[1],
+                )
+                old_decay = self.decay_multiplier
+                self.decay_multiplier = min(
+                    self.decay_multiplier * self.decay_plateau_factor,
+                    self.decay_multiplier_bounds[1],
+                )
+                adjusted = {
+                    "reason": "plateau",
+                    "epsilon_multiplier": self.epsilon_multiplier,
+                    "decay_multiplier": self.decay_multiplier,
+                    "prev_epsilon_multiplier": old_multiplier,
+                    "prev_decay_multiplier": old_decay,
+                }
+        if adjusted is not None:
+            adjusted["effective_decay_steps"] = int(self.effective_decay_steps)
+        return adjusted
+
+
 def evaluate_policy(agent: DQNAgent, env: CellSimEnv, episodes: int, max_steps: int) -> Tuple[float, float]:
     """Play episodes with greedy policy and collect stats (mean reward, success rate)."""
     rewards = []
@@ -178,6 +281,11 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
     start_episode = progress.start_episode
 
     current_episode = start_episode
+    epsilon_controller = RewardAwareEpsilonController(
+        config.epsilon_start,
+        config.epsilon_end,
+        config.epsilon_decay_steps,
+    )
     try:
         for episode in range(start_episode, config.episodes + 1):
             current_episode = episode
@@ -189,18 +297,12 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
             episode_reward = 0.0
             info: Dict[str, object] = {}
 
-            current_epsilon = config.epsilon_start
             episode_initial_epsilon = None
             episode_losses: List[float] = []
 
             for _ in range(config.max_steps):
                 # Decay exploration rate and sample an action from the agent policy.
-                current_epsilon = linear_epsilon(
-                    total_steps,
-                    config.epsilon_start,
-                    config.epsilon_end,
-                    config.epsilon_decay_steps,
-                )
+                current_epsilon = epsilon_controller.value(total_steps)
                 if episode_initial_epsilon is None:
                     episode_initial_epsilon = current_epsilon
                 action_idx, action = agent.select_action(state, current_epsilon)
@@ -246,6 +348,7 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
             previous_lr = float(agent.optimizer.param_groups[0]["lr"])
             current_lr = agent.step_reward_scheduler(avg_reward)
             lr_reduced = current_lr < (previous_lr - 1e-12)
+            reward_adjustment = epsilon_controller.update(avg_reward)
 
             print(
                 f"Episode {episode:04d} | steps: {total_steps:06d} | reward: {episode_reward:.3f} | "
@@ -255,6 +358,19 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
             if lr_reduced:
                 print(
                     f"    Learning rate reduced from {previous_lr:.6f} to {current_lr:.6f} after reward plateau/decrease."
+                )
+            if reward_adjustment is not None:
+                reason = reward_adjustment.get("reason", "plateau")
+                prev_eps_mult = reward_adjustment.get("prev_epsilon_multiplier", 1.0)
+                new_eps_mult = reward_adjustment.get("epsilon_multiplier", prev_eps_mult)
+                prev_decay = reward_adjustment.get("prev_decay_multiplier", 1.0)
+                new_decay = reward_adjustment.get("decay_multiplier", prev_decay)
+                effective_steps = int(reward_adjustment.get("effective_decay_steps", epsilon_controller.effective_decay_steps))
+                print(
+                    f"    Reward-aware epsilon update ({reason}) -> "
+                    f"eps-mult: {prev_eps_mult:.3f} -> {new_eps_mult:.3f}, "
+                    f"decay-mult: {prev_decay:.3f} -> {new_decay:.3f}, "
+                    f"effective decay steps: {effective_steps}"
                 )
 
             if config.save_episodes > 0 and (episode % config.save_episodes == 0 or episode == config.episodes):

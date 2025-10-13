@@ -39,7 +39,7 @@ class AIConfig:
 
     epsilon_start: float = 1.0  # Initial exploration rate
     epsilon_end: float = 0.05  # Final exploration rate
-    epsilon_decay_steps: int = 400_000  # Steps to decay epsilon
+    epsilon_decay_steps: int = 500_000  # Steps to decay epsilon (slow baseline trend)
     save_agent_path: Path = Path("results/dqn_agent")  # Checkpoint directory
     eval_episodes: int = 10  # Greedy evaluation episodes
     save_episodes: int = 100  # Episode interval for checkpoints
