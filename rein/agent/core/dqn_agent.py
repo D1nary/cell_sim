@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import random
-from typing import List, Sequence
+from typing import List, Sequence, Tuple
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import optim
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from ...configs import AIConfig
 from ...model import QNetwork
@@ -53,6 +54,17 @@ class DQNAgent:
 
         # Optimiser for the policy network and the replay buffer backing off-policy learning.
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=self.config.learning_rate)
+        self.lr_scheduler = ReduceLROnPlateau(
+            self.optimizer,
+            mode="max",
+            factor=0.5,
+            patience=0,
+            threshold=1e-3,
+            threshold_mode="abs",
+            cooldown=0,
+            min_lr=1e-6,
+            verbose=False,
+        )
         self.replay_buffer = ReplayBuffer(self.config.buffer_size)
 
         self._step_counter = 0
@@ -123,6 +135,11 @@ class DQNAgent:
             self.sync_target_network()
 
         return float(loss.item())
+
+    def step_reward_scheduler(self, average_reward: float) -> float:
+        """Adjust the learning rate when the reward plateaus or decreases."""
+        self.lr_scheduler.step(average_reward)
+        return float(self.optimizer.param_groups[0]["lr"])
 
     def sync_target_network(self) -> None:
         """Copy policy weights into the target network."""

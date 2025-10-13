@@ -241,13 +241,21 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
             # Aggiungi
             episode_rewards.append(episode_reward)
             info_str = "success" if info.get("successful", False) else "timeout" if info.get("timeout", False) else "failure"
-            avg_reward = np.mean(episode_rewards[-10:])
+            avg_reward = float(np.mean(episode_rewards[-10:]))
             avg_loss = np.mean(losses[-10:]) if losses else math.nan
+            previous_lr = float(agent.optimizer.param_groups[0]["lr"])
+            current_lr = agent.step_reward_scheduler(avg_reward)
+            lr_reduced = current_lr < (previous_lr - 1e-12)
 
             print(
                 f"Episode {episode:04d} | steps: {total_steps:06d} | reward: {episode_reward:.3f} | "
-                f"avg10 reward: {avg_reward:.3f} | avg10 loss: {avg_loss:.5f} | eps: {current_epsilon:.3f} | {info_str}"
+                f"avg10 reward: {avg_reward:.3f} | avg10 loss: {avg_loss:.5f} | lr: {current_lr:.6f} | "
+                f"eps: {current_epsilon:.3f} | {info_str}"
             )
+            if lr_reduced:
+                print(
+                    f"    Learning rate reduced from {previous_lr:.6f} to {current_lr:.6f} after reward plateau/decrease."
+                )
 
             if config.save_episodes > 0 and (episode % config.save_episodes == 0 or episode == config.episodes):
                 # Periodically persist model, replay buffer, and metrics to disk.
