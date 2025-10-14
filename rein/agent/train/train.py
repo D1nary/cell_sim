@@ -301,6 +301,7 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
             episode_losses: List[float] = []
 
             for _ in range(config.max_steps):
+                
                 # Decay exploration rate and sample an action from the agent policy.
                 # The reward-aware controller stretches/shrinks epsilon in response to performance trends.
                 current_epsilon = epsilon_controller.value(total_steps)
@@ -345,10 +346,12 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
             info_str = "success" if info.get("successful", False) else "timeout" if info.get("timeout", False) else "failure"
             avg_reward = float(np.mean(episode_rewards[-10:]))
             avg_loss = np.mean(losses[-10:]) if losses else math.nan
+            
             # Adapt the optimizer learning rate whenever the recent reward stalls or declines.
             previous_lr = float(agent.optimizer.param_groups[0]["lr"])
             current_lr = agent.step_reward_scheduler(avg_reward)
             lr_reduced = current_lr < (previous_lr - 1e-12)
+            
             # Feed the smoothed reward back into the epsilon controller to retune exploration pressure.
             reward_adjustment = epsilon_controller.update(avg_reward)
 
