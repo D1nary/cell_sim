@@ -87,14 +87,23 @@ class RewardAwareEpsilonController:
         epsilon_start: float,
         epsilon_end: float,
         base_decay_steps: int,
-        patience: int = 15,
-        min_delta: float = 1.0,
+        patience: int,
+        min_delta_floor: float,
+        min_delta_relative: float,
+        epsilon_multiplier_bounds: Tuple[float, float],
+        decay_multiplier_bounds: Tuple[float, float],
+        epsilon_plateau_factor: float,
+        epsilon_improve_factor: float,
+        decay_plateau_factor: float,
+        decay_improve_factor: float,
+        epsilon_max_bump_factor: float,
     ) -> None:
         self.epsilon_start = float(epsilon_start)
         self.epsilon_end = float(epsilon_end)
         self.base_decay_steps = max(1, int(base_decay_steps))
         self.patience = max(1, int(patience))
-        self.min_delta = float(min_delta)
+        self.min_delta_floor = float(min_delta_floor)
+        self.min_delta_relative = float(min_delta_relative)
 
         self.best_score = -math.inf
         self.episodes_since_improvement = 0
@@ -102,16 +111,16 @@ class RewardAwareEpsilonController:
         self.epsilon_multiplier = 1.0
         self.decay_multiplier = 1.0
 
-        self.epsilon_multiplier_bounds = (1.0, 2.0)
-        self.decay_multiplier_bounds = (0.5, 2.5)
+        self.epsilon_multiplier_bounds = tuple(map(float, epsilon_multiplier_bounds))
+        self.decay_multiplier_bounds = tuple(map(float, decay_multiplier_bounds))
 
-        self.epsilon_plateau_factor = 1.25
-        self.epsilon_improve_factor = 0.95
+        self.epsilon_plateau_factor = float(epsilon_plateau_factor)
+        self.epsilon_improve_factor = float(epsilon_improve_factor)
 
-        self.decay_plateau_factor = 1.15
-        self.decay_improve_factor = 0.9
+        self.decay_plateau_factor = float(decay_plateau_factor)
+        self.decay_improve_factor = float(decay_improve_factor)
 
-        self.epsilon_max_bump = self.epsilon_start * 1.2
+        self.epsilon_max_bump = self.epsilon_start * float(epsilon_max_bump_factor)
 
     @property
     def effective_decay_steps(self) -> int:
@@ -128,15 +137,19 @@ class RewardAwareEpsilonController:
     def update(self, score: float) -> Optional[Dict[str, float]]:
         """Update internal multipliers from the latest reward statistic."""
         if not math.isfinite(score):
+            # Skip non-finite rewards to avoid contaminating the schedule.
             return None
 
         if self.best_score == -math.inf:
+            # Seed the baseline once a valid score appears.
             self.best_score = score
             self.episodes_since_improvement = 0
             return None
 
         adjusted = None
-        if score > self.best_score + self.min_delta:
+        delta_threshold = max(self.min_delta_floor, self.min_delta_relative * abs(self.best_score))
+        if score > self.best_score + delta_threshold:
+            # Reward improved: tighten multipliers to focus on exploitation.
             self.best_score = score
             self.episodes_since_improvement = 0
             old_multiplier = self.epsilon_multiplier
@@ -159,6 +172,7 @@ class RewardAwareEpsilonController:
         else:
             self.episodes_since_improvement += 1
             if self.episodes_since_improvement >= self.patience:
+                # Reward plateau: loosen multipliers to encourage exploration.
                 self.episodes_since_improvement = 0
                 old_multiplier = self.epsilon_multiplier
                 self.epsilon_multiplier = min(
@@ -263,6 +277,14 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
     buffer_final_path = final_checkpoint_path(buffer_base_path, "replay_buffer_final")
     paused_agent_path = final_checkpoint_path(checkpoint_base_path, "agent_paused")
     paused_buffer_path = final_checkpoint_path(buffer_base_path, "replay_buffer_paused")
+    epsilon_log_dir = config.save_agent_path.parent / "epsilon_controller"
+    epsilon_log_dir.mkdir(parents=True, exist_ok=True)
+    epsilon_log_path = epsilon_log_dir / "adjustments.csv"
+    if not epsilon_log_path.exists():
+        with epsilon_log_path.open("w", encoding="utf-8") as log_fp:
+            log_fp.write(
+                "episode,total_steps,reason,epsilon_multiplier,decay_multiplier,epsilon_current,effective_decay_steps\n"
+            )
 
     # Store hyperparameters next to artifacts to keep the run reproducible.
     save_training_config(config, config.save_agent_path)
@@ -285,6 +307,16 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
         config.epsilon_start,
         config.epsilon_end,
         config.epsilon_decay_steps,
+        config.reward_patience,
+        config.reward_min_delta_floor,
+        config.reward_min_delta_relative,
+        config.reward_epsilon_multiplier_bounds,
+        config.reward_decay_multiplier_bounds,
+        config.reward_epsilon_plateau_factor,
+        config.reward_epsilon_improve_factor,
+        config.reward_decay_plateau_factor,
+        config.reward_decay_improve_factor,
+        config.reward_epsilon_max_bump_factor,
     )
     try:
         for episode in range(start_episode, config.episodes + 1):
@@ -329,6 +361,7 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
 
             if episode_initial_epsilon is None:
                 episode_initial_epsilon = current_epsilon
+
             episode_final_epsilon = current_epsilon
             avg_episode_loss = float(np.mean(episode_losses)) if episode_losses else math.nan
 
@@ -342,6 +375,7 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
                 }
             )
 
+            # Log the episode reward, outcome status, and rolling 10-episode reward/loss averages.
             episode_rewards.append(episode_reward)
             info_str = "success" if info.get("successful", False) else "timeout" if info.get("timeout", False) else "failure"
             avg_reward = float(np.mean(episode_rewards[-10:]))
@@ -360,10 +394,12 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
                 f"avg10 reward: {avg_reward:.3f} | avg10 loss: {avg_loss:.5f} | lr: {current_lr:.6f} | "
                 f"eps: {current_epsilon:.3f} | {info_str}"
             )
+
             if lr_reduced:
                 print(
                     f"    Learning rate reduced from {previous_lr:.6f} to {current_lr:.6f} after reward plateau/decrease."
                 )
+                
             if reward_adjustment is not None:
                 reason = reward_adjustment.get("reason", "plateau")
                 prev_eps_mult = reward_adjustment.get("prev_epsilon_multiplier", 1.0)
@@ -375,8 +411,13 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
                     f"    Reward-aware epsilon update ({reason}) -> "
                     f"eps-mult: {prev_eps_mult:.3f} -> {new_eps_mult:.3f}, "
                     f"decay-mult: {prev_decay:.3f} -> {new_decay:.3f}, "
-                    f"effective decay steps: {effective_steps}"
+                    f"effective decay steps: {effective_steps}, "
+                    f"epsilon current: {current_epsilon:.3f}"
                 )
+                with epsilon_log_path.open("a", encoding="utf-8") as log_fp:
+                    log_fp.write(
+                        f"{episode},{total_steps},{reason},{new_eps_mult:.6f},{new_decay:.6f},{current_epsilon:.6f},{effective_steps}\n"
+                    )
 
             if config.save_episodes > 0 and (episode % config.save_episodes == 0 or episode == config.episodes):
                 # Periodically persist model, replay buffer, and metrics to disk.

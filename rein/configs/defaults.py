@@ -32,7 +32,7 @@ class AIConfig:
     max_wait: int = 24  # Maximum wait time (hours)
 
     # episodes: int = 10_000  # Training episodes count
-    episodes: int = 10_000  # Training episodes count
+    episodes: int = 8_000  # Training episodes count
 
     growth_hours: int = 150  # Pre-episode growth duration
     max_steps: int = 1_200  # Max steps per episode
@@ -46,6 +46,18 @@ class AIConfig:
 
     resume: bool = False  # Whether to resume training from disk
     resume_from: Path | None = None  # Optional directory for the resume checkpoint
+
+    # Reward Aware
+    reward_patience: int = 15
+    reward_min_delta_floor: float = 1.0
+    reward_min_delta_relative: float = 0.02
+    reward_epsilon_multiplier_bounds: Tuple[float, float] = (1.0, 2.0)
+    reward_decay_multiplier_bounds: Tuple[float, float] = (0.5, 2.5)
+    reward_epsilon_plateau_factor: float = 1.18
+    reward_epsilon_improve_factor: float = 0.95
+    reward_decay_plateau_factor: float = 1.12
+    reward_decay_improve_factor: float = 0.92
+    reward_epsilon_max_bump_factor: float = 1.7
 
 
 DEFAULT_CONFIG = AIConfig()
