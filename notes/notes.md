@@ -1310,3 +1310,5 @@ In altre parole:
 - PYTHONPATH è un modo per modificarla prima che Python parta.
 
 Nel nostri caso togliere i file __init__.py renderebbe gli import più verbosi e ti farebbe perdere le scorciatoie/export definiti ora; conviene tenerli finché vuoi mantenere questa interfaccia unica per il package.
+
+#

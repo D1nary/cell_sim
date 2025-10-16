@@ -19,6 +19,7 @@ __all__ = [
     "plot_td_loss",
     "plot_epsilon",
     "plot_q_values",
+    "plot_learning_rate",
 ]
 
 
@@ -33,6 +34,7 @@ class EpisodeMetrics:
     mean_loss: Optional[float]
     q_mean: Optional[float]
     q_max: Optional[float]
+    learning_rate: Optional[float]
 
 
 def _to_float(value: str | None) -> Optional[float]:
@@ -66,6 +68,7 @@ def read_episode_metrics(metrics_path: Path | str) -> List[EpisodeMetrics]:
             epsilon_start = _to_float(row.get("epsilon_start"))
             epsilon_end = _to_float(row.get("epsilon_end"))
             mean_loss = _to_float(row.get("mean_loss"))
+            learning_rate = _to_float(row.get("learning_rate"))
             q_mean = None
             for key in q_mean_keys:
                 if key in row:
@@ -87,6 +90,7 @@ def read_episode_metrics(metrics_path: Path | str) -> List[EpisodeMetrics]:
                     mean_loss=mean_loss,
                     q_mean=q_mean,
                     q_max=q_max,
+                    learning_rate=learning_rate,
                 )
             )
     records.sort(key=lambda entry: entry.episode)
@@ -276,6 +280,35 @@ def plot_q_values(
     ax.set_ylabel("Q-value")
     ax.set_title("Q-values of selected actions")
     ax.legend()
+    ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.6)
+    fig.tight_layout()
+
+    if save_to is not None:
+        fig.savefig(Path(save_to), bbox_inches="tight")
+    return fig
+
+
+def plot_learning_rate(
+    metrics_path: Path | str,
+    *,
+    save_to: Path | str | None = None,
+) -> Figure:
+    """Plot the learning rate applied after each training episode."""
+
+    metrics = read_episode_metrics(metrics_path)
+    episodes = np.asarray([entry.episode for entry in metrics], dtype=int)
+    learning_rates = np.asarray([entry.learning_rate for entry in metrics], dtype=float)
+    valid = np.isfinite(learning_rates)
+    if not valid.any():
+        raise ValueError(
+            "Metrics file does not contain learning rate values; ensure training stores learning_rate per episode"
+        )
+
+    fig, ax = plt.subplots()
+    ax.plot(episodes[valid], learning_rates[valid], label="Learning rate", color="tab:brown", linewidth=1.2)
+    ax.set_xlabel("Episode")
+    ax.set_ylabel("Learning rate")
+    ax.set_title("Learning rate schedule")
     ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.6)
     fig.tight_layout()
 

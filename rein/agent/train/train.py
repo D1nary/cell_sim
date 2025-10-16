@@ -14,6 +14,7 @@ from ..core.dqn_agent import DQNAgent
 from ..metrics.plot_metrics import (
     plot_epsilon,
     plot_episode_rewards,
+    plot_learning_rate,
     plot_q_values,
     plot_td_loss,
 )
@@ -30,6 +31,7 @@ from .training_state import (
     save_paused_progress,
 )
 from ...env import CellSimEnv
+from ...configs.defaults import DEFAULT_CONFIG
 
 if TYPE_CHECKING:  # pragma: no cover
     from ...configs import AIConfig
@@ -62,8 +64,10 @@ def build_discrete_actions(
     wait_bins: int,
 ) -> List[np.ndarray]:
     """Discretise the continuous action space into a finite grid for DQN."""
+
     dose_values = np.linspace(float(action_space.low[0]), float(action_space.high[0]), num=dose_bins)
     wait_values = np.linspace(float(action_space.low[1]), float(action_space.high[1]), num=wait_bins)
+    
     actions: List[np.ndarray] = []
     for dose in dose_values:
         for wait in wait_values:
@@ -73,8 +77,11 @@ def build_discrete_actions(
 
 def linear_epsilon(step: int, start: float, end: float, decay_steps: int) -> float:
     """Linearly anneal epsilon from start to end across decay_steps."""
+    
     if decay_steps <= 0:
         return end
+    
+    # Linearly blend start and end according to normalized decay progress.
     fraction = min(1.0, step / float(decay_steps))
     return start + fraction * (end - start)
 
@@ -97,7 +104,11 @@ class RewardAwareEpsilonController:
         decay_plateau_factor: float,
         decay_improve_factor: float,
         epsilon_max_bump_factor: float,
+        epsilon_multiplier: float = DEFAULT_CONFIG.reward_epsilon_multiplier,
+        decay_multiplier: float = DEFAULT_CONFIG.reward_decay_multiplier,
     ) -> None:
+        
+
         self.epsilon_start = float(epsilon_start)
         self.epsilon_end = float(epsilon_end)
         self.base_decay_steps = max(1, int(base_decay_steps))
@@ -108,9 +119,9 @@ class RewardAwareEpsilonController:
         self.best_score = -math.inf
         self.episodes_since_improvement = 0
 
-        self.epsilon_multiplier = 1.0
-        self.decay_multiplier = 1.0
-
+        self.epsilon_multiplier = float(epsilon_multiplier)
+        self.decay_multiplier = float(decay_multiplier)
+ 
         self.epsilon_multiplier_bounds = tuple(map(float, epsilon_multiplier_bounds))
         self.decay_multiplier_bounds = tuple(map(float, decay_multiplier_bounds))
 
@@ -226,10 +237,18 @@ def generate_training_plots(metrics_path: Path) -> None:
     loss_plot = plot_dir / "loss.png"
     epsilon_plot = plot_dir / "epsilon.png"
     q_values_plot = plot_dir / "q_values.png"
+    learning_rate_plot = plot_dir / "learning_rate.png"
 
     plot_episode_rewards(metrics_path, save_to=reward_plot)
     plot_td_loss(metrics_path, save_to=loss_plot)
     plot_epsilon(metrics_path, save_to=epsilon_plot)
+
+    lr_plot_saved = False
+    try:
+        plot_learning_rate(metrics_path, save_to=learning_rate_plot)
+        lr_plot_saved = True
+    except ValueError:
+        lr_plot_saved = False
 
     q_plot_saved = False
     try:
@@ -242,6 +261,8 @@ def generate_training_plots(metrics_path: Path) -> None:
     print(f" - reward: {reward_plot}")
     print(f" - loss: {loss_plot}")
     print(f" - epsilon: {epsilon_plot}")
+    if lr_plot_saved and learning_rate_plot.exists():
+        print(f" - learning-rate: {learning_rate_plot}")
     if q_plot_saved and q_values_plot.exists():
         print(f" - q-values: {q_values_plot}")
 
@@ -317,6 +338,8 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
         config.reward_decay_plateau_factor,
         config.reward_decay_improve_factor,
         config.reward_epsilon_max_bump_factor,
+        epsilon_multiplier=config.reward_epsilon_multiplier,
+        decay_multiplier=config.reward_decay_multiplier,
     )
     try:
         for episode in range(start_episode, config.episodes + 1):
@@ -365,16 +388,6 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
             episode_final_epsilon = current_epsilon
             avg_episode_loss = float(np.mean(episode_losses)) if episode_losses else math.nan
 
-            episode_metrics.append(
-                {
-                    "episode": episode,
-                    "reward": episode_reward,
-                    "epsilon_start": episode_initial_epsilon,
-                    "epsilon_end": episode_final_epsilon,
-                    "mean_loss": avg_episode_loss,
-                }
-            )
-
             # Log the episode reward, outcome status, and rolling 10-episode reward/loss averages.
             episode_rewards.append(episode_reward)
             info_str = "success" if info.get("successful", False) else "timeout" if info.get("timeout", False) else "failure"
@@ -385,7 +398,18 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
             previous_lr = float(agent.optimizer.param_groups[0]["lr"])
             current_lr = agent.step_reward_scheduler(avg_reward)
             lr_reduced = current_lr < (previous_lr - 1e-12)
-            
+
+            episode_metrics.append(
+                {
+                    "episode": episode,
+                    "reward": episode_reward,
+                    "epsilon_start": episode_initial_epsilon,
+                    "epsilon_end": episode_final_epsilon,
+                    "mean_loss": avg_episode_loss,
+                    "learning_rate": current_lr,
+                }
+            )
+
             # Feed the smoothed reward back into the epsilon controller to retune exploration pressure.
             reward_adjustment = epsilon_controller.update(avg_reward)
 

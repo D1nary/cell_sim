@@ -18,6 +18,13 @@ from rein.agent.train import (
     run_training,
     seed_everything,
 )
+from rein.agent.metrics import (
+    plot_epsilon,
+    plot_episode_rewards,
+    plot_learning_rate,
+    plot_q_values,
+    plot_td_loss,
+)
 from rein.env.rl_env import CellSimEnv
 from rein.configs import AIConfig
 
@@ -204,6 +211,23 @@ def parse_args() -> argparse.Namespace:
         help="Comma or space separated hidden layer sizes (default: 256,256)",
     )
 
+    parser.add_argument(
+        "--plot",
+        choices=("reward", "loss", "epsilon", "q-values", "learning-rate", "all"),
+        action="append",
+        help="Render selected training plots from metrics CSV and exit (repeat for multiple). Use 'all' for every plot.",
+    )
+    parser.add_argument(
+        "--plot-metrics-path",
+        type=Path,
+        help="Path to the metrics CSV used for plotting (defaults to <save_agent_path>/agent/agent_final_metrics.csv).",
+    )
+    parser.add_argument(
+        "--plot-output-dir",
+        type=Path,
+        help="Destination directory for generated plots (defaults to the metrics directory).",
+    )
+
     return parser.parse_args()
 
 
@@ -242,9 +266,67 @@ def build_config(args: argparse.Namespace) -> AIConfig:
 
 
 
+def render_plots_from_cli(args: argparse.Namespace) -> None:
+    """Generate requested plots based on CLI options."""
+
+    metrics_path = args.plot_metrics_path
+    if metrics_path is None:
+        metrics_path = args.save_agent_path / "agent" / "agent_final_metrics.csv"
+    metrics_path = Path(metrics_path)
+    if not metrics_path.exists():
+        raise FileNotFoundError(f"Metrics file not found: {metrics_path}")
+
+    output_dir = Path(args.plot_output_dir) if args.plot_output_dir is not None else metrics_path.parent
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    available_plots = {
+        "reward": (plot_episode_rewards, "reward.png"),
+        "loss": (plot_td_loss, "loss.png"),
+        "epsilon": (plot_epsilon, "epsilon.png"),
+        "q-values": (plot_q_values, "q_values.png"),
+        "learning-rate": (plot_learning_rate, "learning_rate.png"),
+    }
+
+    requested = args.plot or []
+    if not requested:
+        return
+
+    # Expand "all" into the full set while preserving order and uniqueness.
+    selected: list[str] = []
+    for entry in requested:
+        if entry == "all":
+            for key in available_plots:
+                if key not in selected:
+                    selected.append(key)
+        elif entry not in selected:
+            selected.append(entry)
+
+    print(f"Generating plots from metrics: {metrics_path}")
+    saved_any = False
+    for key in selected:
+        plotter, filename = available_plots[key]
+        destination = output_dir / filename
+        try:
+            plotter(metrics_path, save_to=destination)
+            print(f" - {key}: {destination}")
+            saved_any = True
+        except Exception as error:
+            print(f" ! Failed to render {key}: {error}")
+
+    if saved_any:
+        print(f"Plots saved to: {output_dir}")
+    else:
+        print("No plots were generated.")
+
+
 def main() -> None:
 
     args = parse_args()
+
+    if args.plot:
+        render_plots_from_cli(args)
+        return
+
     config = build_config(args)
     device = resolve_device(config.device)
 
@@ -271,10 +353,8 @@ def main() -> None:
         res_buffer,
     ]
 
-
     # Directory cration
     create_directories(paths)
-
 
     # Training
     run_training(config, device)

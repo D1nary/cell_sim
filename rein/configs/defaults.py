@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Tuple
 
-
 @dataclass
 class AIConfig:
     """Consolidated DQN training hyper-parameters."""
@@ -35,7 +34,7 @@ class AIConfig:
     episodes: int = 8_000  # Training episodes count
 
     growth_hours: int = 150  # Pre-episode growth duration
-    max_steps: int = 1_200  # Max steps per episode
+    max_steps: int = 2_000  # Max steps per episode
 
     epsilon_start: float = 1.0  # Initial exploration rate
     epsilon_end: float = 0.05  # Final exploration rate
@@ -48,16 +47,18 @@ class AIConfig:
     resume_from: Path | None = None  # Optional directory for the resume checkpoint
 
     # Reward Aware
-    reward_patience: int = 15
-    reward_min_delta_floor: float = 1.0
-    reward_min_delta_relative: float = 0.02
-    reward_epsilon_multiplier_bounds: Tuple[float, float] = (1.0, 2.0)
-    reward_decay_multiplier_bounds: Tuple[float, float] = (0.5, 2.5)
-    reward_epsilon_plateau_factor: float = 1.18
-    reward_epsilon_improve_factor: float = 0.95
-    reward_decay_plateau_factor: float = 1.12
-    reward_decay_improve_factor: float = 0.92
-    reward_epsilon_max_bump_factor: float = 1.7
+    reward_patience: int = 15  # Episodes without gains before easing exploration
+    reward_min_delta_floor: float = 1.0  # Minimum absolute reward bump
+    reward_min_delta_relative: float = 0.02  # Minimum relative reward bump
+    reward_epsilon_multiplier: float = 1.0  # Baseline epsilon scaling
+    reward_decay_multiplier: float = 1.0  # Baseline decay scaling
+    reward_epsilon_multiplier_bounds: Tuple[float, float] = (1.0, 2.0)  # Epsilon clamp range
+    reward_decay_multiplier_bounds: Tuple[float, float] = (0.5, 2.5)  # Decay clamp range
+    reward_epsilon_plateau_factor: float = 1.18  # Epsilon scale on plateau
+    reward_epsilon_improve_factor: float = 0.95  # Epsilon scale on improvement
+    reward_decay_plateau_factor: float = 1.12  # Extend decay on plateau
+    reward_decay_improve_factor: float = 0.92  # Shorten decay on improvement
+    reward_epsilon_max_bump_factor: float = 1.7  # Max epsilon boost factor
 
 
 DEFAULT_CONFIG = AIConfig()
