@@ -11,7 +11,7 @@ import torch.nn.functional as F
 from torch import optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
-from ...configs import AIConfig
+from ...configs.defaults import AIConfig, REDUCE_LR_ON_PLATEAU_PARAMS
 from ...model import QNetwork
 from .replay_buffer import ReplayBuffer
 
@@ -54,17 +54,7 @@ class DQNAgent:
 
         # Optimiser for the policy network and the replay buffer backing off-policy learning.
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=self.config.learning_rate)
-        self.lr_scheduler = ReduceLROnPlateau(
-            self.optimizer,
-            mode="max",
-            factor=0.5,
-            patience=0,
-            threshold=1e-3,
-            threshold_mode="abs",
-            cooldown=0,
-            min_lr=1e-6,
-            verbose=False,
-        )
+        self.lr_scheduler = ReduceLROnPlateau(self.optimizer, **REDUCE_LR_ON_PLATEAU_PARAMS)
         self.replay_buffer = ReplayBuffer(self.config.buffer_size)
 
         self._step_counter = 0

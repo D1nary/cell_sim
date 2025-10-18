@@ -147,28 +147,33 @@ class RewardAwareEpsilonController:
 
     def update(self, score: float) -> Optional[Dict[str, float]]:
         """Update internal multipliers from the latest reward statistic."""
+        # Score is the awerage reward
         if not math.isfinite(score):
             # Skip non-finite rewards to avoid contaminating the schedule.
             return None
 
+        # Seed the baseline once a valid score appears.
         if self.best_score == -math.inf:
-            # Seed the baseline once a valid score appears.
             self.best_score = score
             self.episodes_since_improvement = 0
             return None
 
         adjusted = None
         delta_threshold = max(self.min_delta_floor, self.min_delta_relative * abs(self.best_score))
+        # Reward improved: Less exploration reducing multipliers
         if score > self.best_score + delta_threshold:
-            # Reward improved: tighten multipliers to focus on exploitation.
             self.best_score = score
             self.episodes_since_improvement = 0
             old_multiplier = self.epsilon_multiplier
+            
+            # Reduce epsilon_multiplier
             self.epsilon_multiplier = max(
                 self.epsilon_multiplier * self.epsilon_improve_factor,
                 self.epsilon_multiplier_bounds[0],
             )
             old_decay = self.decay_multiplier
+            
+            # Reduce decay multiplier
             self.decay_multiplier = max(
                 self.decay_multiplier * self.decay_improve_factor,
                 self.decay_multiplier_bounds[0],
@@ -180,17 +185,23 @@ class RewardAwareEpsilonController:
                 "prev_epsilon_multiplier": old_multiplier,
                 "prev_decay_multiplier": old_decay,
             }
+
+        # Plateu (reward not improving): Focus on exploration incrising multipliers
         else:
             self.episodes_since_improvement += 1
             if self.episodes_since_improvement >= self.patience:
                 # Reward plateau: loosen multipliers to encourage exploration.
                 self.episodes_since_improvement = 0
                 old_multiplier = self.epsilon_multiplier
+
+                # Increment epsilon_multiplier
                 self.epsilon_multiplier = min(
                     self.epsilon_multiplier * self.epsilon_plateau_factor,
                     self.epsilon_multiplier_bounds[1],
                 )
                 old_decay = self.decay_multiplier
+
+                # Increment decay multiplier
                 self.decay_multiplier = min(
                     self.decay_multiplier * self.decay_plateau_factor,
                     self.decay_multiplier_bounds[1],
@@ -202,7 +213,10 @@ class RewardAwareEpsilonController:
                     "prev_epsilon_multiplier": old_multiplier,
                     "prev_decay_multiplier": old_decay,
                 }
+        # If the dictionary exists (meaning epsilon and its decay have been adjusted)
+        # add the extra detail (effective_decay_steps)
         if adjusted is not None:
+            # effective_decay_steps is passed to the linear decay function
             adjusted["effective_decay_steps"] = int(self.effective_decay_steps)
         return adjusted
 
@@ -248,7 +262,7 @@ def generate_training_plots(metrics_path: Path) -> None:
         plot_learning_rate(metrics_path, save_to=learning_rate_plot)
         lr_plot_saved = True
     except ValueError:
-        lr_plot_saved = False
+        lr_plot_saved = FalseDQNAgent
 
     q_plot_saved = False
     try:
@@ -279,6 +293,7 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
         cuda_name = torch.cuda.get_device_name(device_index)
         print(f"CUDA device: {cuda_name}")
 
+    # Iniztialize the enviroment
     env = CellSimEnv(
         max_dose=config.max_dose,
         max_wait=config.max_wait,
@@ -323,7 +338,10 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
     last_buffer_path = progress.last_buffer_path
     start_episode = progress.start_episode
 
+    # Beginning episode
     current_episode = start_episode
+    
+    # Create reward aware object
     epsilon_controller = RewardAwareEpsilonController(
         config.epsilon_start,
         config.epsilon_end,
@@ -341,6 +359,7 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
         epsilon_multiplier=config.reward_epsilon_multiplier,
         decay_multiplier=config.reward_decay_multiplier,
     )
+
     try:
         for episode in range(start_episode, config.episodes + 1):
             current_episode = episode
@@ -355,6 +374,7 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
             episode_initial_epsilon = None
             episode_losses: List[float] = []
 
+            # Beginning steps
             for _ in range(config.max_steps):
                 
                 # Decay exploration rate and sample an action from the agent policy.
@@ -362,43 +382,62 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
                 current_epsilon = epsilon_controller.value(total_steps)
                 if episode_initial_epsilon is None:
                     episode_initial_epsilon = current_epsilon
+
+                
+                # Select action
                 action_idx, action = agent.select_action(state, current_epsilon)
+                
+                # Step the enviroment
                 next_state, reward, terminated, truncated, info = env.step(action)
+                
+                # Check if done or truncated
                 done = terminated or truncated
 
                 # Push transition to replay buffer and trigger a learning step.
                 agent.store_transition(state, action_idx, reward, next_state, done)
 
+                # If replay buffer has enough samples, fetch a mini-batch, calculate Huber loss
+                # between current Q and target, updates policy network (backpropagation) and 
+                # periodically synchronizes the target network
                 loss = agent.update()
 
+                # Store loss and episode loss
                 if loss is not None:
                     losses.append(loss)
                     episode_losses.append(loss)
 
+                # Update state, reward counter and total step counter
                 state = next_state
                 episode_reward += reward
                 total_steps += 1
 
+                # If done, stop the episode
                 if done:
                     break
 
+            # If for some reason there were no steps
             if episode_initial_epsilon is None:
                 episode_initial_epsilon = current_epsilon
-
             episode_final_epsilon = current_epsilon
+            
+            # Loss mean of the episode
             avg_episode_loss = float(np.mean(episode_losses)) if episode_losses else math.nan
 
-            # Log the episode reward, outcome status, and rolling 10-episode reward/loss averages.
+            # Add episode reward to the globah history
             episode_rewards.append(episode_reward)
+            # Add end episode information
             info_str = "success" if info.get("successful", False) else "timeout" if info.get("timeout", False) else "failure"
+            
+            # Average rewards and loss of the last 10 episodes (reward/loss aware algoritm)
             avg_reward = float(np.mean(episode_rewards[-10:]))
             avg_loss = np.mean(losses[-10:]) if losses else math.nan
             
-            # Adapt the optimizer learning rate whenever the recent reward stalls or declines.
+            # Adapt the optimizer learning rate (reward aware algoritm)
             previous_lr = float(agent.optimizer.param_groups[0]["lr"])
             current_lr = agent.step_reward_scheduler(avg_reward)
             lr_reduced = current_lr < (previous_lr - 1e-12)
 
+            # Append all episode metrics
             episode_metrics.append(
                 {
                     "episode": episode,
@@ -410,15 +449,17 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
                 }
             )
 
-            # Feed the smoothed reward back into the epsilon controller to retune exploration pressure.
+            # Change epsilon and epsilon decay moltiplicator factor (reward aware algoritm)
             reward_adjustment = epsilon_controller.update(avg_reward)
 
+            # Print episode information
             print(
                 f"Episode {episode:04d} | steps: {total_steps:06d} | reward: {episode_reward:.3f} | "
                 f"avg10 reward: {avg_reward:.3f} | avg10 loss: {avg_loss:.5f} | lr: {current_lr:.6f} | "
                 f"eps: {current_epsilon:.3f} | {info_str}"
             )
 
+            # Print information of reduced learning rate
             if lr_reduced:
                 print(
                     f"    Learning rate reduced from {previous_lr:.6f} to {current_lr:.6f} after reward plateau/decrease."
@@ -442,9 +483,9 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
                     log_fp.write(
                         f"{episode},{total_steps},{reason},{new_eps_mult:.6f},{new_decay:.6f},{current_epsilon:.6f},{effective_steps}\n"
                     )
-
+            
+            # Periodically persist model, replay buffer, and metrics to disk.
             if config.save_episodes > 0 and (episode % config.save_episodes == 0 or episode == config.episodes):
-                # Periodically persist model, replay buffer, and metrics to disk.
                 is_final_episode = episode == config.episodes
                 checkpoint_path = (
                     agent_final_path if is_final_episode else checkpoint_path_for_episode(checkpoint_base_path, episode)
@@ -477,9 +518,9 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
                     f"{episode} -> model: {checkpoint_path}, buffer: {buffer_path}, metrics: {metrics_path}"
                 )
 
-        if metrics_path is None:
+        # Guarantee at least one final checkpoint even if periodic saves were disabled.
+        if metrics_path is None: # metrics_path is only set when saving a periodic checkpoint
             final_episode = config.episodes if config.episodes > 0 else 0
-            # Guarantee at least one final checkpoint even if periodic saves were disabled.
             checkpoint_path = agent_final_path
             checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
             agent.save(str(checkpoint_path))
@@ -508,22 +549,24 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
             print(f"Replay buffer saved to {buffer_path}")
             print(f"Episode metrics saved to {metrics_path}")
 
+        # Optionally evaluate the greedy policy after training completes.
         if config.eval_episodes > 0:
-            # Optionally evaluate the greedy policy after training completes.
             mean_reward, success_rate = evaluate_policy(agent, env, config.eval_episodes, config.max_steps)
             print(
                 f"Final evaluation -> mean reward: {mean_reward:.3f}, success rate: {success_rate:.2%}"
             )
 
+        # Generate visual summaries to help inspect training dynamics.
         if metrics_path is not None:
             try:
-                # Generate visual summaries to help inspect training dynamics.
                 generate_training_plots(metrics_path)
             except Exception as plot_error:  # pragma: no cover - best-effort plotting
                 print(f"Failed to generate training plots: {plot_error}")
 
+        # Mark the run as completed so future invocations avoid resuming incorrectly.
+        # Only if there are references to the last model and replay buffer checkpoints 
+        #(last_checkpoint_path and last_buffer_path are not None)
         if last_checkpoint_path is not None and last_buffer_path is not None:
-            # Mark the run as completed so future invocations avoid resuming incorrectly.
             persist_training_progress(
                 config,
                 config.episodes + 1,
@@ -537,6 +580,7 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
                 "completed",
             )
     
+    # Check keyboard input
     except KeyboardInterrupt:
         print("\nTraining interrupted by user. Saving pause checkpoint...")
         checkpoint_path, buffer_path = save_paused_progress(

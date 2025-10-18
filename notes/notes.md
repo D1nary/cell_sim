@@ -1311,4 +1311,96 @@ In altre parole:
 
 Nel nostri caso togliere i file __init__.py renderebbe gli import più verbosi e ti farebbe perdere le scorciatoie/export definiti ora; conviene tenerli finché vuoi mantenere questa interfaccia unica per il package.
 
-#
+## Reward aware
+Durante ogni episodio, dopo aver calcolato il reward medio (score), il controller esegue:
+
+Se il reward migliora → riduce epsilon_multiplier e decay_multiplier
+(meno esplorazione, più sfruttamento)
+
+Se il reward ristagna (plateau) → aumenta entrambi
+(più esplorazione, per uscire da un minimo locale)
+
+In entrambi i casi, costruisce un dizionario chiamato adjusted:
+```python
+adjusted = {
+    "reason": "improved" or "plateau",
+    "epsilon_multiplier": self.epsilon_multiplier,
+    "decay_multiplier": self.decay_multiplier,
+    "prev_epsilon_multiplier": old_multiplier,
+    "prev_decay_multiplier": old_decay,
+}
+```
+Se invece non è stato fatto alcun cambiamento (reward ancora iniziale o non significativo), adjusted rimane None.
+effective_decay_steps viene ottenuto tramite la seguente funzione:
+```python
+@property
+def effective_decay_steps(self) -> int:
+    """Return the current decay horizon incorporating reward-aware scaling."""
+    scaled = int(self.base_decay_steps * self.decay_multiplier)
+    return max(1, scaled)
+```
+Serve come parametro reale passato alla funzione di decadimento lineare:
+```pytohn
+base = linear_epsilon(step, self.epsilon_start, self.epsilon_end, self.effective_decay_steps)
+```
+
+base rappresenta il decadimento lineare di epsilon ed è influenzato dall'algoritmo reward aware poiche è calcolato con effective_decay_steps il quale è influenzato dall'algoritmo poichè è il prodotto base_decay_steps × decay_multiplier. 
+
+Per ottenere un comportamento completamente non-adattivo devi eliminare entrambi i canali di adattamento del controller:
+
+Velocità del decadimento
+– Non usare effective_decay_steps (che dipende da decay_multiplier).
+– Usa il valore fisso base_decay_steps nella linear_epsilon(...).
+
+Scala di ε
+– Non applicare la scala epsilon_multiplier.
+– In pratica, non calcolare scaled = self.epsilon_multiplier * base; restituisci solo base (clippato al minimo).
+
+In ogni episodio:
+1. Resetto ambinete
+2. Effettuo una nuova crescita
+3. Eseguo l'episodio finchè done == true
+4. Calcolo la media delle loss dell'episodio
+5. Cacolo l'average loss e reward su 10 episodi (reward aware algoritm)
+6. Calcolo il nuovo learning rate basato sul reward
+7. Salvo periodicamente i dati del modello
+
+
+In ogni step dell'episodio:
+1. Calcolo la current epsilon con value ()
+```python
+def value(self, step: int) -> float:
+    """Compute the exploration rate for the given global step."""
+    base = linear_epsilon(step, self.epsilon_start, self.epsilon_end, self.effective_decay_steps)
+    scaled = self.epsilon_multiplier * base
+    return float(np.clip(scaled, self.epsilon_end, self.epsilon_max_bump))
+```
+2. Scelgo azione
+3. Avanzo di uno step l'ambiente
+4. Controllo se l'ambiente è done
+5. Aggiungo transizione al replay buffer
+6. Calcolo loss e aggiorno policy e target network
+7. Salvo (in due liste) la loss e la loss dell'episodio corrente
+8. Aggiorno stato, reward e total step prima di iniziare il prossimo step
+
+
+
+ReduceLROnPlateau è uno scheduler di PyTorch che monitora una metrica (es. reward, loss) e riduce il learning rate quando quella metrica smette di migliorare. Funziona così: lo si istanzia passando l’optimizer e alcuni iperparametri; poi, ad ogni iterazione o episodio, si chiama scheduler.step(metric). Se la metrica non supera il “miglior valore” precedente secondo le soglie definite, lo scheduler abbassa il learning rate moltiplicandolo per un fattore specificato.
+
+Nel tuo codice viene creato nella classe DQNAgent (rein/agent/core/dqn_agent.py:55-67) con questi argomenti:
+
+optimizer: l’istanza di Adam da regolare.
+mode="max": la metrica deve crescere per essere considerata migliorata (se fosse "min", si aspetterebbe che diminuisca).
+factor=0.5: quando scatta la riduzione, il learning rate viene moltiplicato per 0.5 (cioè dimezzato).
+patience=0: quante chiamate consecutive senza miglioramento si tollerano prima di ridurre il LR; 0 significa “riduci subito al primo plateau”.
+threshold=1e-3: quanto il nuovo valore deve superare il best corrente per essere considerato un vero miglioramento (qui almeno 0.001 nel caso mode="max").
+threshold_mode="abs": il confronto con threshold è assoluto (best + threshold); l’alternativa "rel" userebbe percentuali.
+cooldown=0: episodi da aspettare dopo una riduzione prima di ricominciare a contare la pazienza; 0 significa nessun ritardo.
+min_lr=1e-6: limite inferiore oltre il quale il learning rate non scende più.
+verbose=False: se messo a True stamperebbe un messaggio ad ogni riduzione.
+Quindi, nel loop di training, agent.step_reward_scheduler(avg_reward) passa al ReduceLROnPlateau il reward medio e il LR viene abbassato automaticamente quando i reward non migliorano secondo quelle regole.
+
+La chiamata a persist_training_progress con stato "completed" in rein/agent/train/train.py:540 serializza il dizionario della run: la funzione, definita in rein/agent/train/training_state.py:112-139, passa quei dati a save_training_state. Quest’ultima (in rein/agent/train/save_io.py:92-99) scrive il file training_state.pt nella cartella config.save_agent_path, includendo il campo "status": "completed". Da lì le esecuzioni successive sanno che l’addestramento è terminato.
+
+Cosa succede se cerco di avviare con episodi già completati?
+Se riparti da una directory di salvataggio dove training_state.pt indica next_episode maggiore di config.episodes (cioè tutti gli episodi sono già stati completati), load_training_progress stampa “All configured episodes already completed; skipping training loop.” (rein/agent/train/training_state.py:100-107). In pratica la run non entra nel ciclo di training: i checkpoint esistenti restano invariati e il processo termina subito, evitando di sovrascrivere una run conclusa.

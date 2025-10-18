@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, Dict, Any
 
 @dataclass
 class AIConfig:
@@ -59,6 +59,18 @@ class AIConfig:
     reward_decay_plateau_factor: float = 1.12  # Extend decay on plateau
     reward_decay_improve_factor: float = 0.92  # Shorten decay on improvement
     reward_epsilon_max_bump_factor: float = 1.7  # Max epsilon boost factor
+
+# Reward aware lr
+REDUCE_LR_ON_PLATEAU_PARAMS: Dict[str, Any] = {
+    "mode": "max",
+    "factor": 0.5,
+    "patience": 0,
+    "threshold": 1e-3,
+    "threshold_mode": "abs",
+    "cooldown": 0,
+    "min_lr": 1e-6,
+    "verbose": False,
+}
 
 
 DEFAULT_CONFIG = AIConfig()
