@@ -1311,50 +1311,9 @@ In altre parole:
 
 Nel nostri caso togliere i file __init__.py renderebbe gli import più verbosi e ti farebbe perdere le scorciatoie/export definiti ora; conviene tenerli finché vuoi mantenere questa interfaccia unica per il package.
 
-## Reward aware
-Durante ogni episodio, dopo aver calcolato il reward medio (score), il controller esegue:
 
-Se il reward migliora → riduce epsilon_multiplier e decay_multiplier
-(meno esplorazione, più sfruttamento)
 
-Se il reward ristagna (plateau) → aumenta entrambi
-(più esplorazione, per uscire da un minimo locale)
-
-In entrambi i casi, costruisce un dizionario chiamato adjusted:
-```python
-adjusted = {
-    "reason": "improved" or "plateau",
-    "epsilon_multiplier": self.epsilon_multiplier,
-    "decay_multiplier": self.decay_multiplier,
-    "prev_epsilon_multiplier": old_multiplier,
-    "prev_decay_multiplier": old_decay,
-}
-```
-Se invece non è stato fatto alcun cambiamento (reward ancora iniziale o non significativo), adjusted rimane None.
-effective_decay_steps viene ottenuto tramite la seguente funzione:
-```python
-@property
-def effective_decay_steps(self) -> int:
-    """Return the current decay horizon incorporating reward-aware scaling."""
-    scaled = int(self.base_decay_steps * self.decay_multiplier)
-    return max(1, scaled)
-```
-Serve come parametro reale passato alla funzione di decadimento lineare:
-```pytohn
-base = linear_epsilon(step, self.epsilon_start, self.epsilon_end, self.effective_decay_steps)
-```
-
-base rappresenta il decadimento lineare di epsilon ed è influenzato dall'algoritmo reward aware poiche è calcolato con effective_decay_steps il quale è influenzato dall'algoritmo poichè è il prodotto base_decay_steps × decay_multiplier. 
-
-Per ottenere un comportamento completamente non-adattivo devi eliminare entrambi i canali di adattamento del controller:
-
-Velocità del decadimento
-– Non usare effective_decay_steps (che dipende da decay_multiplier).
-– Usa il valore fisso base_decay_steps nella linear_epsilon(...).
-
-Scala di ε
-– Non applicare la scala epsilon_multiplier.
-– In pratica, non calcolare scaled = self.epsilon_multiplier * base; restituisci solo base (clippato al minimo).
+## Training steps
 
 In ogni episodio:
 1. Resetto ambinete
@@ -1383,7 +1342,51 @@ def value(self, step: int) -> float:
 7. Salvo (in due liste) la loss e la loss dell'episodio corrente
 8. Aggiorno stato, reward e total step prima di iniziare il prossimo step
 
+## Reward aware algorithm
+Durante ogni singolo episodio, dopo aver calcolato il reward medio (score), il controller esegue:
 
+- Se il reward migliora → riduce epsilon_multiplier e decay_multiplier
+(meno esplorazione, più sfruttamento)
+- Se il reward ristagna (plateau) → aumenta entrambi
+(più esplorazione, per uscire da un minimo locale)
+
+In entrambi i casi, costruisce un dizionario chiamato adjusted:
+```python
+adjusted = {
+    "reason": "improved" or "plateau",
+    "epsilon_multiplier": self.epsilon_multiplier,
+    "decay_multiplier": self.decay_multiplier,
+    "prev_epsilon_multiplier": old_multiplier,
+    "prev_decay_multiplier": old_decay,
+}
+```
+Se invece non è stato fatto alcun cambiamento (reward ancora iniziale o non significativo), adjusted rimane None.
+
+---
+effective_decay_steps viene ottenuto tramite la seguente funzione:
+```python
+@property
+def effective_decay_steps(self) -> int:
+    """Return the current decay horizon incorporating reward-aware scaling."""
+    scaled = int(self.base_decay_steps * self.decay_multiplier)
+    return max(1, scaled)
+```
+Serve come parametro reale passato alla funzione di decadimento lineare:
+```pytohn
+base = linear_epsilon(step, self.epsilon_start, self.epsilon_end, self.effective_decay_steps)
+```
+
+base rappresenta il decadimento lineare di epsilon ed è influenzato dall'algoritmo reward aware poiche è calcolato con effective_decay_steps il quale è influenzato dall'algoritmo poichè è il prodotto base_decay_steps × decay_multiplier. 
+
+Per ottenere un comportamento completamente non-adattivo devi eliminare entrambi i canali di adattamento del controller:
+
+Velocità del decadimento
+– Non usare effective_decay_steps (che dipende da decay_multiplier).
+– Usa il valore fisso base_decay_steps nella linear_epsilon(...).
+
+Scala di ε
+– Non applicare la scala epsilon_multiplier.
+– In pratica, non calcolare scaled = self.epsilon_multiplier * base; restituisci solo base (clippato al minimo).
 
 ReduceLROnPlateau è uno scheduler di PyTorch che monitora una metrica (es. reward, loss) e riduce il learning rate quando quella metrica smette di migliorare. Funziona così: lo si istanzia passando l’optimizer e alcuni iperparametri; poi, ad ogni iterazione o episodio, si chiama scheduler.step(metric). Se la metrica non supera il “miglior valore” precedente secondo le soglie definite, lo scheduler abbassa il learning rate moltiplicandolo per un fattore specificato.
 

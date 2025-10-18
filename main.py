@@ -143,6 +143,12 @@ def parse_args() -> argparse.Namespace:
         default=default_config.resume_from,
         help="Override the checkpoint directory used when resuming",
     )
+    parser.add_argument(
+        "--reward-aware",
+        action=argparse.BooleanOptionalAction,
+        default=default_config.reward_aware_activator,
+        help="Enable reward-aware scheduling adjustments.",
+    )
 
     # Agent overrides
     parser.add_argument("--agent-gamma", type=float, default=default_config.gamma, help="Discount factor gamma")
@@ -262,6 +268,7 @@ def build_config(args: argparse.Namespace) -> AIConfig:
         save_episodes=args.save_episodes,
         resume=args.resume,
         resume_from=args.resume_from,
+        reward_aware_activator = args.reward_aware,
     )
 
 
@@ -328,6 +335,7 @@ def main() -> None:
         return
 
     config = build_config(args)
+    # setattr(config, "reward_aware", args.reward_aware)
     device = resolve_device(config.device)
 
     # Setup directory

@@ -47,6 +47,7 @@ class AIConfig:
     resume_from: Path | None = None  # Optional directory for the resume checkpoint
 
     # Reward Aware
+    reward_aware_activator = False # Reward aware activator
     reward_patience: int = 15  # Episodes without gains before easing exploration
     reward_min_delta_floor: float = 1.0  # Minimum absolute reward bump
     reward_min_delta_relative: float = 0.02  # Minimum relative reward bump
