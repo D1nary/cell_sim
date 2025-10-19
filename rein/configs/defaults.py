@@ -35,11 +35,11 @@ class AIConfig:
 
     growth_hours: int = 100  # Pre-episode growth duration
     max_steps: int = 2_000  # Max steps per episode
-    episode_timeout_hours: int = 1_800  # Simulated hours before declaring timeout
+    episode_timeout_hours: int = 1_500  # Simulated hours before declaring timeout
 
     epsilon_start: float = 1.0  # Initial exploration rate
     epsilon_end: float = 0.05  # Final exploration rate
-    epsilon_decay_steps: int = 6_000_000  # Steps to decay epsilon across 8k episodes
+    epsilon_decay_steps: int = 6_00_000  # Steps to decay epsilon across 8k episodes
     save_agent_path: Path = Path("results/dqn_agent")  # Checkpoint directory
     eval_episodes: int = 10  # Greedy evaluation episodes
     save_episodes: int = 100  # Episode interval for checkpoints
