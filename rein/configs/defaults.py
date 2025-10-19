@@ -42,7 +42,7 @@ class AIConfig:
     epsilon_decay_steps: int = 6_00_000  # Steps to decay epsilon across 8k episodes
     save_agent_path: Path = Path("results/dqn_agent")  # Checkpoint directory
     eval_episodes: int = 10  # Greedy evaluation episodes
-    save_episodes: int = 100  # Episode interval for checkpoints
+    save_episodes: int = 10  # Episode interval for checkpoints
 
     resume: bool = False  # Whether to resume training from disk
     resume_from: Path | None = None  # Optional directory for the resume checkpoint

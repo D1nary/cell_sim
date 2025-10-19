@@ -26,6 +26,7 @@ __all__ = [
     "load_replay_buffer_checkpoint",
     "serialise_config",
     "save_training_config",
+    "append_episode_metrics",
     "save_episode_metrics",
     "save_training_state",
     "load_training_state",
@@ -47,7 +48,7 @@ def checkpoint_path_for_episode(base_path: Path, episode: int) -> Path:
     if stem in {"", ".", ".."}:
         stem = "checkpoint"
 
-    return directory / f"{stem}_ep{episode:04d}{suffix}"
+    return directory / f"{stem}_ep{episode}{suffix}"
 
 
 def final_checkpoint_path(base_path: Path, final_stem: str) -> Path:
@@ -148,31 +149,45 @@ def save_training_config(config: "AIConfig", base_dir: Path) -> Path:
     return config_path
 
 
+_METRICS_FIELDNAMES: List[str] = [
+    "episode",
+    "reward",
+    "epsilon_start",
+    "epsilon_end",
+    "mean_loss",
+    "learning_rate",
+    "elapsed_hours",
+    "timeout",
+    "successful",
+    "unsuccessful",
+    "total_dose",
+    "steps",
+    "updates",
+]
+
+
+def append_episode_metrics(log_path: Path, metrics: Iterable[dict]) -> Path:
+    """Append per-episode statistics to a CSV file, creating it with a header if missing."""
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    file_exists = log_path.exists() and log_path.stat().st_size > 0
+    with log_path.open("a", newline="") as fp:
+        writer = csv.DictWriter(fp, fieldnames=_METRICS_FIELDNAMES)
+        if not file_exists:
+            writer.writeheader()
+        for entry in metrics:
+            writer.writerow({field: entry.get(field) for field in _METRICS_FIELDNAMES})
+    return log_path
+
+
 def save_episode_metrics(save_path: Path, metrics: List[dict]) -> Path:
-    """Persist per-episode statistics to a CSV next to the model checkpoint."""
-    metrics_path = save_path.with_name(f"{save_path.stem}_metrics.csv")
-    with metrics_path.open("w", newline="") as fp:
-        writer = csv.DictWriter(
-            fp,
-            fieldnames=[
-                "episode",
-                "reward",
-                "epsilon_start",
-                "epsilon_end",
-                "mean_loss",
-                "learning_rate",
-                "elapsed_hours",
-                "timeout",
-                "successful",
-                "unsuccessful",
-                "total_dose",
-                "steps",
-                "updates",
-            ],
-        )
-        writer.writeheader()
-        writer.writerows(metrics)
-    return metrics_path
+    """Persist per-episode statistics into a CSV log file."""
+    # Preserve backward compatibility: if a CSV file path is passed, use it directly.
+    if save_path.suffix == ".csv":
+        log_path = save_path
+    else:
+        # Default to a consolidated training log next to the checkpoint root.
+        log_path = save_path.parent.parent / "training_log.csv"
+    return append_episode_metrics(log_path, metrics)
 
 
 def save_training_state(base_dir: Path, state: Dict[str, Any]) -> Path:

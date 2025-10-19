@@ -16,6 +16,7 @@ from .training_state import (
     save_paused_progress,
 )
 from .save_io import (
+    append_episode_metrics,
     checkpoint_path_for_episode,
     final_checkpoint_path,
     load_replay_buffer_checkpoint,
@@ -39,6 +40,7 @@ __all__ = [
     "load_training_progress",
     "persist_training_progress",
     "save_paused_progress",
+    "append_episode_metrics",
     "checkpoint_path_for_episode",
     "final_checkpoint_path",
     "load_replay_buffer_checkpoint",

@@ -21,7 +21,7 @@ from ..metrics.plot_metrics import (
 from .save_io import (
     checkpoint_path_for_episode,
     final_checkpoint_path,
-    save_episode_metrics,
+    append_episode_metrics,
     save_replay_buffer_checkpoint,
     save_training_config,
 )
@@ -35,6 +35,10 @@ from ...configs.defaults import DEFAULT_CONFIG
 
 if TYPE_CHECKING:  # pragma: no cover
     from ...configs import AIConfig
+
+
+CHECKPOINT_INTERVAL = 10
+METRICS_LOG_NAME = "training_log.csv"
 
 
 def resolve_device(device_flag: str) -> torch.device:
@@ -307,8 +311,8 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
 
     # Assemble agent and checkpoint bookkeeping paths.
     agent = DQNAgent(state_dim, discrete_actions, device, config)
-    checkpoint_base_path = config.save_agent_path / "agent" / "dqn_agent.pt"
-    buffer_base_path = config.save_agent_path / "buffer" / "replay_buffer.pt"
+    checkpoint_base_path = config.save_agent_path / "checkpoints" / "agent" / "agent_checkpoint.pt"
+    buffer_base_path = config.save_agent_path / "checkpoints" / "replay_buffer" / "replay_buffer_checkpoint.pt"
     agent_final_path = final_checkpoint_path(checkpoint_base_path, "agent_final")
     buffer_final_path = final_checkpoint_path(buffer_base_path, "replay_buffer_final")
     paused_agent_path = final_checkpoint_path(checkpoint_base_path, "agent_paused")
@@ -338,7 +342,13 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
     episode_rewards = progress.episode_rewards if progress.episode_rewards is not None else []
     losses = progress.losses if progress.losses is not None else []
     episode_metrics = progress.episode_metrics if progress.episode_metrics is not None else []
-    metrics_path = progress.metrics_path
+    if getattr(config, "resume", False):
+        metrics_log_path = progress.metrics_path or (config.save_agent_path / METRICS_LOG_NAME)
+    else:
+        metrics_log_path = config.save_agent_path / METRICS_LOG_NAME
+        if metrics_log_path.exists():
+            metrics_log_path.unlink()
+    metrics_path: Optional[Path] = metrics_log_path if metrics_log_path.exists() else None
     last_checkpoint_path = progress.last_checkpoint_path
     last_buffer_path = progress.last_buffer_path
     start_episode = progress.start_episode
@@ -485,6 +495,7 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
                     "updates": updates_this_episode,
                 }
             )
+            metrics_path = append_episode_metrics(metrics_log_path, (episode_metrics[-1],))
 
             # Change epsilon and epsilon decay moltiplication factor (reward aware algoritm)
             reward_adjustment = (
@@ -525,7 +536,8 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
                     )
             
             # Periodically persist model, replay buffer, and metrics to disk.
-            if config.save_episodes > 0 and (episode % config.save_episodes == 0 or episode == config.episodes):
+            should_save_checkpoint = (episode % CHECKPOINT_INTERVAL == 0) or episode == config.episodes
+            if should_save_checkpoint:
                 is_final_episode = episode == config.episodes
                 checkpoint_path = (
                     agent_final_path if is_final_episode else checkpoint_path_for_episode(checkpoint_base_path, episode)
@@ -538,7 +550,8 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
                     episode,
                     final_path=buffer_final_path if is_final_episode else None,
                 )
-                metrics_path = save_episode_metrics(checkpoint_path, episode_metrics)
+                if metrics_path is None:
+                    metrics_path = metrics_log_path
                 last_checkpoint_path = checkpoint_path
                 last_buffer_path = buffer_path
                 persist_training_progress(
@@ -555,7 +568,7 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
                 )
                 print(
                     "Checkpoint saved at episode "
-                    f"{episode} -> model: {checkpoint_path}, buffer: {buffer_path}, metrics: {metrics_path}"
+                    f"{episode} -> model: {checkpoint_path}, buffer: {buffer_path}, metrics log: {metrics_log_path}"
                 )
 
         # Guarantee at least one final checkpoint even if periodic saves were disabled.
@@ -570,7 +583,10 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
                 final_episode,
                 final_path=buffer_final_path,
             )
-            metrics_path = save_episode_metrics(checkpoint_path, episode_metrics)
+            if episode_metrics:
+                metrics_path = append_episode_metrics(metrics_log_path, episode_metrics)
+            else:
+                metrics_path = metrics_log_path if metrics_log_path.exists() else None
             last_checkpoint_path = checkpoint_path
             last_buffer_path = buffer_path
             persist_training_progress(
@@ -587,7 +603,7 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
             )
             print(f"Model saved to {checkpoint_path}")
             print(f"Replay buffer saved to {buffer_path}")
-            print(f"Episode metrics saved to {metrics_path}")
+            print(f"Episode metrics appended to {metrics_log_path}")
 
         # Optionally evaluate the greedy policy after training completes.
         if config.eval_episodes > 0:
