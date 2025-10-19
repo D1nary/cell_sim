@@ -3,6 +3,7 @@
   "python.analysis.diagnosticSeverityOverrides": {
     "reportUndefinedVariable": "none",
     "reportGeneralTypeIssues": "none",
-    "reportCallIssue": "none"
+    "reportCallIssue": "none",
+    "reportArgumentType": "none"
   }
 }

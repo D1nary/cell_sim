@@ -6,12 +6,13 @@ environment for controllin radiation treatment.
 
 from __future__ import annotations
 
-import gymnasium as gym
 import copy
+import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 
 from rein import cell_sim
+from rein.configs.defaults import DEFAULT_CONFIG
 
 from .reward import reward_kd, terminal_reward_kd
 
@@ -87,6 +88,7 @@ class CellSimEnv(gym.Env):
         self.max_dose = float(max_dose)
         self.min_wait = int(min_wait)
         self.max_wait = int(max_wait)
+        self.episode_timeout_hours = int(DEFAULT_CONFIG.episode_timeout_hours)
 
         # Tracks cumulative simulated hours to detect timeout
         self.elapsed_hours = 0
@@ -198,7 +200,7 @@ class CellSimEnv(gym.Env):
         # Evaluate raw flags first
         _successful = bool(cancer == 0)
         _unsuccessful = bool(healthy <= 10)
-        _timeout = bool(self.elapsed_hours >= 1200)
+        _timeout = bool(self.elapsed_hours >= self.episode_timeout_hours)
 
         # Enforce mutually-exclusive terminal reason, prioritizing success, then failure
         if _successful:
@@ -238,6 +240,7 @@ class CellSimEnv(gym.Env):
             "unsuccessful": unsuccessful,
             "timeout": timeout,
             "elapsed_hours": self.elapsed_hours,
+            "total_dose": float(self.total_dose),
         }
 
         # Update previous counts for next step

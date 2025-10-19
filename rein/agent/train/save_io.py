@@ -154,7 +154,21 @@ def save_episode_metrics(save_path: Path, metrics: List[dict]) -> Path:
     with metrics_path.open("w", newline="") as fp:
         writer = csv.DictWriter(
             fp,
-            fieldnames=["episode", "reward", "epsilon_start", "epsilon_end", "mean_loss", "learning_rate"],
+            fieldnames=[
+                "episode",
+                "reward",
+                "epsilon_start",
+                "epsilon_end",
+                "mean_loss",
+                "learning_rate",
+                "elapsed_hours",
+                "timeout",
+                "successful",
+                "unsuccessful",
+                "total_dose",
+                "steps",
+                "updates",
+            ],
         )
         writer.writeheader()
         writer.writerows(metrics)

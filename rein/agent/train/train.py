@@ -380,10 +380,12 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
 
             episode_initial_epsilon = None
             episode_losses: List[float] = []
+            episode_step_count = 0
+            updates_this_episode = 0
 
             # Beginning steps
             for _ in range(config.max_steps):
-                
+
                 # Decay exploration rate and sample an action from the agent policy.
                 if use_reward_aware and epsilon_controller is not None:
                     # Reward-aware controller stretches/shrinks epsilon in response to performance trends.
@@ -420,11 +422,13 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
                 if loss is not None:
                     losses.append(loss)
                     episode_losses.append(loss)
+                    updates_this_episode += 1
 
                 # Update state, reward counter and total step counter
                 state = next_state
                 episode_reward += reward
                 total_steps += 1
+                episode_step_count += 1
 
                 # If done, stop the episode
                 if done:
@@ -442,11 +446,18 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
             episode_rewards.append(episode_reward)
             # Add end episode information
             info_str = "success" if info.get("successful", False) else "timeout" if info.get("timeout", False) else "failure"
-            
+
             # Average rewards and loss of the last 10 episodes (reward/loss aware algoritm)
             avg_reward = float(np.mean(episode_rewards[-10:]))
             avg_loss = np.mean(losses[-10:]) if losses else math.nan
-            
+
+            # Episode information
+            episode_elapsed_hours = float(info.get("elapsed_hours", getattr(env, "elapsed_hours", 0)))
+            episode_total_dose = float(info.get("total_dose", getattr(env, "total_dose", 0.0)))
+            episode_timeout = bool(info.get("timeout", False))
+            episode_successful = bool(info.get("successful", False))
+            episode_unsuccessful = bool(info.get("unsuccessful", False))
+
             # Adapt the optimizer learning rate only when reward-aware scheduling is enabled.
             previous_lr = float(agent.optimizer.param_groups[0]["lr"])
             if use_reward_aware:
@@ -465,6 +476,13 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
                     "epsilon_end": episode_final_epsilon,
                     "mean_loss": avg_episode_loss,
                     "learning_rate": current_lr,
+                    "elapsed_hours": episode_elapsed_hours,
+                    "timeout": episode_timeout,
+                    "successful": episode_successful,
+                    "unsuccessful": episode_unsuccessful,
+                    "total_dose": episode_total_dose,
+                    "steps": episode_step_count,
+                    "updates": updates_this_episode,
                 }
             )
 
@@ -475,9 +493,10 @@ def run_training(config: "AIConfig", device: torch.device) -> None:
 
             # Print episode information
             print(
-                f"Episode {episode:04d} | steps: {total_steps:06d} | reward: {episode_reward:.3f} | "
-                f"avg10 reward: {avg_reward:.3f} | avg10 loss: {avg_loss:.5f} | lr: {current_lr:.6f} | "
-                f"eps: {current_epsilon:.3f} | {info_str}"
+                f"Episode {episode:04d} | steps: {total_steps:06d} | ep_steps: {episode_step_count:04d} | updates: {updates_this_episode:03d} | "
+                f"reward: {episode_reward:.3f} | avg10 reward: {avg_reward:.3f} | avg10 loss: {avg_loss:.5f} | "
+                f"lr: {current_lr:.6f} | eps: {current_epsilon:.3f} | elapsed_h: {episode_elapsed_hours:04.0f} | "
+                f"dose: {episode_total_dose:.2f} | {info_str}"
             )
 
             # Print information of reduced learning rate

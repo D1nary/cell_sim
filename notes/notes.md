@@ -1407,3 +1407,10 @@ La chiamata a persist_training_progress con stato "completed" in rein/agent/trai
 
 Cosa succede se cerco di avviare con episodi già completati?
 Se riparti da una directory di salvataggio dove training_state.pt indica next_episode maggiore di config.episodes (cioè tutti gli episodi sono già stati completati), load_training_progress stampa “All configured episodes already completed; skipping training loop.” (rein/agent/train/training_state.py:100-107). In pratica la run non entra nel ciclo di training: i checkpoint esistenti restano invariati e il processo termina subito, evitando di sovrascrivere una run conclusa.
+
+---
+elapsed_hours: è il contatore interno dell’ambiente che accumula il numero totale di ore simulate dall’inizio dell’episodio.
+max_steps: è il limite massimo di interazioni agent‑ambiente per episodio
+
+In Episode 0180 | steps: 008916 | reward: -0.844 | avg10 reward: -1.011 | avg10 loss: nan | lr: 0.000300 | eps: 0.999 | timeout
+steps indica il totale di interazioni agente-ambiente eseguite fino a quel momento di training, non solo nell’episodio corrente. È il contatore total_steps che cresce ogni volta che viene eseguito un env.step(...)
