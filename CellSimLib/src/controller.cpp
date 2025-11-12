@@ -37,7 +37,12 @@ Controller::Controller(int xsize, int ysize, int zsize, int sources_num,
    tick(0),
    oar(nullptr)
 {
-    int*** noFilledGrid;
+    int*** noFilledGrid = nullptr;
+    
+    // Random grid selecter: if TRUE the grid is composed of ccells cancer cell at the center
+    // and hcells in random position
+    bool random_grid = true;
+
     // Reset the cell counters
     HealthyCell::count = 0;
     CancerCell::count = 0;
@@ -45,11 +50,14 @@ Controller::Controller(int xsize, int ysize, int zsize, int sources_num,
     
     vector<vector<int>> tempCounts;
 
-    // Create grid with 1, 0, -1
-    noFilledGrid = grid_creation(cradius, hradius);
+    // Create grid with 1, 0, -1 only when random_grid is disabled
+    if (!random_grid) {
+        noFilledGrid = grid_creation(cradius, hradius);
+    }
 
-    // Fill the Grid object with helthy and cancer cells
+    // Fill the Grid object with healthy and cancer cells
     fill_grid(hcells, ccells, noFilledGrid);
+
 
 }
 
@@ -156,30 +164,53 @@ Grid* Controller::fill_grid(int hcells, int ccells, int*** noFilledGrid) {
     // Arrays of possible initial states for healthy and cancerous cells  
     char healthy_stages[5] = {'1', 's', '2', 'm', 'q'};
     char cancer_stages[4]  = {'1', 's', '2', 'm'};
-    
-    // Iterate over all voxels in the grid (order: [z][x][y])  
-    for (int k = 0; k < zsize; k++) {
-        for (int i = 0; i < xsize; i++) {
-            for (int j = 0; j < ysize; j++) {
-                int cellValue = noFilledGrid[k][i][j];
-                // If the voxel has value 1 or -1, add hcells healthy cells with a random state  
-                if (cellValue == 1 || cellValue == -1) {
-                    for (int h = 0; h < hcells; h++) {
-                        grid->addCell(i, j, k, new HealthyCell(healthy_stages[rand() % 5]), 'h');
+
+    // fill the grid based on noFilledGrid configuration (if random_grid = true)
+    if (noFilledGrid){
+        // Iterate over all voxels in the grid (order: [z][x][y])  
+        for (int k = 0; k < zsize; k++) {
+            for (int i = 0; i < xsize; i++) {
+                for (int j = 0; j < ysize; j++) {
+                    int cellValue = noFilledGrid[k][i][j];
+                    // If the voxel has value 1 or -1, add hcells healthy cells with a random state  
+                    if (cellValue == 1 || cellValue == -1) {
+                        for (int h = 0; h < hcells; h++) {
+                            grid->addCell(i, j, k, new HealthyCell(healthy_stages[rand() % 5]), 'h');
+                        }
                     }
-                }
-                // If the voxel has value -1, also add ccells cancerous cells with a random state  
-                if (cellValue == -1) {
-                    for (int c = 0; c < ccells; c++) {
-                        grid->addCell(i, j, k, new CancerCell(cancer_stages[rand() % 4]), 'c');
+                    // If the voxel has value -1, also add ccells cancerous cells with a random state  
+                    if (cellValue == -1) {
+                        for (int c = 0; c < ccells; c++) {
+                            grid->addCell(i, j, k, new CancerCell(cancer_stages[rand() % 4]), 'c');
+                        }
                     }
                 }
             }
         }
+
+        // Deallocate the noFilledGrid matrix, since it is no longer needed  
+        deallocateNoFilledGrid(noFilledGrid);
     }
-    
-    // Deallocate the noFilledGrid matrix, since it is no longer needed  
-    deallocateNoFilledGrid(noFilledGrid);
+
+    // fill the grid with ccells cancerous cells at the center and random healthy cells
+    else{
+        int centerX = xsize / 2;
+        int centerY = ysize / 2;
+        int centerZ = zsize / 2;
+
+        for (int c = 0; c < ccells; c++) {
+            grid->addCell(centerX, centerY, centerZ,
+                          new CancerCell(cancer_stages[rand() % 4]), 'c');
+        }
+
+        for (int h = 0; h < hcells; h++) {
+            int randX = rand() % xsize;
+            int randY = rand() % ysize;
+            int randZ = rand() % zsize;
+            grid->addCell(randX, randY, randZ,
+                          new HealthyCell(healthy_stages[rand() % 5]), 'h');
+        }
+    }
     
     return grid;
 }

@@ -35,7 +35,7 @@ class AIConfig:
 
     growth_hours: int = 100  # Pre-episode growth duration
     max_steps: int = 2_000  # Max steps per episode
-    episode_timeout_hours: int = 1_500  # Simulated hours before declaring timeout
+    episode_timeout_hours: int = 1_600  # Simulated hours before declaring timeout
 
     epsilon_start: float = 1.0  # Initial exploration rate
     epsilon_end: float = 0.05  # Final exploration rate
@@ -61,6 +61,16 @@ class AIConfig:
     reward_decay_plateau_factor: float = 1.12  # Extend decay on plateau
     reward_decay_improve_factor: float = 0.92  # Shorten decay on improvement
     reward_epsilon_max_bump_factor: float = 1.7  # Max epsilon boost factor
+
+    # Grid defaults
+    xsize: int = 21
+    ysize: int = 21
+    zsize: int = 21
+    sources_num: int = 20
+    cradius: float = 2.0
+    hradius: float = 4.0
+    hcells: int = 1_000
+    ccells: int = 1
 
 # Reward aware lr
 REDUCE_LR_ON_PLATEAU_PARAMS: Dict[str, Any] = {

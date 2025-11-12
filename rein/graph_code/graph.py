@@ -234,22 +234,24 @@ num_hour_g = 150
 divisor_g = 4
 intervals_g = get_intervals(num_hour_g, divisor_g)
 
-# print("GROWTH GRAPHS")
-# 
+print("GROWTH GRAPHS")
+
 # Cells number graph
-print ("Plotting cell counter graphs:")
-cells_num("cell_counts_gr.txt", path_in_num, dir_out_sum)
-print("\n")
+# print ("Plotting cell counter graphs:")
+# cells_num("cell_counts_gr.txt", path_in_num, dir_out_sum)
+# print("\n")
 
 # 2D Graphs
 print ("Plotting 2D graphs:")
 plot_2d(xsize,ysize,zsize,layers, intervals_g, path_in_tab_growth, dir_out_2d_growth)
 print("\n")
-# 
+
 # 3D Graphs
 print ("Plotting 3D graphs:")
 plot_3d(xsize, ysize, zsize, intervals_g, path_in_tab_growth, dir_out_3d_growth) 
 print("\n")
+
+'''
 
 # --- THERAPHY ---
 
@@ -273,8 +275,9 @@ print("\n")
 print ("Plotting 2D graphs:")
 plot_2d(xsize, ysize, zsize, layers, intervals_t, path_in_tab_treat, dir_out_2d_therapy)
 print("\n")
-# 
+
 # # 3D Graphs
 print ("Plotting 3D graphs:")
 plot_3d(xsize, ysize, zsize, intervals_t, path_in_tab_treat, dir_out_3d_therapy)
 print("\n")
+'''

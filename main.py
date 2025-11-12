@@ -28,6 +28,8 @@ from rein.agent.metrics import (
 from rein.env.rl_env import CellSimEnv
 from rein.configs import AIConfig
 
+from rein.cell_sim import Controller
+
 # --- Create the directories ---
 def create_directories(paths):
     for p in paths:
@@ -149,6 +151,29 @@ def parse_args() -> argparse.Namespace:
         default=default_config.reward_aware_activator,
         help="Enable reward-aware scheduling adjustments.",
     )
+    parser.add_argument("--xsize", type=int, default=default_config.xsize, help="Grid size along X axis")
+    parser.add_argument("--ysize", type=int, default=default_config.ysize, help="Grid size along Y axis")
+    parser.add_argument("--zsize", type=int, default=default_config.zsize, help="Grid size along Z axis")
+    parser.add_argument(
+        "--sources-num",
+        type=int,
+        default=default_config.sources_num,
+        help="Number of nutrient sources placed in the grid",
+    )
+    parser.add_argument("--cradius", type=float, default=default_config.cradius, help="Initial cancer radius")
+    parser.add_argument("--hradius", type=float, default=default_config.hradius, help="Initial healthy radius")
+    parser.add_argument(
+        "--hcells",
+        type=int,
+        default=default_config.hcells,
+        help="Number of healthy cells used to seed the grid",
+    )
+    parser.add_argument(
+        "--ccells",
+        type=int,
+        default=default_config.ccells,
+        help="Number of cancer cells placed at initialization",
+    )
 
     # Agent overrides
     parser.add_argument("--agent-gamma", type=float, default=default_config.gamma, help="Discount factor gamma")
@@ -268,7 +293,15 @@ def build_config(args: argparse.Namespace) -> AIConfig:
         save_episodes=args.save_episodes,
         resume=args.resume,
         resume_from=args.resume_from,
-        reward_aware_activator = args.reward_aware,
+        reward_aware_activator=args.reward_aware,
+        xsize=args.xsize,
+        ysize=args.ysize,
+        zsize=args.zsize,
+        sources_num=args.sources_num,
+        cradius=args.cradius,
+        hradius=args.hradius,
+        hcells=args.hcells,
+        ccells=args.ccells,
     )
 
 
@@ -347,8 +380,6 @@ def main() -> None:
     data_tab_growth = data_tab / "growth"
     data_tab_tr = data_tab / "therapy"
     res_agent_parent = config.save_agent_path
-    res_agent = res_agent_parent / "agent"
-    res_buffer = res_agent_parent / "buffer"
     paths = [
         res_path,
         data_path,
@@ -357,15 +388,45 @@ def main() -> None:
         data_tab_tr,
         data_path / "cell_num",
         res_agent_parent,
-        res_agent,
-        res_buffer,
     ]
 
     # Directory cration
     create_directories(paths)
 
+    '''
+    TEST NEW GRID CREATION (AS 2D MODEL)
+    '''
+
+    ctrl = Controller(
+        config.xsize,
+        config.ysize,
+        config.zsize,
+        config.sources_num,
+        config.cradius,
+        config.hradius,
+        config.hcells,
+        config.ccells,
+    )
+    print(ctrl.get_cell_counts())
+
+    # Save initial grid snapshot to data_tab_growth
+    initial_intervals = [0]
+    initial_filenames = [f"t{t}_gd.txt" for t in initial_intervals]
+    ctrl.temp_data_tab()
+    ctrl.save_data_tab(
+        str(data_tab_growth),
+        initial_filenames,
+        initial_intervals,
+        len(initial_intervals),
+    )
+    exit(0)
+
+    # ANCHE CON LO STESSO SEED, OGNI VOLTA CHE LANCIA MAIN.PY VENGONO GENERATE NUOVE POSIZ PER
+    # LE CELLULE. NON DOVREBBERO ESSERE LE STESSE SICCOME IL SEED NON CAMBIA?
+
+
     # Training
-    run_training(config, device)
+    # run_training(config, device)
 
 
     # try:j
